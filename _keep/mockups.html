@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* Dark mode: bg-dark.png (near-black with deep blue center). No scrim — image shines through. */
+  [data-theme="dark"] {
+    --bg-img:      url('bg-dark.png');
+    --line:        rgba(242, 244, 243, 0.14);
+    --line-2:      rgba(242, 244, 243, 0.26);
+    --panel:       rgba(8, 14, 28, 0.34);
+    --panel-strong:rgba(4, 10, 22, 0.60);
+    --panel-border:rgba(242, 244, 243, 0.16);
+    --accent:      #64FFB1;
+    --accent-press:#4CD89A;
+    --accent-soft: rgba(100, 255, 177, 0.16);
+    --g-1000:      #F2F4F3;
+    --g-900:       #C8D0CD;
+    --g-700:       #92A09A;
+    --g-500:       #5F6E68;
+    --amber:       #E6B85C;
+    --ease:        cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    color-scheme: dark;
+  }
+  /* Light mode: bg.png (bright landscape). No scrim — teal text directly on bright image. */
+  [data-theme="light"] {
+    --bg-img:      url('bg.png');
+    --line:        rgba(21, 48, 47, 0.22);
+    --line-2:      rgba(21, 48, 47, 0.36);
+    --panel:       rgba(255, 253, 248, 0.30);
+    --panel-strong:rgba(255, 253, 248, 0.54);
+    --panel-border:rgba(21, 48, 47, 0.24);
+    --accent:      #1D6E5A;
+    --accent-press:#15553F;
+    --accent-soft: rgba(29, 110, 90, 0.16);
+    --g-1000:      #102A28;
+    --g-900:       #244843;
+    --g-700:       #5A706C;
+    --g-500:       #8A9C97;
+    --amber:       #B5812A;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100dvh; overflow: hidden; }
+  body {
+    color: var(--g-1000);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column;
+  }
+  .serif { font-family: 'Instrument Serif', 'Times New Roman', serif; font-weight: 400; letter-spacing: -0.04em; }
+
+  /* ---------- background image + scrim ---------- */
+  .bg {
+    position: fixed; inset: 0; z-index: -2;
+    background-image: var(--bg-img);
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.02);
+    transition: background-image 0ms;
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+  }
+  .topbar .wordmark { font-size: 24px; letter-spacing: -0.03em; cursor: pointer; }
+  .topbar .wordmark .dot { color: var(--accent); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .kbd {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--g-700);
+    border: 1px solid var(--line-2); border-radius: 6px;
+    padding: 4px 8px;
+    background: var(--panel);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .theme-toggle {
+    width: 30px; height: 30px; border-radius: 9999px;
+    border: 1px solid var(--line-2); background: var(--panel);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    color: var(--g-900); cursor: pointer;
+    display: grid; place-items: center;
+    transition: transform 150ms var(--ease), color 150ms;
+  }
+  .theme-toggle:hover { color: var(--g-1000); transform: scale(1.06); }
+  .theme-toggle svg { width: 15px; height: 15px; }
+  [data-theme="dark"] .icon-sun { display: block; } [data-theme="dark"] .icon-moon { display: none; }
+  [data-theme="light"] .icon-sun { display: none; } [data-theme="light"] .icon-moon { display: block; }
+
+  /* ---------- dashboard layout (priority top, columns below, no scroll) ---------- */
+  .dashboard {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    padding: 0 28px 20px;
+    max-width: 1700px; margin: 0 auto; width: 100%;
+  }
+
+  /* priority inbox */
+  .priority-section {
+    flex: 0 0 auto;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    background: var(--panel);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    box-shadow: 0 12px 40px -20px rgba(0,0,0,0.5);
+    margin-bottom: 18px;
+  }
+  .priority-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .priority-head .label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--g-700);
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .priority-head .label .dot {
+    width: 6px; height: 6px; border-radius: 9999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .priority-head .hide {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--g-700); cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color 150ms;
+  }
+  .priority-head .hide:hover { color: var(--g-1000); }
+  .priority-list {
+    display: flex; gap: 10px; overflow-x: auto;
+    padding-bottom: 4px; scroll-snap-type: x mandatory;
+  }
+  .priority-list::-webkit-scrollbar { height: 4px; }
+  .priority-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 9999px; }
+  .priority-list.collapsed { display: none; }
+
+  .pcard {
+    flex: 0 0 248px;
+    scroll-snap-align: start;
+    padding: 13px 15px;
+    border-radius: 10px;
+    background: var(--panel-strong);
+    border: 1px solid var(--panel-border);
+    cursor: pointer;
+    transition: background 150ms var(--ease), border-color 150ms, transform 150ms var(--ease);
+  }
+  .pcard:hover {
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    transform: translateY(-2px);
+  }
+  .pcard .meta {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--g-700); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pcard .meta .urg {
+    color: var(--accent);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pcard .meta .urg::before {
+    content: ''; width: 5px; height: 5px; border-radius: 9999px; background: var(--accent);
+  }
+  .pcard .meta .urg.high { color: var(--amber); }
+  .pcard .meta .urg.high::before { background: var(--amber); }
+  .pcard .meta .urg.medium { color: var(--g-900); }
+  .pcard .meta .urg.medium::before { background: var(--g-700); }
+  .pcard .meta .sep { opacity: 0.4; }
+  .pcard .title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px; line-height: 1.18; letter-spacing: -0.02em;
+    color: var(--g-1000);
+  }
+  .pcard .proj {
+    margin-top: 5px;
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--g-700);
+  }
+
+  /* ---------- columns wrapper ---------- */
+  .columns-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .columns-head {
+    flex: 0 0 auto;
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 12px; padding: 0 4px;
+  }
+  .columns-head .label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--g-700);
+  }
+  .columns-head .add-proj {
+    font-family: 'Instrument Serif', serif; font-style: italic;
+    font-size: 17px; color: var(--g-700); cursor: pointer;
+    transition: color 150ms;
+  }
+  .columns-head .add-proj:hover { color: var(--accent); }
+  .columns {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(280px, 1fr);
+    gap: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 2px 4px;
+    scroll-snap-type: x proximity;
+  }
+  .columns::-webkit-scrollbar { height: 4px; }
+  .columns::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 9999px; }
+
+  .column {
+    scroll-snap-align: start;
+    display: flex; flex-direction: column;
+    min-height: 0;
+    padding: 16px;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    box-shadow: 0 12px 40px -22px rgba(0,0,0,0.55);
+  }
+  .column-head {
+    flex: 0 0 auto;
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 12px; margin-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .column-head .name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px; letter-spacing: -0.025em;
+    color: var(--g-1000);
+    cursor: pointer;
+    transition: color 150ms;
+  }
+  .column-head .name:hover { color: var(--accent); }
+  .column-head .right { display: flex; align-items: baseline; gap: 12px; }
+  .column-head .repo {
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--g-700); text-decoration: none;
+    transition: color 150ms;
+  }
+  .column-head .repo:hover { color: var(--accent); }
+  .column-head .add-task {
+    font-family: 'Instrument Serif', serif; font-style: italic;
+    font-size: 18px; color: var(--g-700); cursor: pointer;
+    opacity: 0; transition: opacity 150ms, color 150ms;
+  }
+  .column:hover .column-head .add-task { opacity: 1; }
+  .column-head .add-task:hover { color: var(--accent); }
+  .task-list {
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 2px;
+    padding-right: 4px;
+    margin-right: -4px;
+  }
+  .task-list::-webkit-scrollbar { width: 4px; }
+  .task-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 9999px; }
+
+  /* task row */
+  .task {
+    flex: 0 0 auto;
+    cursor: pointer;
+    display: grid; grid-template-columns: 20px 1fr auto;
+    gap: 11px; align-items: center;
+    padding: 11px 10px; margin: 0 -10px;
+    border-radius: 8px;
+    transition: background 150ms, opacity 200ms var(--ease), transform 200ms var(--ease),
+                grid-template-rows 200ms var(--ease), margin 200ms var(--ease), padding 200ms var(--ease);
+    transform-origin: top left;
+  }
+  .task:hover { background: rgba(242, 244, 243, 0.05); }
+  [data-theme="light"] .task:hover { background: rgba(21, 48, 47, 0.05); }
+  .task.removing {
+    opacity: 0;
+    transform: translateX(60px) scale(0.95);
+  }
+  .task.removing-after {
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .task .chev { color: var(--g-700); transition: transform 150ms var(--ease); }
+  .task:hover .chev { color: var(--g-1000); }
+  .task .t-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 19px; line-height: 1.22; letter-spacing: -0.015em;
+    color: var(--g-1000);
+  }
+  .task .t-meta { display: flex; align-items: center; gap: 6px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 9999px;
+    color: var(--g-900);
+    border: 1px solid var(--line-2);
+    background: rgba(242, 244, 243, 0.04);
+    white-space: nowrap;
+  }
+  [data-theme="light"] .pill { background: rgba(255,253,248,0.5); }
+  .pill .dot { width: 5px; height: 5px; border-radius: 9999px; background: var(--g-700); }
+  .pill.urgent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .pill.urgent .dot { background: var(--accent); }
+  .pill.high { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 35%, transparent); }
+  .pill.high .dot { background: var(--amber); }
+
+  /* checkbox */
+  .check {
+    flex-shrink: 0;
+    width: 18px; height: 18px; border-radius: 9999px;
+    border: 1.5px solid var(--line-2);
+    background: transparent;
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: border-color 150ms var(--ease), background-color 150ms;
+  }
+  .check:hover { border-color: var(--accent); }
+  .check::after {
+    content: '';
+    width: 8px; height: 8px; border-radius: 9999px;
+    background: var(--accent);
+    transform: scale(0); opacity: 0;
+    transition: transform 200ms var(--ease), opacity 200ms;
+  }
+  .check.done { border-color: var(--accent); background: var(--accent-soft); }
+  .check.done::after { transform: scale(1); opacity: 1; }
+
+  /* done toggle inside column */
+  .done-toggle {
+    flex: 0 0 auto;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--g-700); cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    align-self: flex-start;
+    transition: color 150ms;
+  }
+  .done-toggle:hover { color: var(--g-1000); }
+  .done-toggle .chev { transition: transform 150ms var(--ease); }
+  .done-toggle.open .chev { transform: rotate(180deg); }
+  .done-list { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 200ms var(--ease); }
+  .done-list > .inner { overflow: hidden; }
+  .done-toggle.open + .done-list { grid-template-rows: 1fr; }
+  .d-task {
+    display: grid; grid-template-columns: 20px 1fr; gap: 11px; align-items: center;
+    padding: 9px 10px; margin: 0 -10px;
+  }
+  .d-task .t-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px; line-height: 1.25;
+    color: var(--g-700);
+    text-decoration: line-through; text-decoration-color: var(--g-500);
+  }
+
+  /* add card */
+  .add-card {
+    scroll-snap-align: start;
+    border: 1.5px dashed var(--line-2);
+    border-radius: 14px;
+    min-width: 260px;
+    display: grid; place-items: center;
+    padding: 28px;
+    cursor: pointer;
+    color: var(--g-700);
+    font-family: 'Instrument Serif', serif; font-style: italic;
+    font-size: 20px;
+    transition: border-color 150ms, color 150ms;
+    background: transparent;
+  }
+  .add-card:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===========================================================
+     TASK MODAL
+     =========================================================== */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--panel);
+    backdrop-filter: blur(8px) saturate(1.05);
+    -webkit-backdrop-filter: blur(8px) saturate(1.05);
+    display: grid; place-items: center;
+    padding: 32px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 300ms var(--ease);
+  }
+  .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    width: 680px; max-width: 100%; max-height: 86vh;
+    border-radius: 16px;
+    background: var(--panel-strong);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(30px) saturate(1.15);
+    -webkit-backdrop-filter: blur(30px) saturate(1.15);
+    box-shadow: 0 32px 80px -20px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+    transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+  }
+  .modal-backdrop.open .modal { transform: translateY(0) scale(1); opacity: 1; }
+  .modal-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 22px 26px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-head .title-input {
+    flex: 1; margin-right: 16px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px; letter-spacing: -0.025em;
+    color: var(--g-1000);
+    background: transparent; border: none; outline: none;
+    width: 100%;
+  }
+  .modal-head .title-input::placeholder { color: var(--g-500); font-style: italic; }
+  .modal-close {
+    flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 9999px;
+    border: 1px solid var(--line-2);
+    background: transparent;
+    color: var(--g-700); cursor: pointer;
+    display: grid; place-items: center;
+    transition: color 150ms, border-color 150ms, transform 150ms var(--ease);
+  }
+  .modal-close:hover { color: var(--g-1000); border-color: var(--g-700); transform: rotate(90deg); }
+  .modal-close svg { width: 14px; height: 14px; }
+  .modal-body {
+    flex: 1; overflow-y: auto;
+    padding: 22px 26px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .modal-body::-webkit-scrollbar { width: 6px; }
+  .modal-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 9999px; }
+  .field-group { display: flex; flex-direction: column; gap: 8px; }
+  .field-label {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--g-700);
+  }
+  .notes-input {
+    width: 100%;
+    min-height: 92px; resize: vertical;
+    font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6;
+    color: var(--g-1000);
+    background: rgba(242, 244, 243, 0.04);
+    border: 1px solid var(--line-2); border-radius: 8px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 150ms;
+  }
+  .notes-input:focus { border-color: var(--accent); }
+  [data-theme="light"] .notes-input { background: rgba(255,253,248,0.5); }
+  .controls-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ctrl-select, .ctrl-input {
+    font-family: inherit; font-size: 13px; color: var(--g-1000);
+    background: rgba(242, 244, 243, 0.04);
+    border: 1px solid var(--line-2); border-radius: 8px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 150ms;
+  }
+  .ctrl-select:focus, .ctrl-input:focus { border-color: var(--accent); }
+  [data-theme="light"] .ctrl-select, [data-theme="light"] .ctrl-input { background: rgba(255,253,248,0.5); }
+  .subtasks-list { display: flex; flex-direction: column; gap: 6px; }
+  .subtask-row {
+    display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center;
+    padding: 6px 8px; border-radius: 6px;
+    transition: background 150ms;
+  }
+  .subtask-row:hover { background: rgba(242, 244, 243, 0.04); }
+  .subtask-row .st-input {
+    width: 100%; background: transparent; border: none; outline: none;
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--g-1000);
+  }
+  .subtask-row.done .st-input { color: var(--g-700); text-decoration: line-through; }
+  .subtask-row .del {
+    color: var(--g-500); cursor: pointer; opacity: 0;
+    transition: opacity 150ms, color 150ms;
+  }
+  .subtask-row:hover .del { opacity: 1; }
+  .subtask-row .del:hover { color: var(--accent); }
+  .add-subtask {
+    align-self: flex-start;
+    font-family: 'Instrument Serif', serif; font-style: italic;
+    font-size: 14px; color: var(--g-700); cursor: pointer;
+    margin-top: 6px;
+    transition: color 150ms;
+  }
+  .add-subtask:hover { color: var(--accent); }
+  .modal-foot {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 26px;
+    border-top: 1px solid var(--line);
+  }
+  .modal-foot .left { display: flex; align-items: center; gap: 14px; }
+  .modal-foot .proj-link { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--g-700); }
+  .modal-foot .proj-link:hover { color: var(--accent); cursor: pointer; }
+  .modal-foot .right { display: flex; align-items: center; gap: 10px; }
+  .btn {
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--line-2);
+    border-radius: 8px; padding: 8px 16px;
+    cursor: pointer;
+    transition: background 150ms, color 150ms, border-color 150ms, transform 150ms var(--ease);
+  }
+  .btn-ghost { background: transparent; color: var(--g-900); }
+  .btn-ghost:hover { color: var(--g-1000); border-color: var(--g-700); }
+  .btn-primary {
+    background: var(--accent); color: var(--teal);
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: var(--accent-press); border-color: var(--accent-press); }
+  .btn:active { transform: scale(0.97); }
+
+  /* ===========================================================
+     PROJECT PAGE (replaces dashboard)
+     =========================================================== */
+  .project-page {
+    flex: 1; min-height: 0;
+    display: none; flex-direction: column;
+    padding: 0 28px 20px;
+    max-width: 1100px; margin: 0 auto; width: 100%;
+  }
+  .project-page.active { display: flex; }
+  .dashboard.hidden { display: none; }
+  .pp-head {
+    flex: 0 0 auto;
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 8px 4px 18px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 18px;
+  }
+  .pp-back {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--g-700); cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 14px;
+    transition: color 150ms;
+  }
+  .pp-back:hover { color: var(--accent); }
+  .pp-title { display: flex; align-items: baseline; gap: 18px; flex: 1; }
+  .pp-title .name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 56px; letter-spacing: -0.03em; line-height: 1;
+    color: var(--g-1000); cursor: text;
+  }
+  .pp-title .repo {
+    font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--g-700); text-decoration: none;
+    transition: color 150ms;
+  }
+  .pp-title .repo:hover { color: var(--accent); }
+  .pp-add-task {
+    font-family: 'Instrument Serif', serif; font-style: italic;
+    font-size: 18px; color: var(--g-700); cursor: pointer;
+    transition: color 150ms;
+  }
+  .pp-add-task:hover { color: var(--accent); }
+  .pp-section-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--g-700); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .pp-section-label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .pp-tasks { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .pp-tasks::-webkit-scrollbar { width: 4px; }
+  .pp-tasks::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 9999px; }
+  .pp-task {
+    display: grid; grid-template-columns: 22px 1fr auto auto;
+    align-items: center; gap: 12px;
+    padding: 14px 12px; margin: 0 -12px;
+    border-radius: 8px; cursor: pointer;
+    transition: background 150ms, opacity 200ms var(--ease), transform 200ms var(--ease);
+    transform-origin: top left;
+  }
+  .pp-task:hover { background: rgba(242, 244, 243, 0.05); }
+  [data-theme="light"] .pp-task:hover { background: rgba(21, 48, 47, 0.05); }
+  .pp-task.removing { opacity: 0; transform: translateX(60px) scale(0.95); }
+  .pp-task.removing-after { height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden; }
+  .pp-task .t-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px; line-height: 1.22; letter-spacing: -0.018em;
+    color: var(--g-1000);
+  }
+  .pp-task.done .t-title { color: var(--g-700); text-decoration: line-through; text-decoration-color: var(--g-500); }
+  .pp-task .chev { color: var(--g-700); transition: transform 150ms var(--ease); }
+  .pp-task:hover .chev { color: var(--g-1000); }
+  .pp-completed { margin-top: 24px; }
+  .pp-completed-list { display: flex; flex-direction: column; gap: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<header class="topbar">
+  <div class="wordmark serif" id="wordmark">Planner<span class="dot">.</span></div>
+  <div class="topbar-right">
+    <span class="kbd">⌘ K</span>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ================= DASHBOARD ================= -->
+<main class="dashboard" id="dashboard">
+
+  <section class="priority-section">
+    <div class="priority-head">
+      <span class="label"><span class="dot"></span>Priority</span>
+      <span class="hide" id="priorityHide">hide <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+    <div class="priority-list" id="priorityList">
+      <div class="pcard" data-task data-title="Fix auth redirect loop" data-project="App A" data-priority="urgent" data-due="5pm today">
+        <div class="meta"><span class="urg">urgent</span><span class="sep">·</span>5pm today</div>
+        <div class="title">Fix auth redirect loop</div>
+        <div class="proj">App A</div>
+      </div>
+      <div class="pcard" data-task data-title="Implement Stripe webhook handler" data-project="App B" data-priority="high" data-due="tomorrow">
+        <div class="meta"><span class="urg high">high</span><span class="sep">·</span>tomorrow</div>
+        <div class="title">Implement Stripe webhook handler</div>
+        <div class="proj">App B</div>
+      </div>
+      <div class="pcard" data-task data-title="Migrate to Tailwind v4" data-project="App B" data-priority="medium" data-due="Jul 9">
+        <div class="meta"><span class="urg medium">medium</span><span class="sep">·</span>Jul 9</div>
+        <div class="title">Migrate to Tailwind v4</div>
+        <div class="proj">App B</div>
+      </div>
+      <div class="pcard" data-task data-title="Build settings page" data-project="App A" data-priority="high" data-due="no date">
+        <div class="meta"><span class="urg high">high</span><span class="sep">·</span>no date</div>
+        <div class="title">Build settings page</div>
+        <div class="proj">App A</div>
+      </div>
+      <div class="pcard" data-task data-title="Design context-window prompt" data-project="App C" data-priority="medium" data-due="no date">
+        <div class="meta"><span class="urg medium">medium</span><span class="sep">·</span>no date</div>
+        <div class="title">Design context-window prompt</div>
+        <div class="proj">App C</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="columns-wrap">
+    <div class="columns-head">
+      <span class="label">Projects</span>
+      <span class="add-proj">+ new project</span>
+    </div>
+
+    <div class="columns">
+
+      <!-- Column: App A -->
+      <div class="column" data-project-col="App A">
+        <div class="column-head">
+          <div class="name" data-open-project="App A">App A</div>
+          <div class="right">
+            <a class="repo" href="#">github.com/acme/widget</a>
+            <span class="add-task">+</span>
+          </div>
+        </div>
+        <div class="task-list" data-list="App A">
+          <div class="task" data-task data-title="Fix auth redirect loop" data-project="App A" data-priority="urgent" data-due="5pm today">
+            <div class="check" data-check></div>
+            <div class="t-title">Fix auth redirect loop</div>
+            <div class="t-meta"><span class="pill urgent"><span class="dot"></span>urgent · 5pm</span></div>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="task" data-task data-title="Build settings page" data-project="App A" data-priority="high" data-due="no date">
+            <div class="check" data-check></div>
+            <div class="t-title">Build settings page</div>
+            <div class="t-meta"><span class="pill high"><span class="dot"></span>high</span></div>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="done-toggle" data-done-toggle>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          Done (2)
+        </div>
+        <div class="done-list"><div class="inner">
+          <div class="d-task"><div class="check done" data-check></div><div class="t-title">Refactor user model</div></div>
+          <div class="d-task"><div class="check done" data-check></div><div class="t-title">Seed script for staging</div></div>
+        </div></div>
+      </div>
+
+      <!-- Column: App B -->
+      <div class="column" data-project-col="App B">
+        <div class="column-head">
+          <div class="name" data-open-project="App B">App B</div>
+          <div class="right">
+            <a class="repo" href="#">github.com/acme/billing</a>
+            <span class="add-task">+</span>
+          </div>
+        </div>
+        <div class="task-list" data-list="App B">
+          <div class="task" data-task data-title="Implement Stripe webhook handler" data-project="App B" data-priority="high" data-due="tomorrow">
+            <div class="check" data-check></div>
+            <div class="t-title">Implement Stripe webhook handler</div>
+            <div class="t-meta"><span class="pill high"><span class="dot"></span>high · tmrw</span></div>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="task" data-task data-title="Migrate to Tailwind v4" data-project="App B" data-priority="medium" data-due="Jul 9">
+            <div class="check" data-check></div>
+            <div class="t-title">Migrate to Tailwind v4</div>
+            <div class="t-meta"><span class="pill"><span class="dot"></span>med · Jul 9</span></div>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="done-toggle" data-done-toggle>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          Done (1)
+        </div>
+        <div class="done-list"><div class="inner">
+          <div class="d-task"><div class="check done" data-check></div><div class="t-title">Set up billing routes</div></div>
+        </div></div>
+      </div>
+
+      <!-- Column: App C -->
+      <div class="column" data-project-col="App C">
+        <div class="column-head">
+          <div class="name" data-open-project="App C">App C</div>
+          <div class="right">
+            <a class="repo" href="#">github.com/acme/agent</a>
+            <span class="add-task">+</span>
+          </div>
+        </div>
+        <div class="task-list" data-list="App C">
+          <div class="task" data-task data-title="Design context-window prompt" data-project="App C" data-priority="medium" data-due="no date">
+            <div class="check" data-check></div>
+            <div class="t-title">Design context-window prompt</div>
+            <div class="t-meta"><span class="pill"><span class="dot"></span>medium</span></div>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="done-toggle" data-done-toggle>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          Done (0)
+        </div>
+        <div class="done-list"><div class="inner"></div></div>
+      </div>
+
+      <div class="add-card">+ new project</div>
+
+    </div>
+  </div>
+</main>
+
+<!-- ================= PROJECT PAGE ================= -->
+<main class="project-page" id="projectPage">
+  <div class="pp-back" id="ppBack">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    All projects
+  </div>
+  <div class="pp-head">
+    <div class="pp-title">
+      <div class="name" id="ppName">App A</div>
+      <a class="repo" href="#" id="ppRepo">github.com/acme/widget</a>
+    </div>
+    <span class="pp-add-task">+ new task</span>
+  </div>
+  <div class="pp-tasks" id="ppTasks">
+    <div class="pp-section-label">Active</div>
+    <div id="ppActive"></div>
+    <div class="pp-completed">
+      <div class="pp-section-label">Completed</div>
+      <div class="pp-completed-list" id="ppCompleted"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= TASK MODAL ================= -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <input class="title-input" id="modalTitle" placeholder="Task title…" />
+      <button class="modal-close" id="modalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field-label">Notes</div>
+        <textarea class="notes-input" id="modalNotes" placeholder="Context for you and the agent…"></textarea>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Subtasks</div>
+        <div class="subtasks-list" id="modalSubtasks"></div>
+        <span class="add-subtask" id="modalAddSubtask">+ add subtask</span>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Priority & due</div>
+        <div class="controls-row">
+          <select class="ctrl-select" id="modalPriority">
+            <option value="urgent">urgent</option>
+            <option value="high">high</option>
+            <option value="medium">medium</option>
+            <option value="low">low</option>
+          </select>
+          <input class="ctrl-input" type="datetime-local" id="modalDue" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="left">
+        <span class="proj-link" id="modalProj">App A · github.com/acme/widget</span>
+      </div>
+      <div class="right">
+        <button class="btn btn-ghost" id="modalDone">Mark done</button>
+        <button class="btn btn-primary" id="modalSave">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const root = document.documentElement;
+
+  // ---- theme ----
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+
+  // ---- priority collapse ----
+  document.getElementById('priorityHide').addEventListener('click', () => {
+    const list = document.getElementById('priorityList');
+    list.classList.toggle('collapsed');
+  });
+
+  // ---- done-list inside columns ----
+  document.querySelectorAll('[data-done-toggle]').forEach(t => {
+    t.addEventListener('click', (e) => { e.stopPropagation(); t.classList.toggle('open'); });
+  });
+
+  // ---- task modal ----
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalNotes = document.getElementById('modalNotes');
+  const modalPriority = document.getElementById('modalPriority');
+  const modalDue = document.getElementById('modalDue');
+  const modalProj = document.getElementById('modalProj');
+  const modalSubtasks = document.getElementById('modalSubtasks');
+
+  let activeTaskEl = null;
+  let activeTaskData = null;
+
+  const sampleNotes = {
+    'Fix auth redirect loop': 'After merging the auth refactor, deep links from /login bounce back to /login in a loop. Suspect the returnTo cookie is cleared too early in middleware.',
+    'Implement Stripe webhook handler': 'Handle invoice.paid, invoice.payment_failed, customer.subscription_deleted. Idempotency via event id on the events table.',
+    'Migrate to Tailwind v4': 'Run codemod first, audit the renamed tokens, ship behind a feature flag on staging.',
+    'Build settings page': 'General settings + workspace settings. Use the new Tabs primitive. Inline edit for org name with optimistic update.',
+    'Design context-window prompt': 'Prompt must include repo file tree, recent commits, and the task description. Aim for ~12k tokens.'
+  };
+  const sampleSubtasks = {
+    'Fix auth redirect loop': [
+      { text: 'Repro on staging with a deep link', done: false },
+      { text: 'Add middleware unit test for returnTo', done: false },
+      { text: 'Ship hotfix', done: true },
+    ]
+  };
+
+  function openTaskModal(taskEl) {
+    activeTaskEl = taskEl;
+    activeTaskData = {
+      title: taskEl.dataset.title,
+      project: taskEl.dataset.project,
+      priority: taskEl.dataset.priority,
+      due: taskEl.dataset.due,
+    };
+    modalTitle.value = activeTaskData.title;
+    modalNotes.value = sampleNotes[activeTaskData.title] || '';
+    modalPriority.value = activeTaskData.priority;
+    modalProj.textContent = activeTaskData.project;
+
+    // render subtasks
+    modalSubtasks.innerHTML = '';
+    const subs = sampleSubtasks[activeTaskData.title] || [];
+    subs.length === 0 && renderSubtaskRow('', false);
+    subs.forEach(s => renderSubtaskRow(s.text, s.done));
+
+    modalBackdrop.classList.add('open');
+    setTimeout(() => modalTitle.focus(), 50);
+  }
+
+  function renderSubtaskRow(text, done) {
+    const row = document.createElement('div');
+    row.className = 'subtask-row' + (done ? ' done' : '');
+    row.innerHTML = `
+      <div class="check ${done ? 'done' : ''}" data-check></div>
+      <input class="st-input" placeholder="Subtask…" value="${text.replace(/"/g, '&quot;')}" />
+      <span class="del">×</span>
+    `;
+    row.querySelector('[data-check]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const c = e.currentTarget;
+      c.classList.toggle('done');
+      row.classList.toggle('done', c.classList.contains('done'));
+    });
+    row.querySelector('.del').addEventListener('click', (e) => {
+      e.stopPropagation();
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(20px)';
+      setTimeout(() => row.remove(), 150);
+    });
+    modalSubtasks.appendChild(row);
+  }
+
+  function closeTaskModal() {
+    modalBackdrop.classList.remove('open');
+    activeTaskEl = null;
+    activeTaskData = null;
+  }
+
+  document.getElementById('modalClose').addEventListener('click', closeTaskModal);
+  modalBackdrop.addEventListener('click', closeTaskModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) closeTaskModal();
+  });
+
+  document.getElementById('modalAddSubtask').addEventListener('click', () => renderSubtaskRow('', false));
+
+  // mark done from modal — also removes from list
+  document.getElementById('modalDone').addEventListener('click', () => {
+    if (activeTaskEl) removeTaskFromList(activeTaskEl);
+    closeTaskModal();
+  });
+
+  // ---- clicking a task opens modal ----
+  document.querySelectorAll('[data-task]').forEach(t => {
+    t.addEventListener('click', (e) => {
+      if (e.target.closest('[data-check]') || e.target.closest('a')) return;
+      openTaskModal(t);
+    });
+  });
+
+  // ---- checkbox toggles: when checked, animate the row out ----
+  document.querySelectorAll('[data-check]').forEach(c => {
+    c.addEventListener('click', (e) => {
+      e.stopPropagation();
+      c.classList.add('done');
+      const task = c.closest('[data-task]');
+      if (task) {
+        // we don't immediately remove — let the check animate first
+        setTimeout(() => removeTaskFromList(task), 220);
+      }
+    });
+  });
+
+  function removeTaskFromList(taskEl) {
+    if (!taskEl || taskEl.classList.contains('removing')) return;
+    taskEl.classList.add('removing');
+    setTimeout(() => {
+      taskEl.classList.add('removing-after');
+      setTimeout(() => taskEl.remove(), 220);
+    }, 200);
+  }
+
+  // ---- project page ----
+  const dashboard = document.getElementById('dashboard');
+  const projectPage = document.getElementById('projectPage');
+  const ppName = document.getElementById('ppName');
+  const ppRepo = document.getElementById('ppRepo');
+  const ppActive = document.getElementById('ppActive');
+  const ppCompleted = document.getElementById('ppCompleted');
+
+  const projectData = {
+    'App A': {
+      repo: 'github.com/acme/widget',
+      active: [
+        { title: 'Fix auth redirect loop', priority: 'urgent', due: '5pm today' },
+        { title: 'Build settings page', priority: 'high', due: 'no date' },
+      ],
+      completed: [
+        'Refactor user model',
+        'Seed script for staging',
+      ]
+    },
+    'App B': {
+      repo: 'github.com/acme/billing',
+      active: [
+        { title: 'Implement Stripe webhook handler', priority: 'high', due: 'tomorrow' },
+        { title: 'Migrate to Tailwind v4', priority: 'medium', due: 'Jul 9' },
+      ],
+      completed: ['Set up billing routes']
+    },
+    'App C': {
+      repo: 'github.com/acme/agent',
+      active: [
+        { title: 'Design context-window prompt', priority: 'medium', due: 'no date' },
+      ],
+      completed: []
+    }
+  };
+
+  function openProjectPage(projectName) {
+    const data = projectData[projectName];
+    if (!data) return;
+    ppName.textContent = projectName;
+    ppRepo.textContent = data.repo;
+
+    // active tasks
+    ppActive.innerHTML = '';
+    data.active.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'pp-task';
+      row.dataset.task = '';
+      row.dataset.title = t.title;
+      row.dataset.project = projectName;
+      row.dataset.priority = t.priority;
+      row.dataset.due = t.due;
+      const pillClass = t.priority === 'urgent' ? 'urgent' : t.priority === 'high' ? 'high' : '';
+      row.innerHTML = `
+        <div class="check" data-check></div>
+        <div class="t-title">${t.title}</div>
+        <div class="t-meta"><span class="pill ${pillClass}"><span class="dot"></span>${t.priority}${t.due !== 'no date' ? ' · ' + t.due : ''}</span></div>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      `;
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('[data-check]')) return;
+        // re-use modal: set data then open
+        row.dataset.project = projectName;
+        openTaskModal(row);
+      });
+      row.querySelector('[data-check]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.currentTarget.classList.add('done');
+        setTimeout(() => removeTaskFromList(row), 220);
+      });
+      ppActive.appendChild(row);
+    });
+
+    // completed
+    ppCompleted.innerHTML = '';
+    data.completed.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'pp-task done';
+      row.innerHTML = `
+        <div class="check done" data-check></div>
+        <div class="t-title">${t}</div>
+        <div></div>
+        <div></div>
+      `;
+      ppCompleted.appendChild(row);
+    });
+
+    dashboard.classList.add('hidden');
+    projectPage.classList.add('active');
+  }
+
+  function closeProjectPage() {
+    dashboard.classList.remove('hidden');
+    projectPage.classList.remove('active');
+  }
+
+  document.querySelectorAll('[data-open-project]').forEach(el => {
+    el.addEventListener('click', () => openProjectPage(el.dataset.openProject));
+  });
+  document.getElementById('ppBack').addEventListener('click', closeProjectPage);
+  document.getElementById('wordmark').addEventListener('click', closeProjectPage);
+
+</script>
+
+</body>
+</html>

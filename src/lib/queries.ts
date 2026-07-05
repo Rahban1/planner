@@ -1,0 +1,208 @@
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import {
+  listPriority
+  
+} from '#/server/priority'
+import type {PriorityCard} from '#/server/priority';
+import {
+  createProject,
+  archiveProject,
+  getProject,
+  listProjects,
+  updateProject,
+} from '#/server/projects'
+import {
+  completeTask,
+  createTask,
+  deleteTask,
+  getTask,
+  listProjectSummary,
+  
+  uncompleteTask,
+  updateTask
+} from '#/server/tasks'
+import type {TaskWithSubtasks} from '#/server/tasks';
+import type { Project, Task } from '#/db/schema'
+
+export type { Project, Task, PriorityCard, TaskWithSubtasks }
+
+// ----- query keys -----
+export const qk = {
+  projects: ['projects'] as const,
+  project: (id: string) => ['projects', id] as const,
+  projectSummary: (id: string) => ['projects', id, 'summary'] as const,
+  priority: ['priority'] as const,
+  task: (id: string) => ['tasks', id] as const,
+}
+
+// ----- query options -----
+export const projectsQueryOptions = queryOptions({
+  queryKey: qk.projects,
+  queryFn: () => listProjects(),
+  staleTime: 60_000,
+})
+
+export const projectQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: qk.project(id),
+    queryFn: () => getProject({ data: { id } }),
+    enabled: !!id,
+  })
+
+export const projectSummaryQueryOptions = (projectId: string) =>
+  queryOptions({
+    queryKey: qk.projectSummary(projectId),
+    queryFn: () => listProjectSummary({ data: { projectId } }),
+    enabled: !!projectId,
+  })
+
+export const priorityQueryOptions = queryOptions({
+  queryKey: qk.priority,
+  queryFn: () => listPriority(),
+  staleTime: 30_000,
+})
+
+export const taskQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: qk.task(id),
+    queryFn: () => getTask({ data: { id } }),
+    enabled: !!id,
+  })
+
+// ----- convenience hooks -----
+export function useProjects() {
+  return useQuery(projectsQueryOptions)
+}
+export function useProject(id?: string) {
+  return useQuery(projectQueryOptions(id ?? ''))
+}
+export function useProjectSummary(projectId?: string) {
+  return useQuery(projectSummaryQueryOptions(projectId ?? ''))
+}
+export function usePriority() {
+  return useQuery(priorityQueryOptions)
+}
+export function useTask(id?: string) {
+  return useQuery(taskQueryOptions(id ?? ''))
+}
+
+// ----- mutations -----
+
+interface ProjectSummary {
+  active: TaskWithSubtasks[]
+  completed: Task[]
+}
+
+export function useCreateProjectMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createProject,
+    onSuccess: (project) => {
+      if (!project) return
+      qc.setQueryData<Project[]>(qk.projects, (prev) => [...(prev ?? []), project])
+    },
+  })
+}
+
+export function useUpdateProjectMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateProject,
+    onSuccess: (project) => {
+      if (!project) return
+      qc.setQueryData<Project>(qk.project(project.id), project)
+      qc.setQueryData<Project[]>(qk.projects, (prev) =>
+        prev?.map((p) => (p.id === project.id ? project : p)),
+      )
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useArchiveProjectMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: archiveProject,
+    onSuccess: (_res, vars) => {
+      qc.setQueryData<Project[]>(qk.projects, (prev) =>
+        prev?.filter((p) => p.id !== vars.data.id),
+      )
+      qc.removeQueries({ queryKey: qk.projectSummary(vars.data.id) })
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useCreateTaskMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createTask,
+    onSuccess: (task) => {
+      if (!task) return
+      qc.setQueryData<TaskWithSubtasks>(qk.task(task.id), task)
+      if (!task.parentId) {
+        qc.setQueryData<ProjectSummary>(qk.projectSummary(task.projectId), (prev) =>
+          prev ? { ...prev, active: [...prev.active, task] } : prev,
+        )
+      } else {
+        // Subtask: refresh the parent summary to pick up the new child
+        qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+        qc.invalidateQueries({ queryKey: qk.task(task.parentId) })
+      }
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useUpdateTaskMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateTask,
+    onSuccess: (task) => {
+      if (!task) return
+      qc.setQueryData<TaskWithSubtasks>(qk.task(task.id), task)
+      // Refresh summary so priority, due, title all reflect
+      qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useCompleteTaskMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: completeTask,
+    onSuccess: (task) => {
+      if (task) qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useUncompleteTaskMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: uncompleteTask,
+    onSuccess: (task) => {
+      if (task) qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useDeleteTaskMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteTask,
+    onSuccess: (_res, vars) => {
+      qc.removeQueries({ queryKey: qk.task(vars.data.id) })
+      qc.invalidateQueries({ queryKey: qk.projects })
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
