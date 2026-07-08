@@ -1,14 +1,18 @@
 import { HeadContent, Scripts, createRootRoute, useNavigate } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { useEffect } from 'react'
 
 import appCss from '../styles.css?url'
 import { useTheme } from '../lib/theme'
 import { TopBar } from '../components/TopBar'
 import { TaskModal } from '../components/TaskModal'
+import { ProjectModal } from '../components/ProjectModal'
 import { CommandPalette } from '../components/CommandPalette'
+import { ShortcutsHelp } from '../components/ShortcutsHelp'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { UIProvider, useUI } from '../lib/ui-context'
+import { FocusProvider } from '../lib/focus-context'
+import { useKeyboardShortcuts } from '../lib/useKeyboardShortcuts'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -49,7 +53,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <div className="app-bg" />
         <UIProvider>
-          <AppShell>{children}</AppShell>
+          <FocusProvider>
+            <AppShell>{children}</AppShell>
+          </FocusProvider>
         </UIProvider>
         <TanStackDevtools
           config={{ position: 'bottom-right' }}
@@ -71,17 +77,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const ui = useUI()
 
-  // Global ⌘ K handler
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        ui.openCmdk()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [ui])
+  useKeyboardShortcuts(toggle)
 
   return (
     <>
@@ -99,7 +95,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
         onClose={ui.closeTask}
         onOpenProject={(pid) => navigate({ to: '/projects/$id', params: { id: pid } })}
       />
+      <ProjectModal />
       <CommandPalette onToggleTheme={toggle} />
+      <ShortcutsHelp />
+      <ConfirmDialog />
     </>
   )
 }

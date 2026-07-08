@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 
 export interface TaskModalState {
@@ -6,6 +6,18 @@ export interface TaskModalState {
   projectIdForNew: string | null
   projectName?: string | null
   projectRepoUrl?: string | null
+}
+
+export interface ConfirmOptions {
+  title: string
+  message: string
+  confirmText?: string
+  cancelText?: string
+  destructive?: boolean
+}
+
+interface ConfirmState extends ConfirmOptions {
+  resolve: (value: boolean) => void
 }
 
 interface UIContextValue {
@@ -16,6 +28,15 @@ interface UIContextValue {
   cmdkOpen: boolean
   openCmdk: () => void
   closeCmdk: () => void
+  projectModalOpen: boolean
+  openProjectModal: () => void
+  closeProjectModal: () => void
+  shortcutsOpen: boolean
+  openShortcuts: () => void
+  closeShortcuts: () => void
+  confirmState: ConfirmState | null
+  requestConfirm: (options: ConfirmOptions) => Promise<boolean>
+  resolveConfirm: (value: boolean) => void
 }
 
 const Ctx = createContext<UIContextValue | null>(null)
@@ -23,6 +44,22 @@ const Ctx = createContext<UIContextValue | null>(null)
 export function UIProvider({ children }: { children: ReactNode }) {
   const [taskModal, setTaskModal] = useState<TaskModalState | null>(null)
   const [cmdkOpen, setCmdkOpen] = useState(false)
+  const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
+
+  const requestConfirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setConfirmState({ ...options, resolve })
+    })
+  }, [])
+
+  const resolveConfirm = useCallback((value: boolean) => {
+    setConfirmState((current) => {
+      current?.resolve(value)
+      return null
+    })
+  }, [])
 
   return (
     <Ctx.Provider
@@ -36,6 +73,15 @@ export function UIProvider({ children }: { children: ReactNode }) {
         cmdkOpen,
         openCmdk: () => setCmdkOpen(true),
         closeCmdk: () => setCmdkOpen(false),
+        projectModalOpen,
+        openProjectModal: () => setProjectModalOpen(true),
+        closeProjectModal: () => setProjectModalOpen(false),
+        shortcutsOpen,
+        openShortcuts: () => setShortcutsOpen(true),
+        closeShortcuts: () => setShortcutsOpen(false),
+        confirmState,
+        requestConfirm,
+        resolveConfirm,
       }}
     >
       {children}

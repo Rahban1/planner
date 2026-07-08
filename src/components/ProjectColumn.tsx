@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { ChevronDown, CheckCircle } from 'lucide-react'
+import { ChevronDown, Trash2 } from 'lucide-react'
 import type { Project, Task, TaskWithSubtasks } from '#/lib/queries'
 import { priorityClass as fmtPrio, formatDue as fmtDue } from '#/lib/format'
+import { useFocus } from '#/lib/focus-context'
+import { AgentButton } from '#/components/AgentButton'
 
 interface ProjectColumnProps {
   project: Project
@@ -9,6 +11,7 @@ interface ProjectColumnProps {
   completed: Task[]
   onTaskClick: (taskId: string) => void
   onProjectClick: () => void
+  onProjectDelete: () => void
   onTaskComplete: (taskId: string) => void
   onAddTask: () => void
   onUncomplete: (taskId: string) => void
@@ -17,6 +20,7 @@ interface ProjectColumnProps {
 export function ProjectColumn(props: ProjectColumnProps) {
   const [showCompleted, setShowCompleted] = useState(false)
   const { project, active, completed } = props
+  const focus = useFocus()
 
   return (
     <div className="column">
@@ -50,6 +54,18 @@ export function ProjectColumn(props: ProjectColumnProps) {
           >
             +
           </span>
+          <span
+            className="delete-proj"
+            onClick={props.onProjectDelete}
+            role="button"
+            tabIndex={0}
+            title="Delete project"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') props.onProjectDelete()
+            }}
+          >
+            <Trash2 size={14} />
+          </span>
         </div>
       </div>
 
@@ -58,6 +74,7 @@ export function ProjectColumn(props: ProjectColumnProps) {
           <TaskCard
             key={t.id}
             task={t}
+            focused={focus.focusedTaskId === t.id}
             onClick={() => props.onTaskClick(t.id)}
             onComplete={() => props.onTaskComplete(t.id)}
           />
@@ -109,10 +126,12 @@ export function ProjectColumn(props: ProjectColumnProps) {
 
 function TaskCard({
   task,
+  focused,
   onClick,
   onComplete,
 }: {
   task: Task
+  focused: boolean
   onClick: () => void
   onComplete: () => void
 }) {
@@ -122,7 +141,8 @@ function TaskCard({
 
   return (
     <div
-      className={`task ${removing ? 'removing' : ''}`}
+      id={`focus-${task.id}`}
+      className={`task ${removing ? 'removing' : ''} ${focused ? 'kbd-focus' : ''}`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('.check')) return
         onClick()
@@ -151,15 +171,19 @@ function TaskCard({
           }
         }}
       />
-      <div className="t-title">{task.title}</div>
-      <div className="t-meta">
-        <span className={`pill ${prioCut}`}>
-          <span className="dot" />
-          {task.priority}
-          {dueTxt ? ` · ${dueTxt}` : ''}
-        </span>
+      <div className="task-main">
+        <div className="t-title">{task.title}</div>
+        <div className="t-meta">
+          <span className={`pill ${prioCut}`}>
+            <span className="dot" />
+            {task.priority}
+            {dueTxt ? ` · ${dueTxt}` : ''}
+          </span>
+        </div>
       </div>
-      <CheckCircle className="chev" size={14} />
+      <div className="task-actions">
+        <AgentButton taskId={task.id} />
+      </div>
     </div>
   )
 }

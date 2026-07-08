@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  openhands-agent-server:
+    build:
+      context: ./agent-runner
+      dockerfile: Dockerfile.agent-server
+    container_name: planner-openhands-agent-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - agent-workspace:/workspace/runs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/alive"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  agent-runner:
+    build:
+      context: ./agent-runner
+      dockerfile: Dockerfile
+    container_name: planner-agent-runner
+    depends_on:
+      openhands-agent-server:
+        condition: service_healthy
+    volumes:
+      - agent-workspace:/workspace/runs
+    environment:
+      - PLANNER_BASE_URL=${PLANNER_BASE_URL:-http://host.docker.internal:3000}
+      - OPENHANDS_BASE_URL=http://openhands-agent-server:8000
+      - LLM_MODEL=${LLM_MODEL:-openai/kimi-k2.7-code}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_API_BASE=${LLM_API_BASE:-https://opencode.ai/zen/go/v1}
+      - RUNNER_WORKSPACE=/workspace/runs
+    restart: unless-stopped
+
+volumes:
+  agent-workspace:

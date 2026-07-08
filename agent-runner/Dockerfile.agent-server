@@ -1,0 +1,42 @@
+FROM mcr.microsoft.com/playwright/python:v1.50.0-noble
+
+WORKDIR /workspace
+
+# This image already bundles Python 3.12, Chromium, and Playwright browser deps.
+# Install git, curl, and gnupg for the GitHub CLI.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install GitHub CLI so the agent can create pull requests
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for faster, more reliable resolution
+COPY --from=ghcr.io/astral-sh/uv:0.11.27 /uv /uvx /bin/
+
+# Install OpenHands Agent Server and matching SDK dependencies
+RUN uv pip install --system --no-cache-dir \
+    openhands-sdk==1.32.0 \
+    openhands-tools==1.32.0 \
+    openhands-workspace==1.32.0 \
+    openhands-agent-server==1.32.0
+
+# OpenHands' browser_use tool looks for Playwright browsers under
+# ~/.cache/ms-playwright, but the Playwright image installs them at
+# /ms-playwright. Symlink so OpenHands can discover Chromium.
+RUN mkdir -p /root/.cache \
+    && ln -s /ms-playwright /root/.cache/ms-playwright
+
+# The workspace directory is where repositories will be cloned
+RUN mkdir -p /workspace/runs
+
+EXPOSE 8000
+
+CMD ["python", "-m", "openhands.agent_server", "--host", "0.0.0.0", "--port", "8000"]

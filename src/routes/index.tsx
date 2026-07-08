@@ -1,19 +1,21 @@
 import { createFileRoute, useLoaderData, useNavigate } from '@tanstack/react-router'
+import { useQueries } from '@tanstack/react-query'
+import { useEffect, useMemo } from 'react'
 import { PriorityPanel } from '#/components/PriorityPanel'
 import { ProjectColumn } from '#/components/ProjectColumn'
 import {
   usePriority,
   useProjects,
-  useProjectSummary,
+  projectSummaryQueryOptions,
   useCompleteTaskMutation,
-  useUncompleteTaskMutation
-  
-  
-  
-  
+  useUncompleteTaskMutation,
+  useDeleteTaskMutation,
+  useDeleteProjectMutation,
 } from '#/lib/queries'
 import type {Project, PriorityCard, Task, TaskWithSubtasks} from '#/lib/queries';
 import { useUI } from '#/lib/ui-context'
+import { useFocus  } from '#/lib/focus-context'
+import type {TaskActions} from '#/lib/focus-context';
 import { listPriority } from '#/server/priority'
 import { listProjects } from '#/server/projects'
 import { listProjectSummary } from '#/server/tasks'
@@ -40,13 +42,57 @@ function Dashboard() {
   const projectsRes = useProjects()
   const completeMut = useCompleteTaskMutation()
   const uncompleteMut = useUncompleteTaskMutation()
+  const deleteMut = useDeleteTaskMutation()
+  const deleteProjectMut = useDeleteProjectMutation()
   const ui = useUI()
   const navigate = useNavigate()
+  const focus = useFocus()
   const loaderData = useLoaderData({ from: '/' })
 
   const priorities: PriorityCard[] = priorityRes.data ?? loaderData.priority ?? []
   const projects: Project[] = projectsRes.data ?? loaderData.projects ?? []
   const loaderSummaries = loaderData.summaries ?? {}
+
+  const summaryResults = useQueries({
+    queries: projects.map((p) => projectSummaryQueryOptions(p.id)),
+  })
+
+  const summaries = useMemo(() => {
+    return projects.map((p, i) => ({
+      project: p,
+      summary: summaryResults[i]?.data ?? loaderSummaries[p.id] ?? { active: [], completed: [] },
+    }))
+  }, [projects, summaryResults, loaderSummaries])
+
+  // Register flat task list + handlers for keyboard navigation
+  useEffect(() => {
+    const taskIds: string[] = []
+    const handlers: Record<string, TaskActions> = {}
+
+    // --- Priority tasks (first in navigation order) ---
+    for (const t of priorities) {
+      taskIds.push(t.id)
+      handlers[t.id] = {
+        open: () => ui.openTask(t.id, t.project.name, t.project.repoUrl),
+        complete: () => completeMut.mutate({ data: { id: t.id } }),
+        delete: () => deleteMut.mutate({ data: { id: t.id } }),
+      }
+    }
+
+    // --- Column tasks (left to right, top to bottom) ---
+    for (const { project, summary } of summaries) {
+      for (const t of summary.active) {
+        taskIds.push(t.id)
+        handlers[t.id] = {
+          open: () => ui.openTask(t.id, project.name, project.repoUrl),
+          complete: () => completeMut.mutate({ data: { id: t.id } }),
+          delete: () => deleteMut.mutate({ data: { id: t.id } }),
+        }
+      }
+    }
+
+    focus.register(taskIds, handlers)
+  }, [priorities, summaries, ui, completeMut, deleteMut, focus])
 
   return (
     <main className="dashboard">
@@ -61,55 +107,65 @@ function Dashboard() {
       <div className="columns-wrap">
         <div className="columns-head">
           <span className="label">Projects</span>
-          <span className="add-proj">+ new project</span>
+          <span
+            className="add-proj"
+            onClick={() => ui.openProjectModal()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') ui.openProjectModal()
+            }}
+          >
+            + new project
+          </span>
         </div>
 
         <div className="columns">
-          {projects.map((project) => (
-            <ColumnLoader
+          {summaries.map(({ project, summary }) => (
+            <ProjectColumn
               key={project.id}
               project={project}
-              initialSummary={loaderSummaries[project.id]}
+              active={summary.active}
+              completed={summary.completed}
               onTaskClick={(tid) => ui.openTask(tid, project.name, project.repoUrl)}
               onProjectClick={() => navigate({ to: '/projects/$id', params: { id: project.id } })}
               onTaskComplete={(tid) => completeMut.mutate({ data: { id: tid } })}
               onUncomplete={(tid) => uncompleteMut.mutate({ data: { id: tid } })}
               onAddTask={() => ui.openNewTask(project.id, project.name, project.repoUrl)}
+              onProjectDelete={async () => {
+                const confirmed = await ui.requestConfirm({
+                  title: `Delete "${project.name}"?`,
+                  message: 'All of its tasks will be removed. This cannot be undone.',
+                  confirmText: 'Delete',
+                  cancelText: 'Cancel',
+                  destructive: true,
+                })
+                if (!confirmed) return
+                deleteProjectMut.mutate(
+                  { data: { id: project.id } },
+                  {
+                    onSuccess: () => {
+                      const focusedInProject = summary.active.some((t) => t.id === focus.focusedTaskId)
+                      if (focusedInProject) focus.clearFocus()
+                    },
+                  },
+                )
+              }}
             />
           ))}
-          <div className="add-card" onClick={() => ui.openNewTask('')} role="button" tabIndex={0}>
+          <div
+            className="add-card"
+            onClick={() => ui.openProjectModal()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') ui.openProjectModal()
+            }}
+          >
             + new project
           </div>
         </div>
       </div>
     </main>
-  )
-}
-
-function ColumnLoader(props: {
-  project: Project
-  initialSummary?: { active: TaskWithSubtasks[]; completed: Task[] }
-  onTaskClick: (taskId: string) => void
-  onProjectClick: () => void
-  onTaskComplete: (taskId: string) => void
-  onUncomplete: (taskId: string) => void
-  onAddTask: () => void
-}) {
-  const summaryRes = useProjectSummary(props.project.id)
-  const summary =
-    summaryRes.data ??
-    props.initialSummary ??
-    ({ active: [] as TaskWithSubtasks[], completed: [] as Task[] } as const)
-  return (
-    <ProjectColumn
-      project={props.project}
-      active={summary.active}
-      completed={summary.completed}
-      onTaskClick={props.onTaskClick}
-      onProjectClick={props.onProjectClick}
-      onTaskComplete={props.onTaskComplete}
-      onUncomplete={props.onUncomplete}
-      onAddTask={props.onAddTask}
-    />
   )
 }

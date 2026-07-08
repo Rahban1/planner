@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Folder, Pause, Sun, Search } from 'lucide-react'
+import { Folder, Pause, Sun, Search, Bot } from 'lucide-react'
 import { usePriority, useProjects } from '#/lib/queries'
 import { formatDue } from '#/lib/format'
 import { useUI } from '#/lib/ui-context'
@@ -76,6 +76,18 @@ export function CommandPalette({ onToggleTheme }: CommandPaletteProps) {
       }),
     )
 
+    const agentRunsItem: CmdItem = {
+      id: 'agent-runs',
+      kind: 'action',
+      icon: <Bot size={14} />,
+      label: 'Agent runs',
+      sub: 'View all agent activity',
+      onSelect: () => {
+        navigate({ to: '/agent-runs' })
+        closeCmdk()
+      },
+    }
+
     const themeItem: CmdItem = {
       id: 'theme',
       kind: 'action',
@@ -92,6 +104,7 @@ export function CommandPalette({ onToggleTheme }: CommandPaletteProps) {
     if (tasks.length) all.push(...taskItems.slice(0, 6))
     all.push(...projItems.slice(0, 4))
     all.push(...newInProj.slice(0, 4))
+    all.push(agentRunsItem)
     all.push(themeItem)
     return all
     }, [query, priority.data, projects.data])

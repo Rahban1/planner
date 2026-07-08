@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { PriorityCard } from '#/server/priority'
 import { formatDue, priorityClass } from '#/lib/format'
+import { useFocus } from '#/lib/focus-context'
+import { AgentButton } from '#/components/AgentButton'
 
 interface PriorityPanelProps {
   items: PriorityCard[]
@@ -10,9 +12,10 @@ interface PriorityPanelProps {
 
 export function PriorityPanel({ items, onTaskClick }: PriorityPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const focus = useFocus()
 
   return (
-    <section className="priority-section">
+    <section className={`priority-section ${collapsed ? 'collapsed' : ''}`}>
       <div className="priority-head">
         <span className="label">
           <span className="dot" />
@@ -41,11 +44,16 @@ export function PriorityPanel({ items, onTaskClick }: PriorityPanelProps) {
           ) : (
             items.map((t) => {
               const due = formatDue(t.dueAt)
+              const isFocused = focus.focusedTaskId === t.id
               return (
                 <div
                   key={t.id}
-                  className="pcard"
-                  onClick={() => onTaskClick?.(t.id)}
+                  id={`focus-${t.id}`}
+                  className={`pcard ${isFocused ? 'kbd-focus' : ''}`}
+                  onClick={() => {
+                    onTaskClick?.(t.id)
+                  }}
+                  onMouseEnter={() => {}}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -64,7 +72,10 @@ export function PriorityPanel({ items, onTaskClick }: PriorityPanelProps) {
                     )}
                   </div>
                   <div className="title">{t.title}</div>
-                  <div className="proj">{t.project.name}</div>
+                  <div className="proj">
+                    <span>{t.project.name}</span>
+                    <AgentButton taskId={t.id} />
+                  </div>
                 </div>
               )
             })

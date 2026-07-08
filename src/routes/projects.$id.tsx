@@ -1,18 +1,20 @@
 import { createFileRoute, useLoaderData, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Trash2 } from 'lucide-react'
+import { useEffect } from 'react'
 import { PriorityPanel } from '#/components/PriorityPanel'
 import {
   useProject,
   useProjectSummary,
   usePriority,
   useCompleteTaskMutation,
-  useUncompleteTaskMutation
-  
-  
-  
+  useUncompleteTaskMutation,
+  useDeleteTaskMutation,
+  useDeleteProjectMutation,
 } from '#/lib/queries'
 import type {Task, TaskWithSubtasks, PriorityCard} from '#/lib/queries';
 import { useUI } from '#/lib/ui-context'
+import { useFocus  } from '#/lib/focus-context'
+import type {TaskActions} from '#/lib/focus-context';
 import { priorityClass, formatDue } from '#/lib/format'
 import { listProjectSummary } from '#/server/tasks'
 import { getProject } from '#/server/projects'
@@ -37,14 +39,56 @@ function ProjectPage() {
   const priorityRes = usePriority()
   const completeMut = useCompleteTaskMutation()
   const uncompleteMut = useUncompleteTaskMutation()
+  const deleteMut = useDeleteTaskMutation()
+  const deleteProjectMut = useDeleteProjectMutation()
   const ui = useUI()
   const navigate = useNavigate()
+  const focus = useFocus()
   const loaderData = useLoaderData({ from: '/projects/$id' })
 
   const project = projectRes.data ?? loaderData.project
   const summary =
     summaryRes.data ?? loaderData.summary ?? { active: [] as TaskWithSubtasks[], completed: [] as Task[] }
   const priorities: PriorityCard[] = priorityRes.data ?? loaderData.priority ?? []
+
+  // Register flat task list + handlers for keyboard navigation
+  useEffect(() => {
+    const taskIds: string[] = []
+    const handlers: Record<string, TaskActions> = {}
+
+    // --- Priority tasks (cross-project, for reference) ---
+    for (const t of priorities) {
+      if (t.project.id !== id) continue
+      taskIds.push(t.id)
+      handlers[t.id] = {
+        open: () => ui.openTask(t.id, t.project.name, t.project.repoUrl),
+        complete: () => completeMut.mutate({ data: { id: t.id } }),
+        delete: () => deleteMut.mutate({ data: { id: t.id } }),
+      }
+    }
+
+    // --- Active tasks ---
+    for (const t of summary.active) {
+      taskIds.push(t.id)
+      handlers[t.id] = {
+        open: () => ui.openTask(t.id, project?.name, project?.repoUrl),
+        complete: () => completeMut.mutate({ data: { id: t.id } }),
+        delete: () => deleteMut.mutate({ data: { id: t.id } }),
+      }
+    }
+
+    // --- Completed tasks (Space/x restores) ---
+    for (const t of summary.completed) {
+      taskIds.push(t.id)
+      handlers[t.id] = {
+        open: () => ui.openTask(t.id, project?.name, project?.repoUrl),
+        complete: () => uncompleteMut.mutate({ data: { id: t.id } }),
+        delete: () => deleteMut.mutate({ data: { id: t.id } }),
+      }
+    }
+
+    focus.register(taskIds, handlers)
+  }, [priorities, summary, project, id, ui, completeMut, uncompleteMut, deleteMut, focus])
 
   if (!project) {
     return (
@@ -81,14 +125,38 @@ function ProjectPage() {
             </a>
           )}
         </div>
-        <span
-          className="pp-add-task"
-          onClick={() => ui.openNewTask(project.id, project.name, project.repoUrl)}
-          role="button"
-          tabIndex={0}
-        >
-          + new task
-        </span>
+        <div className="pp-actions">
+          <span
+            className="pp-add-task"
+            onClick={() => ui.openNewTask(project.id, project.name, project.repoUrl)}
+            role="button"
+            tabIndex={0}
+          >
+            + new task
+          </span>
+          <span
+            className="pp-delete-proj"
+            onClick={async () => {
+              const confirmed = await ui.requestConfirm({
+                title: `Delete "${project.name}"?`,
+                message: 'All of its tasks will be removed. This cannot be undone.',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                destructive: true,
+              })
+              if (!confirmed) return
+              deleteProjectMut.mutate(
+                { data: { id: project.id } },
+                { onSuccess: () => navigate({ to: '/' }) },
+              )
+            }}
+            role="button"
+            tabIndex={0}
+            title="Delete project"
+          >
+            <Trash2 size={16} />
+          </span>
+        </div>
       </div>
 
       <div className="pp-tasks">
@@ -97,6 +165,7 @@ function ProjectPage() {
           <ActiveTaskRow
             key={t.id}
             task={t}
+            focused={focus.focusedTaskId === t.id}
             onClick={() => ui.openTask(t.id, project.name, project.repoUrl)}
             onComplete={() => completeMut.mutate({ data: { id: t.id } })}
           />
@@ -114,6 +183,7 @@ function ProjectPage() {
               <CompletedTaskRow
                 key={t.id}
                 task={t}
+                focused={focus.focusedTaskId === t.id}
                 onClick={() => ui.openTask(t.id, project.name, project.repoUrl)}
                 onRestore={() => uncompleteMut.mutate({ data: { id: t.id } })}
               />
@@ -142,17 +212,20 @@ function ProjectPage() {
 
 function ActiveTaskRow({
   task,
+  focused,
   onClick,
   onComplete,
 }: {
   task: Task
+  focused: boolean
   onClick: () => void
   onComplete: () => void
 }) {
   const dueTxt = formatDue(task.dueAt)
   return (
     <div
-      className="pp-task"
+      id={`focus-${task.id}`}
+      className={`pp-task ${focused ? 'kbd-focus' : ''}`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('.check')) return
         onClick()
@@ -193,16 +266,19 @@ function ActiveTaskRow({
 
 function CompletedTaskRow({
   task,
+  focused,
   onClick,
   onRestore,
 }: {
   task: Task
+  focused: boolean
   onClick: () => void
   onRestore: () => void
 }) {
   return (
     <div
-      className={`pp-task done`}
+      id={`focus-${task.id}`}
+      className={`pp-task done ${focused ? 'kbd-focus' : ''}`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('.check')) return
         onClick()

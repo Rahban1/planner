@@ -38,6 +38,31 @@ export const tasks = sqliteTable('tasks', {
 export type Project = typeof projects.$inferSelect
 export type Task = typeof tasks.$inferSelect
 
+export const agentRuns = sqliteTable('agent_runs', {
+  id: text('id').primaryKey(),
+  taskId: text('task_id')
+    .notNull()
+    .references(() => tasks.id, { onDelete: 'cascade' }),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  status: text('status', {
+    enum: ['queued', 'running', 'success', 'error'],
+  })
+    .notNull()
+    .default('queued'),
+  repoUrl: text('repo_url'),
+  branchName: text('branch_name'),
+  prUrl: text('pr_url'),
+  prNumber: integer('pr_number'),
+  logs: text('logs'),
+  errorMessage: text('error_message'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+})
+
+export type AgentRun = typeof agentRuns.$inferSelect
+
 export const priorityRank: Record<Task['priority'], number> = {
   urgent: 0,
   high: 1,

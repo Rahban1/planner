@@ -12,6 +12,7 @@ import type {PriorityCard} from '#/server/priority';
 import {
   createProject,
   archiveProject,
+  deleteProject,
   getProject,
   listProjects,
   updateProject,
@@ -22,10 +23,16 @@ import {
   deleteTask,
   getTask,
   listProjectSummary,
-  
+
   uncompleteTask,
   updateTask
 } from '#/server/tasks'
+import {
+  getAgentRun,
+  getAgentRunForTask,
+  giveTaskToAgent,
+  listAgentRuns,
+} from '#/server/agent'
 import type {TaskWithSubtasks} from '#/server/tasks';
 import type { Project, Task } from '#/db/schema'
 
@@ -38,6 +45,9 @@ export const qk = {
   projectSummary: (id: string) => ['projects', id, 'summary'] as const,
   priority: ['priority'] as const,
   task: (id: string) => ['tasks', id] as const,
+  agentRun: (id: string) => ['agent-runs', id] as const,
+  agentRunForTask: (taskId: string) => ['agent-runs', 'task', taskId] as const,
+  agentRuns: ['agent-runs'] as const,
 }
 
 // ----- query options -----
@@ -91,6 +101,39 @@ export function useTask(id?: string) {
   return useQuery(taskQueryOptions(id ?? ''))
 }
 
+export const agentRunQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: qk.agentRun(id),
+    queryFn: () => getAgentRun({ data: { id } }),
+    enabled: !!id,
+  })
+
+export const agentRunForTaskQueryOptions = (taskId: string) =>
+  queryOptions({
+    queryKey: qk.agentRunForTask(taskId),
+    queryFn: () => getAgentRunForTask({ data: { taskId } }),
+    enabled: !!taskId,
+  })
+
+export function useAgentRun(id?: string) {
+  return useQuery(agentRunQueryOptions(id ?? ''))
+}
+
+export function useAgentRunForTask(taskId?: string) {
+  return useQuery(agentRunForTaskQueryOptions(taskId ?? ''))
+}
+
+export const agentRunsQueryOptions = queryOptions({
+  queryKey: qk.agentRuns,
+  queryFn: () => listAgentRuns(),
+  staleTime: 5_000,
+  refetchInterval: 5_000,
+})
+
+export function useAgentRuns() {
+  return useQuery(agentRunsQueryOptions)
+}
+
 // ----- mutations -----
 
 interface ProjectSummary {
@@ -132,6 +175,21 @@ export function useArchiveProjectMutation() {
       qc.setQueryData<Project[]>(qk.projects, (prev) =>
         prev?.filter((p) => p.id !== vars.data.id),
       )
+      qc.removeQueries({ queryKey: qk.projectSummary(vars.data.id) })
+      qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useDeleteProjectMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteProject,
+    onSuccess: (_res, vars) => {
+      qc.setQueryData<Project[]>(qk.projects, (prev) =>
+        prev?.filter((p) => p.id !== vars.data.id),
+      )
+      qc.removeQueries({ queryKey: qk.project(vars.data.id) })
       qc.removeQueries({ queryKey: qk.projectSummary(vars.data.id) })
       qc.invalidateQueries({ queryKey: qk.priority })
     },
@@ -203,6 +261,18 @@ export function useDeleteTaskMutation() {
       qc.removeQueries({ queryKey: qk.task(vars.data.id) })
       qc.invalidateQueries({ queryKey: qk.projects })
       qc.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useGiveTaskToAgentMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: giveTaskToAgent,
+    onSuccess: (run) => {
+      if (!run) return
+      qc.setQueryData(qk.agentRun(run.id), run)
+      qc.setQueryData(qk.agentRunForTask(run.taskId), run)
     },
   })
 }

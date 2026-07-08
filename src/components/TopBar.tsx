@@ -1,4 +1,5 @@
-import { Sun, Moon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Sun, Moon, Bot } from 'lucide-react'
 
 interface TopBarProps {
   theme: 'dark' | 'light'
@@ -21,7 +22,14 @@ export function TopBar({ theme, onToggleTheme, onWordmarkClick }: TopBarProps) {
         Planner<span className="dot">.</span>
       </div>
       <div className="topbar-right">
-        <span className="kbd">⌘ K</span>
+        <Link to="/agent-runs" className="topbar-link" title="Agent runs">
+          <Bot size={14} />
+          <span>Agents</span>
+        </Link>
+        <div className="kbd-chip-wrap">
+          <span className="kbd">⌘ K</span>
+          <span className="kbd-hint">Press ? for shortcuts</span>
+        </div>
         <button
           className="theme-toggle"
           onClick={onToggleTheme}

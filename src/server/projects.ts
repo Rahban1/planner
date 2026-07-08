@@ -75,3 +75,10 @@ export const archiveProject = createServerFn({ method: 'POST' })
       .where(eq(schema.projects.id, data.id))
     return { ok: true }
   })
+
+export const deleteProject = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    await db.delete(schema.projects).where(eq(schema.projects.id, data.id))
+    return { ok: true }
+  })

@@ -7,6 +7,7 @@ import {
   useCompleteTaskMutation,
   useDeleteTaskMutation,
 } from '#/lib/queries'
+import { useUI } from '#/lib/ui-context'
 import type { Task } from '#/lib/queries'
 
 interface TaskModalProps {
@@ -36,6 +37,7 @@ const INITIAL_DRAFT: Draft = {
 export function TaskModal(props: TaskModalProps) {
   const { taskId, projectId, projectName, projectRepoUrl, onClose } = props
   const isOpen = !!taskId || !!projectId
+  const ui = useUI()
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT)
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const titleRef = useRef<HTMLInputElement>(null)
@@ -150,9 +152,16 @@ export function TaskModal(props: TaskModalProps) {
     )
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!taskId) return
-    if (!window.confirm('Delete this task? This cannot be undone.')) return
+    const confirmed = await ui.requestConfirm({
+      title: 'Delete this task?',
+      message: 'This cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    })
+    if (!confirmed) return
     deleteMut.mutate(
       { data: { id: taskId } },
       { onSuccess: () => onClose() },
@@ -323,6 +332,7 @@ function SubtaskRow({ subtask }: { subtask: Task }) {
   const completeMut = useCompleteTaskMutation()
   const uncompleteMut = useUpdateTaskMutation()
   const deleteMut = useDeleteTaskMutation()
+  const ui = useUI()
   const isDone = subtask.status === 'done'
 
   return (
@@ -358,8 +368,15 @@ function SubtaskRow({ subtask }: { subtask: Task }) {
       />
       <span
         className="del"
-        onClick={() => {
-          if (confirm('Delete subtask?')) deleteMut.mutate({ data: { id: subtask.id } })
+        onClick={async () => {
+          const confirmed = await ui.requestConfirm({
+            title: 'Delete subtask?',
+            message: 'This cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            destructive: true,
+          })
+          if (confirmed) deleteMut.mutate({ data: { id: subtask.id } })
         }}
         role="button"
         tabIndex={0}

@@ -18,6 +18,14 @@ export default [
     },
   },
   {
+    files: ['agent-runner/vite-plugin.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+  },
+  {
     ignores: ['eslint.config.js', 'prettier.config.js'],
   },
 ]

@@ -9,9 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AgentRunsRouteImport } from './routes/agent-runs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
+import { Route as ApiRunnerSplatRouteImport } from './routes/api/runner/$'
 
+const AgentRunsRoute = AgentRunsRouteImport.update({
+  id: '/agent-runs',
+  path: '/agent-runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -22,35 +29,55 @@ const ProjectsIdRoute = ProjectsIdRouteImport.update({
   path: '/projects/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRunnerSplatRoute = ApiRunnerSplatRouteImport.update({
+  id: '/api/runner/$',
+  path: '/api/runner/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agent-runs': typeof AgentRunsRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agent-runs': typeof AgentRunsRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agent-runs': typeof AgentRunsRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/projects/$id'
+  fullPaths: '/' | '/agent-runs' | '/projects/$id' | '/api/runner/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/projects/$id'
-  id: '__root__' | '/' | '/projects/$id'
+  to: '/' | '/agent-runs' | '/projects/$id' | '/api/runner/$'
+  id: '__root__' | '/' | '/agent-runs' | '/projects/$id' | '/api/runner/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentRunsRoute: typeof AgentRunsRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
+  ApiRunnerSplatRoute: typeof ApiRunnerSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/agent-runs': {
+      id: '/agent-runs'
+      path: '/agent-runs'
+      fullPath: '/agent-runs'
+      preLoaderRoute: typeof AgentRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -65,12 +92,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/runner/$': {
+      id: '/api/runner/$'
+      path: '/api/runner/$'
+      fullPath: '/api/runner/$'
+      preLoaderRoute: typeof ApiRunnerSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentRunsRoute: AgentRunsRoute,
   ProjectsIdRoute: ProjectsIdRoute,
+  ApiRunnerSplatRoute: ApiRunnerSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
