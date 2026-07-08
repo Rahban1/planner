@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bot, ChevronDown, ExternalLink, Loader2 } from 'lucide-react'
-import {
-  useAgentRunForTask,
-  useGiveTaskToAgentMutation,
-} from '#/lib/queries'
+import { useAgentRunForTask, useGiveTaskToAgentMutation } from '#/lib/queries'
 
 interface AgentButtonProps {
   taskId: string
@@ -44,7 +41,7 @@ export function AgentButton({ taskId }: AgentButtonProps) {
   const isActive = status === 'queued' || status === 'running'
 
   return (
-    <div className="agent-wrap">
+    <div className="agent-wrap" onClick={(e) => e.stopPropagation()}>
       <button
         className={`agent-btn ${isActive ? 'active' : ''} ${status === 'success' ? 'success' : ''} ${status === 'error' ? 'error' : ''}`}
         onClick={() => {
@@ -57,13 +54,11 @@ export function AgentButton({ taskId }: AgentButtonProps) {
         disabled={giveMut.isPending || isActive}
         title="Give this task to an AI agent"
       >
-        {isActive ? (
-          <Loader2 size={12} className="spin" />
-        ) : (
-          <Bot size={12} />
-        )}
+        {isActive ? <Loader2 size={12} className="spin" /> : <Bot size={12} />}
         <span>{labelForStatus(status)}</span>
-        {run && <ChevronDown size={10} className={`chev ${expanded ? 'open' : ''}`} />}
+        {run && (
+          <ChevronDown size={10} className={`chev ${expanded ? 'open' : ''}`} />
+        )}
       </button>
 
       {expanded && run && (
