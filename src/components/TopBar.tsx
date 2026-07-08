@@ -18,7 +18,7 @@ export function TopBar({ theme, onToggleTheme, onWordmarkClick }: TopBarProps) {
           if (e.key === 'Enter' || e.key === ' ') onWordmarkClick?.()
         }}
       >
-        Planner<span className="dot">.</span>
+        rg-planner<span className="dot">.</span>
       </div>
       <div className="topbar-right">
         <span className="kbd">⌘ K</span>
