@@ -27,6 +27,7 @@ interface TaskContext {
   projectName: string
   repoUrl: string
   priority: string
+  attachments: { id: string; name: string; mimeType: string; path: string }[]
 }
 
 const POLL_INTERVAL_MS = 3000
@@ -116,7 +117,13 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
     }
     await mkdir(workspace, { recursive: true })
 
-    const prompt = buildPrompt(task)
+    const prompt = buildPrompt({
+      ...task,
+      attachments: task.attachments.map((a) => ({
+        ...a,
+        url: `${PLANNER_BASE_URL}${a.path}`,
+      })),
+    })
     await append('Starting OpenHands agent session...')
 
     const conversation = await openhands.startConversation(prompt, workspace)

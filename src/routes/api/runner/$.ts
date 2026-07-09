@@ -31,6 +31,12 @@ export const Route = createFileRoute('/api/runner/$')({
             priority: task.priority,
             projectName: project.name,
             repoUrl: project.repoUrl,
+            attachments: task.attachments.map((a) => ({
+              id: a.id,
+              name: a.name,
+              mimeType: a.mimeType,
+              path: `/api/attachments/${a.id}`,
+            })),
           })
         }
 

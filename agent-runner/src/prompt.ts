@@ -4,10 +4,18 @@ export interface TaskContext {
   projectName: string
   repoUrl: string
   priority: string
+  attachments: { id: string; name: string; mimeType: string; path: string; url: string }[]
 }
 
 export function buildPrompt(task: TaskContext): string {
   const branchName = `agent/${slug(task.title)}-${Date.now()}`
+
+  const attachmentLines =
+    task.attachments && task.attachments.length > 0
+      ? task.attachments
+          .map((a) => `- ${a.name} (${a.mimeType}) — ${a.url}`)
+          .join('\n')
+      : 'None'
 
   return `You are an expert software engineer. Your job is to implement a task from a project planner and open a Pull Request for human review.
 
@@ -18,6 +26,12 @@ Priority: ${task.priority}
 Title: ${task.title}
 ${task.notes ? `Notes: ${task.notes}` : ''}
 Repository: ${task.repoUrl}
+
+## Attachments
+
+The task has the following files attached for context. You can download them using curl/wget if you need to inspect them.
+
+${attachmentLines}
 
 ## Instructions
 
