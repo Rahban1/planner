@@ -869,6 +869,18 @@ body {
 [data-theme='light'] .notes-input {
   background: rgba(255, 253, 248, 0.5);
 }
+.paste-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--g-500);
+  margin-top: 2px;
+  transition: color 150ms;
+}
+.paste-hint:hover {
+  color: var(--g-700);
+}
 .controls-row {
   display: flex;
   gap: 10px;

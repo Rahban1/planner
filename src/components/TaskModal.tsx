@@ -43,6 +43,7 @@ export function TaskModal(props: TaskModalProps) {
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT)
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const titleRef = useRef<HTMLInputElement>(null)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch the task when editing an existing one.
   const taskRes = useTask(taskId ?? '')
@@ -170,6 +171,28 @@ export function TaskModal(props: TaskModalProps) {
     )
   }
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (!taskId) return
+    const items = e.clipboardData.items
+    let hasImage = false
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.startsWith('image/')) {
+        hasImage = true
+        const file = item.getAsFile()
+        if (file) {
+          const formData = new FormData()
+          formData.append('taskId', taskId)
+          formData.append('file', file, file.name || 'pasted-image.png')
+          uploadMut.mutate({ data: formData })
+        }
+      }
+    }
+    if (hasImage) {
+      e.preventDefault()
+    }
+  }
+
   const subtasks = task?.subtasks ?? []
 
   return (
@@ -200,11 +223,19 @@ export function TaskModal(props: TaskModalProps) {
           <div className="field-group">
             <div className="field-label">Notes</div>
             <textarea
+              ref={notesRef}
               className="notes-input"
               placeholder="Context for you and the agent…"
               value={draft.notes}
               onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              onPaste={handlePaste}
             />
+            {isExisting && (
+              <div className="paste-hint">
+                <Image size={12} />
+                Paste an image here to attach it
+              </div>
+            )}
           </div>
 
           {isExisting && taskId && (
