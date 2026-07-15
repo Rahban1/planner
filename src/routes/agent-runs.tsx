@@ -14,7 +14,7 @@ import {
   GitPullRequest,
   Folder,
 } from 'lucide-react'
-import { useAgentRuns } from '#/lib/queries'
+import { useAgentRuns, useGiveTaskToAgentMutation } from '#/lib/queries'
 
 export const Route = createFileRoute('/agent-runs')({
   component: AgentRunsPage,
@@ -42,6 +42,7 @@ const statusConfig: Record<
 
 function AgentRunsPage() {
   const runsQuery = useAgentRuns()
+  const giveMut = useGiveTaskToAgentMutation()
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
@@ -122,7 +123,11 @@ function AgentRunsPage() {
               : null
 
             return (
-              <div key={run.id} className="agent-run-card">
+              <div
+                key={run.id}
+                className={`agent-run-card ${isOpen ? 'open' : ''}`}
+                onClick={() => toggleLogs(run.id)}
+              >
                 <div className="agent-run-card-head">
                   <div className="agent-run-card-main">
                     <div className="agent-run-task-title">
@@ -151,12 +156,18 @@ function AgentRunsPage() {
                       </span>
                     </div>
                   </div>
-                  <div
-                    className="agent-run-status-badge"
-                    style={{ color: cfg.color, borderColor: cfg.color }}
-                  >
-                    {cfg.icon}
-                    <span>{cfg.label}</span>
+                  <div className="agent-run-card-actions">
+                    <div
+                      className="agent-run-status-badge"
+                      style={{ color: cfg.color, borderColor: cfg.color }}
+                    >
+                      {cfg.icon}
+                      <span>{cfg.label}</span>
+                    </div>
+                    <ChevronDown
+                      size={16}
+                      className={`agent-run-card-chev ${isOpen ? 'open' : ''}`}
+                    />
                   </div>
                 </div>
 
@@ -168,6 +179,7 @@ function AgentRunsPage() {
                         href={run.prUrl}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <GitPullRequest size={14} />
                         <span>Open Pull Request</span>
@@ -190,27 +202,30 @@ function AgentRunsPage() {
 
                 {run.status === 'error' && (
                   <div className="agent-run-outcome error">
-                    <AlertCircle size={14} />
-                    <span>
-                      {run.errorMessage ?? 'The agent run failed.'}
-                    </span>
+                    <div className="agent-run-error-main">
+                      <AlertCircle size={14} />
+                      <span>{run.errorMessage ?? 'The agent run failed.'}</span>
+                    </div>
+                    <button
+                      className="agent-run-retry"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        giveMut.mutate({ data: { taskId: run.taskId } })
+                      }}
+                      disabled={giveMut.isPending}
+                    >
+                      <RefreshCw size={12} className={giveMut.isPending ? 'spin' : ''} />
+                      <span>{giveMut.isPending ? 'Retrying…' : 'Retry'}</span>
+                    </button>
                   </div>
                 )}
 
-                <button
-                  className={`agent-run-logs-toggle ${isOpen ? 'open' : ''}`}
-                  onClick={() => toggleLogs(run.id)}
-                >
-                  <RefreshCw size={12} />
-                  <span>Live logs</span>
-                  <span className="agent-run-logs-count">
-                    {logs.length} entries
-                  </span>
-                  <ChevronDown size={12} className="chev" />
-                </button>
-
                 {isOpen && (
-                  <div className="agent-run-logs">
+                  <div className="agent-run-logs" onClick={(e) => e.stopPropagation()}>
+                    <div className="agent-run-logs-head">
+                      <span>Logs</span>
+                      <span className="agent-run-logs-count">{logs.length} entries</span>
+                    </div>
                     {logs.length === 0 ? (
                       <div className="agent-run-log-empty">
                         No logs captured yet.
@@ -238,6 +253,7 @@ function AgentRunsPage() {
                     to="/projects/$id"
                     params={{ id: run.projectId }}
                     className="agent-run-foot-link"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     View project
                   </Link>

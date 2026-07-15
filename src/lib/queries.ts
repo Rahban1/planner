@@ -289,6 +289,7 @@ export function useGiveTaskToAgentMutation() {
       if (!run) return
       qc.setQueryData(qk.agentRun(run.id), run)
       qc.setQueryData(qk.agentRunForTask(run.taskId), run)
+      qc.invalidateQueries({ queryKey: qk.agentRuns })
     },
   })
 }

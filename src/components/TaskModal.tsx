@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Plus, Upload, FileText, Image } from 'lucide-react'
+import { X, Plus, Upload, FileText, Image, Loader2 } from 'lucide-react'
 import {
   useTask,
   useUpdateTaskMutation,
@@ -10,7 +10,7 @@ import {
   useDeleteAttachmentMutation,
 } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
-import type { Attachment, Task } from '#/lib/queries'
+import type { Attachment, Task, TaskWithSubtasks } from '#/lib/queries'
 
 interface TaskModalProps {
   taskId: string | null
@@ -43,7 +43,6 @@ export function TaskModal(props: TaskModalProps) {
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT)
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const titleRef = useRef<HTMLInputElement>(null)
-  const notesRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch the task when editing an existing one.
   const taskRes = useTask(taskId ?? '')
@@ -54,6 +53,18 @@ export function TaskModal(props: TaskModalProps) {
   const createMut = useCreateTaskMutation()
   const completeMut = useCompleteTaskMutation()
   const deleteMut = useDeleteTaskMutation()
+  const uploadMut = useUploadAttachmentMutation()
+  const [uploading, setUploading] = useState<{ id: string; name: string }[]>([])
+  const [pasteHint, setPasteHint] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragCounter = useRef(0)
+
+  // Clear transient paste hints automatically.
+  useEffect(() => {
+    if (!pasteHint) return
+    const t = setTimeout(() => setPasteHint(null), 3000)
+    return () => clearTimeout(t)
+  }, [pasteHint])
 
   // Sync draft when the fetched task changes.
   useEffect(() => {
@@ -171,28 +182,109 @@ export function TaskModal(props: TaskModalProps) {
     )
   }
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    if (!taskId) return
-    const items = e.clipboardData.items
-    let hasImage = false
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (item.type.startsWith('image/')) {
-        hasImage = true
+  const uploadFiles = (targetTaskId: string, files: File[]) => {
+    files.forEach((file) => {
+      const uploadId = crypto.randomUUID()
+      setUploading((prev) => [...prev, { id: uploadId, name: file.name }])
+      const formData = new FormData()
+      formData.append('taskId', targetTaskId)
+      formData.append('file', file)
+      uploadMut.mutate(
+        { data: formData },
+        {
+          onSettled: () => {
+            setUploading((prev) => prev.filter((u) => u.id !== uploadId))
+          },
+        },
+      )
+    })
+  }
+
+  const createTaskFromDraft = (onCreated: (created: TaskWithSubtasks) => void) => {
+    if (!projectId) return
+    const trimmedTitle = draft.title.trim()
+    if (!trimmedTitle) {
+      setPasteHint('Add a task title before attaching images.')
+      titleRef.current?.focus()
+      return
+    }
+    const dueAt = draft.dueAt ? Date.parse(draft.dueAt) : null
+    createMut.mutate(
+      {
+        data: {
+          projectId,
+          title: trimmedTitle,
+          notes: draft.notes || null,
+          priority: draft.priority,
+          dueAt: Number.isFinite(dueAt) ? dueAt : undefined,
+        },
+      },
+      {
+        onSuccess: (created) => {
+          if (!created) return
+          props.onTaskSaved?.(created.id)
+          onCreated(created)
+        },
+      },
+    )
+  }
+
+  const handlePasteImages = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    const files: File[] = []
+    for (const item of Array.from(items)) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
         const file = item.getAsFile()
-        if (file) {
-          const formData = new FormData()
-          formData.append('taskId', taskId)
-          formData.append('file', file, file.name || 'pasted-image.png')
-          uploadMut.mutate({ data: formData })
-        }
+        if (file) files.push(file)
       }
     }
-    if (hasImage) {
-      e.preventDefault()
+    if (!files.length) return
+    e.preventDefault()
+
+    if (isExisting && taskId) {
+      uploadFiles(taskId, files)
+      setPasteHint(`Pasted ${files.length} image${files.length > 1 ? 's' : ''}`)
+    } else if (isNew && projectId) {
+      createTaskFromDraft((created) => {
+        uploadFiles(created.id, files)
+        setPasteHint(`Created task and pasted ${files.length} image${files.length > 1 ? 's' : ''}`)
+      })
     }
   }
 
+  const handleDropFiles = (files: File[]) => {
+    if (!files.length) return
+    if (isExisting && taskId) {
+      uploadFiles(taskId, files)
+      setPasteHint(`Dropped ${files.length} file${files.length > 1 ? 's' : ''}`)
+    } else if (isNew && projectId) {
+      createTaskFromDraft((created) => {
+        uploadFiles(created.id, files)
+        setPasteHint(`Created task and dropped ${files.length} file${files.length > 1 ? 's' : ''}`)
+      })
+    }
+  }
+
+  const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounter.current++
+    setIsDragging(true)
+  }
+  const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounter.current--
+    if (dragCounter.current <= 0) setIsDragging(false)
+  }
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+  }
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounter.current = 0
+    setIsDragging(false)
+    handleDropFiles(Array.from(e.dataTransfer.files))
+  }
   const subtasks = task?.subtasks ?? []
 
   return (
@@ -222,26 +314,37 @@ export function TaskModal(props: TaskModalProps) {
         <div className="modal-body">
           <div className="field-group">
             <div className="field-label">Notes</div>
-            <textarea
-              ref={notesRef}
-              className="notes-input"
-              placeholder="Context for you and the agent…"
-              value={draft.notes}
-              onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-              onPaste={handlePaste}
-            />
-            {isExisting && (
-              <div className="paste-hint">
+            <div
+              className={`notes-drop-zone ${isDragging ? 'drag-over' : ''}`}
+              onDragEnter={onDragEnter}
+              onDragLeave={onDragLeave}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+            >
+              <textarea
+                className="notes-input"
+                placeholder="Context for you and the agent…&#10;Paste images directly here"
+                value={draft.notes}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+                onPaste={handlePasteImages}
+              />
+              <div className="notes-hint">
                 <Image size={12} />
-                Paste an image here to attach it
+                <span>Paste images or drop files to attach them</span>
               </div>
-            )}
+              {pasteHint && <div className="notes-paste-hint">{pasteHint}</div>}
+            </div>
           </div>
 
           {isExisting && taskId && (
             <div className="field-group">
               <div className="field-label">Attachments</div>
-              <AttachmentSection taskId={taskId} attachments={task?.attachments ?? []} />
+              <AttachmentSection
+                attachments={task?.attachments ?? []}
+                uploading={uploading}
+                isUploading={uploadMut.isPending}
+                onUploadFiles={(files) => uploadFiles(taskId, files)}
+              />
             </div>
           )}
 
@@ -428,25 +531,38 @@ function SubtaskRow({ subtask }: { subtask: Task }) {
   )
 }
 
-function AttachmentSection({ taskId, attachments }: { taskId: string; attachments: Attachment[] }) {
-  const uploadMut = useUploadAttachmentMutation()
+function AttachmentSection({
+  attachments,
+  uploading,
+  isUploading,
+  onUploadFiles,
+}: {
+  attachments: Attachment[]
+  uploading: { id: string; name: string }[]
+  isUploading: boolean
+  onUploadFiles: (files: File[]) => void
+}) {
   const deleteMut = useDeleteAttachmentMutation()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return
-    Array.from(files).forEach((file) => {
-      const formData = new FormData()
-      formData.append('taskId', taskId)
-      formData.append('file', file)
-      uploadMut.mutate({ data: formData })
-    })
+    onUploadFiles(Array.from(files))
   }
 
   return (
     <div className="attachments-section">
-      {attachments.length > 0 && (
+      {(attachments.length > 0 || uploading.length > 0) && (
         <div className="attachments-list">
+          {uploading.map((u) => (
+            <div key={u.id} className="attachment-row uploading">
+              <div className="attachment-icon">
+                <Loader2 size={16} className="spin" />
+              </div>
+              <span className="attachment-name">{u.name}</span>
+              <span className="attachment-size">Uploading…</span>
+            </div>
+          ))}
           {attachments.map((a) => (
             <AttachmentRow key={a.id} attachment={a} onDelete={() => deleteMut.mutate({ data: { id: a.id } })} />
           ))}
@@ -455,10 +571,10 @@ function AttachmentSection({ taskId, attachments }: { taskId: string; attachment
       <button
         className="btn btn-ghost attachment-add"
         onClick={() => fileRef.current?.click()}
-        disabled={uploadMut.isPending}
+        disabled={isUploading}
       >
         <Upload size={14} />
-        {uploadMut.isPending ? 'Uploading…' : 'Upload file'}
+        {isUploading ? 'Uploading…' : 'Upload file'}
       </button>
       <input
         ref={fileRef}

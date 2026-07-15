@@ -2,6 +2,11 @@ import { mkdir, rm, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
+import {
+  getTerminalExecutionStatus,
+  type TerminalExecutionStatus,
+  shouldStopPolling,
+} from './polling.js'
 import { buildPrompt } from './prompt.js'
 
 interface LogEntry {
@@ -34,7 +39,7 @@ const POLL_INTERVAL_MS = 3000
 const WORKSPACE_ROOT = process.env.RUNNER_WORKSPACE ?? '/tmp/agent-workspace'
 const PLANNER_BASE_URL = process.env.PLANNER_BASE_URL ?? 'http://host.docker.internal:3000'
 const OPENHANDS_BASE_URL = process.env.OPENHANDS_BASE_URL ?? 'http://openhands-agent-server:8000'
-const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.7-code'
+const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
 const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
 const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
 const MAX_RUNTIME_MS = 15 * 60 * 1000 // 15 minutes
@@ -133,7 +138,7 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
 
     const seenEventKeys = new Set<string>()
     let idleCount = 0
-    let terminalStatus: string | null = null
+    let terminalStatus: TerminalExecutionStatus | null = null
 
     await openhands.pollEvents(conversation.id, {
       onEvent: (event) => {
@@ -153,25 +158,21 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
           return
         }
         idleCount += 1
-        // Periodically check execution status so we stop promptly when done
-        if (idleCount % 2 === 0) {
-          try {
-            const convo = await openhands.getConversation(conversation.id)
-            const status = convo.execution_status
-            if (['finished', 'error', 'stuck'].includes(status)) {
-              terminalStatus = status
-              idleCount = 999
-            }
-          } catch {
-            // ignore
-          }
+        try {
+          const convo = await openhands.getConversation(conversation.id)
+          terminalStatus = getTerminalExecutionStatus(convo.execution_status)
+        } catch {
+          // ignore
         }
       },
       shouldStop: () => {
-        if (timedOut) return true
-        if (Date.now() - startedAt > MAX_RUNTIME_MS) return true
-        // Stop once terminal status is reached and event stream is stable
-        return idleCount >= 3
+        return shouldStopPolling({
+          timedOut,
+          startedAt,
+          now: Date.now(),
+          maxRuntimeMs: MAX_RUNTIME_MS,
+          terminalStatus,
+        })
       },
       intervalMs: 3000,
     })

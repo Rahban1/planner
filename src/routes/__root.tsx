@@ -94,6 +94,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
         projectRepoUrl={ui.taskModal?.projectRepoUrl}
         onClose={ui.closeTask}
         onOpenProject={(pid) => navigate({ to: '/projects/$id', params: { id: pid } })}
+        onTaskSaved={(savedTaskId) => {
+          const projectName = ui.taskModal?.projectName
+          const projectRepoUrl = ui.taskModal?.projectRepoUrl
+          ui.openTask(savedTaskId, projectName, projectRepoUrl)
+        }}
       />
       <ProjectModal />
       <CommandPalette onToggleTheme={toggle} />

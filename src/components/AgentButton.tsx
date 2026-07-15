@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bot, ChevronDown, ExternalLink, Loader2 } from 'lucide-react'
+import { Bot, ChevronDown, ExternalLink, Loader2, RefreshCw } from 'lucide-react'
 import { useAgentRunForTask, useGiveTaskToAgentMutation } from '#/lib/queries'
 
 interface AgentButtonProps {
@@ -45,19 +45,28 @@ export function AgentButton({ taskId }: AgentButtonProps) {
       <button
         className={`agent-btn ${isActive ? 'active' : ''} ${status === 'success' ? 'success' : ''} ${status === 'error' ? 'error' : ''}`}
         onClick={() => {
-          if (run) {
-            setExpanded((v) => !v)
-          } else {
+          if (!run) {
             giveMut.mutate({ data: { taskId } })
+          } else if (status === 'error') {
+            giveMut.mutate({ data: { taskId } })
+          } else {
+            setExpanded((v) => !v)
           }
         }}
         disabled={giveMut.isPending || isActive}
-        title="Give this task to an AI agent"
+        title={status === 'error' ? 'Retry this agent run' : 'Give this task to an AI agent'}
       >
-        {isActive ? <Loader2 size={12} className="spin" /> : <Bot size={12} />}
+        {isActive ? <Loader2 size={14} className="spin" /> : status === 'error' ? <RefreshCw size={14} /> : <Bot size={14} />}
         <span>{labelForStatus(status)}</span>
         {run && (
-          <ChevronDown size={10} className={`chev ${expanded ? 'open' : ''}`} />
+          <ChevronDown
+            size={12}
+            className={`chev ${expanded ? 'open' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded((v) => !v)
+            }}
+          />
         )}
       </button>
 
@@ -67,7 +76,16 @@ export function AgentButton({ taskId }: AgentButtonProps) {
             <span className="status-badge" data-status={status}>
               {status}
             </span>
-            {run.prUrl && (
+            {status === 'error' ? (
+              <button
+                className="agent-log-retry"
+                onClick={() => giveMut.mutate({ data: { taskId } })}
+                disabled={giveMut.isPending}
+              >
+                <RefreshCw size={10} className={giveMut.isPending ? 'spin' : ''} />
+                <span>{giveMut.isPending ? 'Retrying…' : 'Retry run'}</span>
+              </button>
+            ) : run.prUrl ? (
               <a
                 className="pr-link"
                 href={run.prUrl}
@@ -76,7 +94,7 @@ export function AgentButton({ taskId }: AgentButtonProps) {
               >
                 Open PR <ExternalLink size={10} />
               </a>
-            )}
+            ) : null}
           </div>
           {run.errorMessage && (
             <div className="agent-log-error">{run.errorMessage}</div>
@@ -111,7 +129,7 @@ function labelForStatus(status: string | undefined): string {
     case 'success':
       return 'PR Ready'
     case 'error':
-      return 'Failed'
+      return 'Retry'
     default:
       return 'Give to Agent'
   }

@@ -32,7 +32,7 @@ services:
     environment:
       - PLANNER_BASE_URL=${PLANNER_BASE_URL:-http://host.docker.internal:3000}
       - OPENHANDS_BASE_URL=http://openhands-agent-server:8000
-      - LLM_MODEL=${LLM_MODEL:-openai/kimi-k2.7-code}
+      - LLM_MODEL=${LLM_MODEL:-openai/kimi-k2.6}
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_API_BASE=${LLM_API_BASE:-https://opencode.ai/zen/go/v1}
       - RUNNER_WORKSPACE=/workspace/runs
