@@ -28,15 +28,20 @@ import {
   updateTask
 } from '#/server/tasks'
 import {
+  listAttachmentsForTask,
+  uploadAttachment,
+  deleteAttachment,
+} from '#/server/attachments'
+import {
   getAgentRun,
   getAgentRunForTask,
   giveTaskToAgent,
   listAgentRuns,
 } from '#/server/agent'
 import type {TaskWithSubtasks} from '#/server/tasks';
-import type { Project, Task } from '#/db/schema'
+import type { Project, Task, Attachment } from '#/db/schema'
 
-export type { Project, Task, PriorityCard, TaskWithSubtasks }
+export type { Project, Task, Attachment, PriorityCard, TaskWithSubtasks }
 
 // ----- query keys -----
 export const qk = {
@@ -45,6 +50,7 @@ export const qk = {
   projectSummary: (id: string) => ['projects', id, 'summary'] as const,
   priority: ['priority'] as const,
   task: (id: string) => ['tasks', id] as const,
+  attachments: (taskId: string) => ['tasks', taskId, 'attachments'] as const,
   agentRun: (id: string) => ['agent-runs', id] as const,
   agentRunForTask: (taskId: string) => ['agent-runs', 'task', taskId] as const,
   agentRuns: ['agent-runs'] as const,
@@ -84,6 +90,13 @@ export const taskQueryOptions = (id: string) =>
     enabled: !!id,
   })
 
+export const attachmentsQueryOptions = (taskId: string) =>
+  queryOptions({
+    queryKey: qk.attachments(taskId),
+    queryFn: () => listAttachmentsForTask({ data: { taskId } }),
+    enabled: !!taskId,
+  })
+
 // ----- convenience hooks -----
 export function useProjects() {
   return useQuery(projectsQueryOptions)
@@ -99,6 +112,9 @@ export function usePriority() {
 }
 export function useTask(id?: string) {
   return useQuery(taskQueryOptions(id ?? ''))
+}
+export function useAttachments(taskId?: string) {
+  return useQuery(attachmentsQueryOptions(taskId ?? ''))
 }
 
 export const agentRunQueryOptions = (id: string) =>
@@ -273,6 +289,33 @@ export function useGiveTaskToAgentMutation() {
       if (!run) return
       qc.setQueryData(qk.agentRun(run.id), run)
       qc.setQueryData(qk.agentRunForTask(run.taskId), run)
+    },
+  })
+}
+
+export function useUploadAttachmentMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: uploadAttachment,
+    onSuccess: (attachment, vars) => {
+      if (!attachment) return
+      const taskId = vars.data.get('taskId')
+      if (typeof taskId === 'string') {
+        qc.invalidateQueries({ queryKey: qk.attachments(taskId) })
+        qc.invalidateQueries({ queryKey: qk.task(taskId) })
+      }
+    },
+  })
+}
+
+export function useDeleteAttachmentMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAttachment,
+    onSuccess: (attachment) => {
+      if (!attachment) return
+      qc.invalidateQueries({ queryKey: qk.attachments(attachment.taskId) })
+      qc.invalidateQueries({ queryKey: qk.task(attachment.taskId) })
     },
   })
 }

@@ -2,20 +2,27 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
-import type { Task } from '#/db/schema'
+import type { Attachment, Task } from '#/db/schema'
 
 const id = () => crypto.randomUUID()
 
 const taskWithSubtasks = async (task: Task): Promise<TaskWithSubtasks> => {
-  const subtasks = await db
-    .select()
-    .from(schema.tasks)
-    .where(eq(schema.tasks.parentId, task.id))
-    .orderBy(asc(schema.tasks.position))
-  return { ...task, subtasks }
+  const [subtasks, attachments] = await Promise.all([
+    db
+      .select()
+      .from(schema.tasks)
+      .where(eq(schema.tasks.parentId, task.id))
+      .orderBy(asc(schema.tasks.position)),
+    db
+      .select()
+      .from(schema.attachments)
+      .where(eq(schema.attachments.taskId, task.id))
+      .orderBy(asc(schema.attachments.createdAt)),
+  ])
+  return { ...task, subtasks, attachments }
 }
 
-export type TaskWithSubtasks = Task & { subtasks: Task[] }
+export type TaskWithSubtasks = Task & { subtasks: Task[]; attachments: Attachment[] }
 
 export const listTasksForProject = createServerFn({ method: 'GET' })
   .validator(

@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Upload, FileText, Image } from 'lucide-react'
 import {
   useTask,
   useUpdateTaskMutation,
   useCreateTaskMutation,
   useCompleteTaskMutation,
   useDeleteTaskMutation,
+  useUploadAttachmentMutation,
+  useDeleteAttachmentMutation,
 } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
-import type { Task } from '#/lib/queries'
+import type { Attachment, Task } from '#/lib/queries'
 
 interface TaskModalProps {
   taskId: string | null
@@ -205,6 +207,13 @@ export function TaskModal(props: TaskModalProps) {
             />
           </div>
 
+          {isExisting && taskId && (
+            <div className="field-group">
+              <div className="field-label">Attachments</div>
+              <AttachmentSection taskId={taskId} attachments={task?.attachments ?? []} />
+            </div>
+          )}
+
 {isExisting && (
             <div className="field-group">
               <div className="field-label">Subtasks</div>
@@ -386,6 +395,94 @@ function SubtaskRow({ subtask }: { subtask: Task }) {
       </span>
     </div>
   )
+}
+
+function AttachmentSection({ taskId, attachments }: { taskId: string; attachments: Attachment[] }) {
+  const uploadMut = useUploadAttachmentMutation()
+  const deleteMut = useDeleteAttachmentMutation()
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return
+    Array.from(files).forEach((file) => {
+      const formData = new FormData()
+      formData.append('taskId', taskId)
+      formData.append('file', file)
+      uploadMut.mutate({ data: formData })
+    })
+  }
+
+  return (
+    <div className="attachments-section">
+      {attachments.length > 0 && (
+        <div className="attachments-list">
+          {attachments.map((a) => (
+            <AttachmentRow key={a.id} attachment={a} onDelete={() => deleteMut.mutate({ data: { id: a.id } })} />
+          ))}
+        </div>
+      )}
+      <button
+        className="btn btn-ghost attachment-add"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploadMut.isPending}
+      >
+        <Upload size={14} />
+        {uploadMut.isPending ? 'Uploading…' : 'Upload file'}
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={(e) => handleFiles(e.target.files)}
+      />
+    </div>
+  )
+}
+
+function AttachmentRow({ attachment, onDelete }: { attachment: Attachment; onDelete: () => void }) {
+  const isImage = attachment.mimeType.startsWith('image/')
+
+  return (
+    <div className="attachment-row">
+      <a
+        className="attachment-info"
+        href={`/api/attachments/${attachment.id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {isImage ? (
+          <img
+            src={`/api/attachments/${attachment.id}`}
+            alt={attachment.name}
+            className="attachment-thumb"
+          />
+        ) : (
+          <div className="attachment-icon">
+            {attachment.mimeType.startsWith('image/') ? <Image size={16} /> : <FileText size={16} />}
+          </div>
+        )}
+        <span className="attachment-name">{attachment.name}</span>
+        <span className="attachment-size">{formatBytes(attachment.size)}</span>
+      </a>
+      <button
+        className="attachment-delete"
+        onClick={onDelete}
+        aria-label="Delete attachment"
+        title="Delete attachment"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  )
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${Number((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
 function toDatetimeLocal(ms: number): string {

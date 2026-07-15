@@ -10,5 +10,11 @@
       "database_name": "planner",
       "migrations_dir": "drizzle/migrations"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ATTACHMENTS",
+      "bucket_name": "planner-attachments"
+    }
   ]
 }

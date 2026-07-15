@@ -1997,3 +1997,90 @@ body {
   color: var(--g-500);
   margin: 0;
 }
+
+/* ---------- attachments ---------- */
+.attachments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.attachment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--panel-weak);
+  border: 1px solid var(--line-2);
+}
+.attachment-row:hover {
+  border-color: var(--line);
+}
+.attachment-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+.attachment-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--panel);
+}
+.attachment-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--g-500);
+  flex-shrink: 0;
+}
+.attachment-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.attachment-size {
+  font-size: 11px;
+  color: var(--g-500);
+  flex-shrink: 0;
+}
+.attachment-delete {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--g-500);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 150ms, background 150ms;
+}
+.attachment-delete:hover {
+  color: var(--danger);
+  background: var(--panel);
+}
+.attachment-add {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}

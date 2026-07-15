@@ -13,6 +13,7 @@ import { Route as AgentRunsRouteImport } from './routes/agent-runs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as ApiRunnerSplatRouteImport } from './routes/api/runner/$'
+import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
 
 const AgentRunsRoute = AgentRunsRouteImport.update({
   id: '/agent-runs',
@@ -34,17 +35,24 @@ const ApiRunnerSplatRoute = ApiRunnerSplatRouteImport.update({
   path: '/api/runner/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
+  id: '/api/attachments/$id',
+  path: '/api/attachments/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,38 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agent-runs' | '/projects/$id' | '/api/runner/$'
+  fullPaths:
+    | '/'
+    | '/agent-runs'
+    | '/projects/$id'
+    | '/api/attachments/$id'
+    | '/api/runner/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agent-runs' | '/projects/$id' | '/api/runner/$'
-  id: '__root__' | '/' | '/agent-runs' | '/projects/$id' | '/api/runner/$'
+  to:
+    | '/'
+    | '/agent-runs'
+    | '/projects/$id'
+    | '/api/attachments/$id'
+    | '/api/runner/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/agent-runs'
+    | '/projects/$id'
+    | '/api/attachments/$id'
+    | '/api/runner/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentRunsRoute: typeof AgentRunsRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
+  ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiRunnerSplatRoute: typeof ApiRunnerSplatRoute
 }
 
@@ -99,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRunnerSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/attachments/$id': {
+      id: '/api/attachments/$id'
+      path: '/api/attachments/$id'
+      fullPath: '/api/attachments/$id'
+      preLoaderRoute: typeof ApiAttachmentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -106,6 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentRunsRoute: AgentRunsRoute,
   ProjectsIdRoute: ProjectsIdRoute,
+  ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiRunnerSplatRoute: ApiRunnerSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -35,8 +35,24 @@ export const tasks = sqliteTable('tasks', {
   updatedAt: integer('updated_at').notNull(),
 })
 
+export const attachments = sqliteTable('attachments', {
+  id: text('id').primaryKey(),
+  taskId: text('task_id')
+    .notNull()
+    .references(() => tasks.id, { onDelete: 'cascade' }),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  r2Key: text('r2_key').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
+
 export type Project = typeof projects.$inferSelect
 export type Task = typeof tasks.$inferSelect
+export type Attachment = typeof attachments.$inferSelect
 
 export const agentRuns = sqliteTable('agent_runs', {
   id: text('id').primaryKey(),
