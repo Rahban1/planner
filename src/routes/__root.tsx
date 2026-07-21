@@ -7,6 +7,7 @@ import { useTheme } from '../lib/theme'
 import { TopBar } from '../components/TopBar'
 import { TaskModal } from '../components/TaskModal'
 import { AgentRunModal } from '../components/AgentRunModal'
+import { PlanModal } from '../components/PlanModal'
 import { ProjectModal } from '../components/ProjectModal'
 import { CommandPalette } from '../components/CommandPalette'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
@@ -102,6 +103,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         }}
       />
       <AgentRunModal />
+      <PlanModal />
       <ProjectModal />
       <CommandPalette onToggleTheme={toggle} />
       <ShortcutsHelp />

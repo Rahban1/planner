@@ -28,6 +28,9 @@ interface UIContextValue {
   agentRunModal: { taskId: string } | null
   openAgentRun: (taskId: string) => void
   closeAgentRun: () => void
+  planModal: { taskId: string } | null
+  openPlan: (taskId: string) => void
+  closePlan: () => void
   cmdkOpen: boolean
   openCmdk: () => void
   closeCmdk: () => void
@@ -47,6 +50,7 @@ const Ctx = createContext<UIContextValue | null>(null)
 export function UIProvider({ children }: { children: ReactNode }) {
   const [taskModal, setTaskModal] = useState<TaskModalState | null>(null)
   const [agentRunModal, setAgentRunModal] = useState<{ taskId: string } | null>(null)
+  const [planModal, setPlanModal] = useState<{ taskId: string } | null>(null)
   const [cmdkOpen, setCmdkOpen] = useState(false)
   const [projectModalOpen, setProjectModalOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -77,6 +81,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
         agentRunModal,
         openAgentRun: (taskId) => setAgentRunModal({ taskId }),
         closeAgentRun: () => setAgentRunModal(null),
+        planModal,
+        openPlan: (taskId) => setPlanModal({ taskId }),
+        closePlan: () => setPlanModal(null),
         cmdkOpen,
         openCmdk: () => setCmdkOpen(true),
         closeCmdk: () => setCmdkOpen(false),

@@ -74,7 +74,7 @@ export function PriorityPanel({ items, onTaskClick }: PriorityPanelProps) {
                   <div className="title">{t.title}</div>
                   <div className="proj">
                     <span>{t.project.name}</span>
-                    <AgentButton taskId={t.id} />
+                    <AgentButton taskId={t.id} variant="split" />
                   </div>
                 </div>
               )

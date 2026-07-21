@@ -15,10 +15,11 @@ import {
   Loader2,
   MessageSquare,
   RefreshCw,
+  Square,
   Terminal,
   X,
 } from 'lucide-react'
-import { useAgentRunForTask, useGiveTaskToAgentMutation, useTask } from '#/lib/queries'
+import { useAgentRunForTask, useGiveTaskToAgentMutation, useStopAgentRunMutation, useTask } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
 
 type LogEntry = {
@@ -33,7 +34,10 @@ const STATUS_META: Record<string, { label: string; className: string; icon: Reac
   success: { label: 'PR Ready', className: 'success', icon: <CheckCircle2 size={12} /> },
   merged: { label: 'Merged', className: 'merged', icon: <GitMerge size={12} /> },
   closed: { label: 'PR Closed', className: 'closed', icon: <GitPullRequestClosed size={12} /> },
+  stopped: { label: 'Stopped', className: 'stopped', icon: <Square size={12} /> },
   error: { label: 'Error', className: 'error', icon: <AlertCircle size={12} /> },
+  plan_ready: { label: 'Plan Ready', className: 'plan', icon: <CheckCircle2 size={12} /> },
+  approved: { label: 'Approved', className: 'merged', icon: <CheckCircle2 size={12} /> },
 }
 
 // ----- log parsing -----
@@ -254,6 +258,7 @@ export function AgentRunModal() {
   const run = runRes.data
   const status = run?.status
   const isActive = status === 'queued' || status === 'running'
+  const stopMut = useStopAgentRunMutation()
 
   const entries: FeedEntry[] = useMemo(() => {
     if (!run?.logs) return []
@@ -397,7 +402,17 @@ export function AgentRunModal() {
             )}
           </div>
           <div className="right">
-            {(status === 'error' || status === 'closed') && (
+            {isActive && run && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => stopMut.mutate({ data: { runId: run.id } })}
+                disabled={stopMut.isPending}
+              >
+                <Square size={13} />
+                {stopMut.isPending ? 'Stopping…' : 'Stop run'}
+              </button>
+            )}
+            {(status === 'error' || status === 'closed' || status === 'stopped') && (
               <button
                 className="btn btn-ghost"
                 onClick={() => giveMut.mutate({ data: { taskId } })}

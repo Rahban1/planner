@@ -128,15 +128,15 @@ export class OpenHandsClient {
     conversationId: string,
     opts: {
       onEvent: (event: Event) => void
-      shouldStop: () => boolean
-      onPoll?: (newEventCount: number) => void
-      intervalMs?: number
-    },
-  ): Promise<void> {
-    const { onEvent, shouldStop, onPoll, intervalMs = 2000 } = opts
-    const seenIds = new Set<string>()
+    shouldStop: () => boolean | Promise<boolean>
+    onPoll?: (newEventCount: number) => void
+    intervalMs?: number
+  },
+): Promise<void> {
+  const { onEvent, shouldStop, onPoll, intervalMs = 2000 } = opts
+  const seenIds = new Set<string>()
 
-    while (!shouldStop()) {
+  while (!(await shouldStop())) {
       const res = await fetch(
         `${this.config.baseUrl}/api/conversations/${conversationId}/events/search?limit=100`,
       )

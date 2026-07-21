@@ -35,7 +35,12 @@ import {
 import {
   getAgentRun,
   getAgentRunForTask,
+  getLatestPlanRun,
   giveTaskToAgent,
+  planTask,
+  approvePlan,
+  requestPlanChanges,
+  stopAgentRun,
   listAgentRuns,
 } from '#/server/agent'
 import type {TaskWithSubtasks} from '#/server/tasks';
@@ -53,6 +58,7 @@ export const qk = {
   attachments: (taskId: string) => ['tasks', taskId, 'attachments'] as const,
   agentRun: (id: string) => ['agent-runs', id] as const,
   agentRunForTask: (taskId: string) => ['agent-runs', 'task', taskId] as const,
+  planRunForTask: (taskId: string) => ['agent-runs', 'plan', taskId] as const,
   agentRuns: ['agent-runs'] as const,
 }
 
@@ -144,6 +150,19 @@ export function useAgentRun(id?: string) {
 
 export function useAgentRunForTask(taskId?: string) {
   return useQuery(agentRunForTaskQueryOptions(taskId ?? ''))
+}
+
+export const planRunForTaskQueryOptions = (taskId: string) =>
+  queryOptions({
+    queryKey: qk.planRunForTask(taskId),
+    queryFn: () => getLatestPlanRun({ data: { taskId } }),
+    enabled: !!taskId,
+    // Poll so plan status/version flips show up live.
+    refetchInterval: 10_000,
+  })
+
+export function usePlanRunForTask(taskId?: string) {
+  return useQuery(planRunForTaskQueryOptions(taskId ?? ''))
 }
 
 export const agentRunsQueryOptions = queryOptions({
@@ -292,6 +311,62 @@ export function useGiveTaskToAgentMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: giveTaskToAgent,
+    onSuccess: (run) => {
+      if (!run) return
+      qc.setQueryData(qk.agentRun(run.id), run)
+      qc.setQueryData(qk.agentRunForTask(run.taskId), run)
+      qc.invalidateQueries({ queryKey: qk.agentRuns })
+    },
+  })
+}
+
+export function usePlanTaskMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: planTask,
+    onSuccess: (run) => {
+      if (!run) return
+      qc.setQueryData(qk.agentRun(run.id), run)
+      qc.setQueryData(qk.planRunForTask(run.taskId), run)
+      qc.setQueryData(qk.agentRunForTask(run.taskId), run)
+      qc.invalidateQueries({ queryKey: qk.agentRuns })
+    },
+  })
+}
+
+export function useApprovePlanMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: approvePlan,
+    onSuccess: (implementRun) => {
+      if (!implementRun) return
+      // approvePlan returns the freshly queued implement run.
+      qc.setQueryData(qk.agentRun(implementRun.id), implementRun)
+      qc.setQueryData(qk.agentRunForTask(implementRun.taskId), implementRun)
+      qc.invalidateQueries({ queryKey: qk.planRunForTask(implementRun.taskId) })
+      qc.invalidateQueries({ queryKey: qk.agentRuns })
+    },
+  })
+}
+
+export function useRequestPlanChangesMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: requestPlanChanges,
+    onSuccess: (run) => {
+      if (!run) return
+      qc.setQueryData(qk.agentRun(run.id), run)
+      qc.setQueryData(qk.planRunForTask(run.taskId), run)
+      qc.setQueryData(qk.agentRunForTask(run.taskId), run)
+      qc.invalidateQueries({ queryKey: qk.agentRuns })
+    },
+  })
+}
+
+export function useStopAgentRunMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: stopAgentRun,
     onSuccess: (run) => {
       if (!run) return
       qc.setQueryData(qk.agentRun(run.id), run)

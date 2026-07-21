@@ -3,12 +3,12 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
 import { getPullRequestState } from './github.js'
+import type { TerminalExecutionStatus } from './polling.js'
 import {
   getTerminalExecutionStatus,
-  type TerminalExecutionStatus,
   shouldStopPolling,
 } from './polling.js'
-import { buildPrompt } from './prompt.js'
+import { buildPrompt, buildPlanPrompt, buildPlanRevisionPrompt } from './prompt.js'
 
 interface LogEntry {
   t: number
@@ -21,9 +21,13 @@ interface AgentRun {
   taskId: string
   projectId: string
   status: string
+  kind: 'implement' | 'plan'
   repoUrl: string | null
   branchName: string | null
   prUrl: string | null
+  planMd: string | null
+  planFeedback: string | null
+  planVersion: number
   logs: string | null
 }
 
@@ -33,6 +37,7 @@ interface TaskContext {
   projectName: string
   repoUrl: string
   priority: string
+  approvedPlanMd: string | null
   attachments: { id: string; name: string; mimeType: string; path: string }[]
 }
 
@@ -99,99 +104,240 @@ async function main() {
   }
 }
 
-async function processRun(run: AgentRun, openhands: OpenHandsClient) {
-  const logs: LogEntry[] = [
-    { t: Date.now(), level: 'info', message: 'Agent runner picked up task.' },
-  ]
+type AppendFn = (message: string, level?: LogEntry['level']) => Promise<void>
 
-  async function append(message: string, level: LogEntry['level'] = 'info') {
+function makeAppend(run: AgentRun, logs: LogEntry[]): AppendFn {
+  return async (message: string, level: LogEntry['level'] = 'info') => {
     const entry: LogEntry = { t: Date.now(), level, message }
     logs.push(entry)
     console.log(`[run:${run.id}] ${level}: ${message}`)
     await updateRun(run.id, { status: 'running', appendLogs: [entry] })
   }
+}
+
+// Poll the planner for a user-initiated stop ('stopped' status set by the UI)
+// and flip the provided flag. Returns an unwatch function.
+function watchForUserStop(runId: string, onStop: () => void): () => void {
+  const interval = setInterval(() => {
+    plannerFetch<AgentRun>(`/api/runner/runs/${runId}`)
+      .then((run) => {
+        if (run?.status === 'stopped') onStop()
+      })
+      .catch(() => {
+        // ignore transient planner errors
+      })
+  }, 5000)
+  return () => clearInterval(interval)
+}
+
+async function driveConversation(
+  openhands: OpenHandsClient,
+  conversationId: string,
+  append: AppendFn,
+  startedAt: number,
+  isTimedOut: () => boolean,
+  extraShouldStop?: () => boolean,
+): Promise<void> {
+  const seenEventKeys = new Set<string>()
+  let idleCount = 0
+  let terminalStatus: TerminalExecutionStatus | null = null
+
+  await openhands.pollEvents(conversationId, {
+    onEvent: (event) => {
+      const text = eventMessage(event)
+      if (text) {
+        const key = `${event.kind}:${event.id}:${text.slice(0, 80)}`
+        if (!seenEventKeys.has(key)) {
+          seenEventKeys.add(key)
+          const level = event.kind === 'ConversationErrorEvent' ? 'error' : 'info'
+          void append(text, level)
+        }
+      }
+    },
+    onPoll: async (newEventCount) => {
+      if (newEventCount > 0) {
+        idleCount = 0
+        return
+      }
+      idleCount += 1
+      try {
+        const convo = await openhands.getConversation(conversationId)
+        terminalStatus = getTerminalExecutionStatus(convo.execution_status)
+      } catch {
+        // ignore
+      }
+    },
+    shouldStop: () => {
+      if (extraShouldStop?.()) return true
+      return shouldStopPolling({
+        timedOut: isTimedOut(),
+        startedAt,
+        now: Date.now(),
+        maxRuntimeMs: MAX_RUNTIME_MS,
+        terminalStatus,
+      })
+    },
+    intervalMs: 3000,
+  })
+
+  if (terminalStatus === 'error' || terminalStatus === 'stuck') {
+    await append(`Agent session ended with status: ${terminalStatus}`, 'warn')
+  }
+}
+
+async function prepareWorkspace(runId: string): Promise<string> {
+  const workspace = join(WORKSPACE_ROOT, runId)
+  if (existsSync(workspace)) {
+    await rm(workspace, { recursive: true, force: true })
+  }
+  await mkdir(workspace, { recursive: true })
+  return workspace
+}
+
+async function fetchTaskContext(run: AgentRun): Promise<TaskContext> {
+  const task = await plannerFetch<TaskContext>(`/api/runner/task-context/${run.taskId}`)
+  if (!task) throw new Error('Task context not found')
+  return task
+}
+
+function withAttachmentUrls(task: TaskContext) {
+  return {
+    ...task,
+    attachments: task.attachments.map((a) => ({
+      ...a,
+      url: `${PLANNER_BASE_URL}${a.path}`,
+    })),
+  }
+}
+
+async function finishWithError(run: AgentRun, logs: LogEntry[], fallback: string) {
+  const lastError = logs.filter((l) => l.level === 'error').pop()
+  const inferredError = inferErrorMessage(logs)
+  if (lastError) {
+    await updateRun(run.id, { status: 'error', errorMessage: lastError.message })
+    return
+  }
+  if (inferredError) {
+    await updateRun(run.id, { status: 'error', errorMessage: inferredError })
+    return
+  }
+  await updateRun(run.id, { status: 'error', errorMessage: fallback })
+}
+
+async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
+  const logs: LogEntry[] = [
+    { t: Date.now(), level: 'info', message: 'Agent runner picked up task (plan mode).' },
+  ]
+  const append = makeAppend(run, logs)
 
   const startedAt = Date.now()
   let timedOut = false
   const timeout = setTimeout(() => {
     timedOut = true
   }, MAX_RUNTIME_MS)
+  let userStopped = false
+  const unwatchStop = watchForUserStop(run.id, () => {
+    userStopped = true
+  })
 
   try {
     await updateRun(run.id, { status: 'running', logs })
 
-    const task = await plannerFetch<TaskContext>(`/api/runner/task-context/${run.taskId}`)
-    if (!task) throw new Error('Task context not found')
-
+    const task = await fetchTaskContext(run)
     await append(`Task: ${task.title}`)
     await append(`Repository: ${task.repoUrl}`)
 
-    const workspace = join(WORKSPACE_ROOT, run.id)
-    if (existsSync(workspace)) {
-      await rm(workspace, { recursive: true, force: true })
-    }
-    await mkdir(workspace, { recursive: true })
+    const workspace = await prepareWorkspace(run.id)
+    const isRevision = !!(run.planMd && run.planFeedback)
+    const prompt = isRevision
+      ? buildPlanRevisionPrompt(withAttachmentUrls(task), run.planMd!, run.planFeedback!)
+      : buildPlanPrompt(withAttachmentUrls(task))
 
-    const prompt = buildPrompt({
-      ...task,
-      attachments: task.attachments.map((a) => ({
-        ...a,
-        url: `${PLANNER_BASE_URL}${a.path}`,
-      })),
-    })
+    await append(
+      isRevision
+        ? `Revising plan (v${run.planVersion}) based on reviewer feedback...`
+        : 'Starting plan session (read-only)...',
+    )
+
+    const conversation = await openhands.startConversation(prompt, workspace)
+    await append(`Conversation started: ${conversation.id}`)
+
+    await openhands.runConversation(conversation.id)
+    await driveConversation(openhands, conversation.id, append, startedAt, () => timedOut, () => userStopped)
+
+    clearTimeout(timeout)
+    unwatchStop()
+
+    if (userStopped) {
+      await append('Stopped by user.', 'warn')
+      return
+    }
+
+    if (timedOut) {
+      await append('Stopped: reached 15 minute time limit.', 'warn')
+      await updateRun(run.id, { status: 'error', errorMessage: 'Timeout: 15 minute limit reached' })
+      return
+    }
+
+    const planMd = await extractPlan(workspace)
+    if (planMd) {
+      await append(`Plan v${run.planVersion} ready for review.`)
+      await updateRun(run.id, { status: 'plan_ready', planMd })
+      return
+    }
+
+    await append('Agent finished but no plan file was found.', 'warn')
+    await finishWithError(run, logs, 'No plan file found after agent run')
+  } catch (err) {
+    clearTimeout(timeout)
+    const message = err instanceof Error ? err.message : String(err)
+    await append(`Error: ${message}`, 'error')
+    await updateRun(run.id, { status: 'error', errorMessage: message })
+  }
+}
+
+async function processRun(run: AgentRun, openhands: OpenHandsClient) {
+  if (run.kind === 'plan') return processPlanRun(run, openhands)
+
+  const logs: LogEntry[] = [
+    { t: Date.now(), level: 'info', message: 'Agent runner picked up task.' },
+  ]
+  const append = makeAppend(run, logs)
+
+  const startedAt = Date.now()
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+  }, MAX_RUNTIME_MS)
+  let userStopped = false
+  const unwatchStop = watchForUserStop(run.id, () => {
+    userStopped = true
+  })
+
+  try {
+    await updateRun(run.id, { status: 'running', logs })
+
+    const task = await fetchTaskContext(run)
+    await append(`Task: ${task.title}`)
+    await append(`Repository: ${task.repoUrl}`)
+
+    const workspace = await prepareWorkspace(run.id)
+    const prompt = buildPrompt(withAttachmentUrls(task))
     await append('Starting OpenHands agent session...')
 
     const conversation = await openhands.startConversation(prompt, workspace)
     await append(`Conversation started: ${conversation.id}`)
 
     await openhands.runConversation(conversation.id)
-
-    const seenEventKeys = new Set<string>()
-    let idleCount = 0
-    let terminalStatus: TerminalExecutionStatus | null = null
-
-    await openhands.pollEvents(conversation.id, {
-      onEvent: (event) => {
-        const text = eventMessage(event)
-        if (text) {
-          const key = `${event.kind}:${event.id}:${text.slice(0, 80)}`
-          if (!seenEventKeys.has(key)) {
-            seenEventKeys.add(key)
-            const level = event.kind === 'ConversationErrorEvent' ? 'error' : 'info'
-            void append(text, level)
-          }
-        }
-      },
-      onPoll: async (newEventCount) => {
-        if (newEventCount > 0) {
-          idleCount = 0
-          return
-        }
-        idleCount += 1
-        try {
-          const convo = await openhands.getConversation(conversation.id)
-          terminalStatus = getTerminalExecutionStatus(convo.execution_status)
-        } catch {
-          // ignore
-        }
-      },
-      shouldStop: () => {
-        return shouldStopPolling({
-          timedOut,
-          startedAt,
-          now: Date.now(),
-          maxRuntimeMs: MAX_RUNTIME_MS,
-          terminalStatus,
-        })
-      },
-      intervalMs: 3000,
-    })
-
-    if (terminalStatus === 'error' || terminalStatus === 'stuck') {
-      await append(`Agent session ended with status: ${terminalStatus}`, 'warn')
-    }
+    await driveConversation(openhands, conversation.id, append, startedAt, () => timedOut, () => userStopped)
 
     clearTimeout(timeout)
+    unwatchStop()
+
+    if (userStopped) {
+      await append('Stopped by user.', 'warn')
+      return
+    }
 
     if (timedOut) {
       await append('Stopped: reached 15 minute time limit.', 'warn')
@@ -211,20 +357,8 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
       return
     }
 
-    // No PR URL. Surface the most useful failure reason from logs.
-    const lastError = logs.filter((l) => l.level === 'error').pop()
-    const inferredError = inferErrorMessage(logs)
-    if (lastError) {
-      await updateRun(run.id, { status: 'error', errorMessage: lastError.message })
-      return
-    }
-    if (inferredError) {
-      await updateRun(run.id, { status: 'error', errorMessage: inferredError })
-      return
-    }
-
     await append('Agent finished but no PR URL was found.', 'warn')
-    await updateRun(run.id, { status: 'error', errorMessage: 'No PR URL found after agent run' })
+    await finishWithError(run, logs, 'No PR URL found after agent run')
   } catch (err) {
     clearTimeout(timeout)
     const message = err instanceof Error ? err.message : String(err)
@@ -286,7 +420,7 @@ async function plannerFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 async function updateRun(
   id: string,
-  patch: { status?: string; logs?: LogEntry[]; appendLogs?: LogEntry[]; errorMessage?: string; prUrl?: string; branchName?: string | null },
+  patch: { status?: string; logs?: LogEntry[]; appendLogs?: LogEntry[]; errorMessage?: string; prUrl?: string; branchName?: string | null; planMd?: string },
 ) {
   await plannerFetch(`/api/runner/update-run`, {
     method: 'POST',
@@ -371,6 +505,21 @@ async function extractPrUrl(workspace: string): Promise<string | null> {
       if (existsSync(marker)) {
         const url = (await readFile(marker, 'utf-8')).trim()
         if (url.startsWith('http')) return url
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null
+}
+
+async function extractPlan(workspace: string): Promise<string | null> {
+  for (const dir of [workspace, join(workspace, 'repo')]) {
+    try {
+      const marker = join(dir, '.agent-plan-md')
+      if (existsSync(marker)) {
+        const content = (await readFile(marker, 'utf-8')).trim()
+        if (content.length > 0) return content
       }
     } catch {
       // ignore

@@ -182,7 +182,7 @@ function TaskCard({
         </div>
       </div>
       <div className="task-actions">
-        <AgentButton taskId={task.id} />
+        <AgentButton taskId={task.id} variant="icons" />
       </div>
     </div>
   )

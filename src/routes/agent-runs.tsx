@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Bot,
   CheckCircle2,
+  ClipboardList,
   Clock,
   ExternalLink,
   AlertCircle,
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/agent-runs')({
   component: AgentRunsPage,
 })
 
-type StatusFilter = 'all' | 'queued' | 'running' | 'success' | 'error' | 'merged' | 'closed'
+type StatusFilter = 'all' | 'queued' | 'running' | 'success' | 'error' | 'merged' | 'closed' | 'stopped' | 'plan_ready' | 'approved'
 
 const statusConfig: Record<
   string,
@@ -49,6 +50,21 @@ const statusConfig: Record<
     color: '#e5a073',
     icon: <GitPullRequestClosed size={12} />,
   },
+  stopped: {
+    label: 'Stopped',
+    color: '#e5a073',
+    icon: <GitPullRequestClosed size={12} />,
+  },
+  plan_ready: {
+    label: 'Plan Ready',
+    color: 'var(--accent)',
+    icon: <ClipboardList size={12} />,
+  },
+  approved: {
+    label: 'Approved',
+    color: 'var(--accent)',
+    icon: <CheckCircle2 size={12} />,
+  },
   error: { label: 'Error', color: '#e57373', icon: <AlertCircle size={12} /> },
 }
 
@@ -73,6 +89,9 @@ function AgentRunsPage() {
       success: all.filter((r) => r.status === 'success').length,
       merged: all.filter((r) => r.status === 'merged').length,
       closed: all.filter((r) => r.status === 'closed').length,
+      stopped: all.filter((r) => r.status === 'stopped').length,
+      plan_ready: all.filter((r) => r.status === 'plan_ready').length,
+      approved: all.filter((r) => r.status === 'approved').length,
       error: all.filter((r) => r.status === 'error').length,
     }
   }, [runsQuery.data])
@@ -99,7 +118,7 @@ function AgentRunsPage() {
       </div>
 
       <div className="agent-runs-filters">
-        {(['all', 'running', 'queued', 'success', 'merged', 'closed', 'error'] as StatusFilter[]).map(
+        {(['all', 'running', 'queued', 'success', 'merged', 'closed', 'stopped', 'plan_ready', 'approved', 'error'] as StatusFilter[]).map(
           (s) => (
             <button
               key={s}
@@ -248,6 +267,26 @@ function AgentRunsPage() {
                     <div className="agent-run-error-main">
                       <GitPullRequestClosed size={14} />
                       <span>PR was closed without merging.</span>
+                    </div>
+                    <button
+                      className="agent-run-retry"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        giveMut.mutate({ data: { taskId: run.taskId } })
+                      }}
+                      disabled={giveMut.isPending}
+                    >
+                      <RefreshCw size={12} className={giveMut.isPending ? 'spin' : ''} />
+                      <span>{giveMut.isPending ? 'Retrying…' : 'Retry'}</span>
+                    </button>
+                  </div>
+                )}
+
+                {run.status === 'stopped' && (
+                  <div className="agent-run-outcome error">
+                    <div className="agent-run-error-main">
+                      <GitPullRequestClosed size={14} />
+                      <span>Run was stopped by user.</span>
                     </div>
                     <button
                       className="agent-run-retry"

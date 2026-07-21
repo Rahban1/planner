@@ -1,6 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   giveTaskToAgent,
+  planTask,
+  approvePlan,
+  requestPlanChanges,
+  getLatestApprovedPlan,
   getAgentRun,
   updateAgentRun,
   listQueuedAgentRuns,
@@ -31,12 +35,16 @@ export const Route = createFileRoute('/api/runner/$')({
           if (!task) return new Response('Task not found', { status: 404 })
           const project = await getProject({ data: { id: task.projectId } })
           if (!project) return new Response('Project not found', { status: 404 })
+          const approvedPlan = await getLatestApprovedPlan({ data: { taskId } }).catch(
+            () => undefined,
+          )
           return Response.json({
             title: task.title,
             notes: task.notes,
             priority: task.priority,
             projectName: project.name,
             repoUrl: project.repoUrl,
+            approvedPlanMd: approvedPlan?.planMd ?? null,
             attachments: task.attachments.map((a) => ({
               id: a.id,
               name: a.name,
@@ -60,6 +68,23 @@ export const Route = createFileRoute('/api/runner/$')({
 
         if (rest === 'give-task') {
           const result = await giveTaskToAgent({ data: body as { taskId: string } })
+          return Response.json(result)
+        }
+
+        if (rest === 'plan-task') {
+          const result = await planTask({ data: body as { taskId: string } })
+          return Response.json(result)
+        }
+
+        if (rest === 'approve-plan') {
+          const result = await approvePlan({ data: body as { runId: string } })
+          return Response.json(result)
+        }
+
+        if (rest === 'request-changes') {
+          const result = await requestPlanChanges({
+            data: body as { runId: string; feedback: string },
+          })
           return Response.json(result)
         }
 
