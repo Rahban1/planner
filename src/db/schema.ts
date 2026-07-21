@@ -63,7 +63,7 @@ export const agentRuns = sqliteTable('agent_runs', {
     .notNull()
     .references(() => projects.id, { onDelete: 'cascade' }),
   status: text('status', {
-    enum: ['queued', 'running', 'success', 'error'],
+    enum: ['queued', 'running', 'success', 'error', 'merged', 'closed'],
   })
     .notNull()
     .default('queued'),

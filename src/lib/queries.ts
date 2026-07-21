@@ -75,12 +75,16 @@ export const projectSummaryQueryOptions = (projectId: string) =>
     queryKey: qk.projectSummary(projectId),
     queryFn: () => listProjectSummary({ data: { projectId } }),
     enabled: !!projectId,
+    // Poll so server-side changes (e.g. agent PR merged → task auto-completed)
+    // show up without a reload.
+    refetchInterval: 30_000,
   })
 
 export const priorityQueryOptions = queryOptions({
   queryKey: qk.priority,
   queryFn: () => listPriority(),
   staleTime: 30_000,
+  refetchInterval: 30_000,
 })
 
 export const taskQueryOptions = (id: string) =>
@@ -129,6 +133,9 @@ export const agentRunForTaskQueryOptions = (taskId: string) =>
     queryKey: qk.agentRunForTask(taskId),
     queryFn: () => getAgentRunForTask({ data: { taskId } }),
     enabled: !!taskId,
+    // Poll so live logs stream during runs and merge/close status flips
+    // without a reload.
+    refetchInterval: 10_000,
   })
 
 export function useAgentRun(id?: string) {

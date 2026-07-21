@@ -2,6 +2,7 @@ import { mkdir, rm, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
+import { getPullRequestState } from './github.js'
 import {
   getTerminalExecutionStatus,
   type TerminalExecutionStatus,
@@ -42,7 +43,9 @@ const OPENHANDS_BASE_URL = process.env.OPENHANDS_BASE_URL ?? 'http://openhands-a
 const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
 const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
 const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? ''
 const MAX_RUNTIME_MS = 15 * 60 * 1000 // 15 minutes
+const MERGE_CHECK_INTERVAL_MS = 15_000
 
 async function main() {
   console.log('[runner] starting')
@@ -69,8 +72,15 @@ async function main() {
   }
   console.log('[runner] OpenHands Agent Server is alive')
 
+  let lastMergeCheckAt = 0
+
   while (true) {
     try {
+      if (Date.now() - lastMergeCheckAt >= MERGE_CHECK_INTERVAL_MS) {
+        lastMergeCheckAt = Date.now()
+        await checkMerges()
+      }
+
       const runs = await plannerFetch<AgentRun[]>('/api/runner/queue')
       const queued = runs.filter((r) => r.status === 'queued')
 
@@ -220,6 +230,42 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
     const message = err instanceof Error ? err.message : String(err)
     await append(`Error: ${message}`, 'error')
     await updateRun(run.id, { status: 'error', errorMessage: message })
+  }
+}
+
+// Poll GitHub for PRs of successful runs: flip to 'merged' (planner then
+// auto-completes the task) or 'closed' when the PR is closed without merging.
+async function checkMerges() {
+  if (!GITHUB_TOKEN) return
+  try {
+    const runs = await plannerFetch<AgentRun[]>('/api/runner/awaiting-merge')
+    for (const run of runs) {
+      if (!run.prUrl) continue
+      try {
+        const pr = await getPullRequestState(run.prUrl, GITHUB_TOKEN)
+        if (!pr) continue
+        if (pr.merged) {
+          await updateRun(run.id, {
+            status: 'merged',
+            appendLogs: [{ t: Date.now(), level: 'info', message: 'PR merged — task marked done.' }],
+          })
+          console.log(`[merge-watch] run ${run.id}: PR merged`)
+        } else if (pr.state === 'closed') {
+          await updateRun(run.id, {
+            status: 'closed',
+            appendLogs: [{ t: Date.now(), level: 'warn', message: 'PR was closed without merging.' }],
+          })
+          console.log(`[merge-watch] run ${run.id}: PR closed without merging`)
+        }
+      } catch (err) {
+        console.warn(
+          `[merge-watch] failed to check run ${run.id}:`,
+          err instanceof Error ? err.message : err,
+        )
+      }
+    }
+  } catch (err) {
+    console.warn('[merge-watch] poll error:', err instanceof Error ? err.message : err)
   }
 }
 

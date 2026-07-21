@@ -171,7 +171,7 @@ pnpm wrangler types
 
 `projects`: {id, name, position, repoUrl, createdAt, updatedAt, archived}
 `tasks`: {id, projectId → projects, parentId → tasks, title, notes, priority (low|medium|high|urgent), status (todo|in_progress|done), dueAt, position, completedAt, createdAt, updatedAt}
-`agentRuns`: {id, taskId → tasks, projectId → projects, status (queued|running|success|error), repoUrl, branchName, prUrl, logs (JSON array of {t, level, message}), errorMessage, createdAt, updatedAt}
+`agentRuns`: {id, taskId → tasks, projectId → projects, status (queued|running|success|error|merged|closed), repoUrl, branchName, prUrl, prNumber, logs (JSON array of {t, level, message}), errorMessage, createdAt, updatedAt}
 
 Priority sort = `(priority_rank asc, dueAt asc)`, with NULL dueAt treated as `Number.MAX_SAFE_INTEGER`.
 
@@ -230,6 +230,7 @@ The "Give to Agent" feature is split across the Planner UI and an external Node.
 2. Dev-only REST bridge: `src/routes/api/runner/$.ts` exposes `/api/runner/*` so the runner can talk to the local planner without Cloudflare Workers.
 3. `agent-runner/src/index.ts` polls `/api/runner/queue`, starts an OpenHands conversation for each queued run, streams events back as logs, and writes `.agent-pr-url` / `.agent-branch-name` marker files.
 4. OpenHands Agent Server runs in Docker, clones the project's `repoUrl`, creates a branch, implements the task, pushes, and opens a PR.
+5. Merge watcher: every 15s the runner fetches `/api/runner/awaiting-merge` (runs with `status='success'` + `prUrl`) and checks each PR via the GitHub REST API (`agent-runner/src/github.ts`, uses `GITHUB_TOKEN`). Merged PR → run status `merged` and the task is auto-completed (`updateAgentRun` sets task `done` + `completedAt`). PR closed without merging → run status `closed` (task untouched, retry available in the UI).
 
 ### Local Docker setup
 

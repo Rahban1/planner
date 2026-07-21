@@ -12,6 +12,8 @@ import {
   RefreshCw,
   GitBranch,
   GitPullRequest,
+  GitMerge,
+  GitPullRequestClosed,
   Folder,
 } from 'lucide-react'
 import { useAgentRuns, useGiveTaskToAgentMutation } from '#/lib/queries'
@@ -20,7 +22,7 @@ export const Route = createFileRoute('/agent-runs')({
   component: AgentRunsPage,
 })
 
-type StatusFilter = 'all' | 'queued' | 'running' | 'success' | 'error'
+type StatusFilter = 'all' | 'queued' | 'running' | 'success' | 'error' | 'merged' | 'closed'
 
 const statusConfig: Record<
   string,
@@ -36,6 +38,16 @@ const statusConfig: Record<
     label: 'Success',
     color: 'var(--accent)',
     icon: <CheckCircle2 size={12} />,
+  },
+  merged: {
+    label: 'Merged',
+    color: 'var(--accent)',
+    icon: <GitMerge size={12} />,
+  },
+  closed: {
+    label: 'PR Closed',
+    color: '#e5a073',
+    icon: <GitPullRequestClosed size={12} />,
   },
   error: { label: 'Error', color: '#e57373', icon: <AlertCircle size={12} /> },
 }
@@ -59,6 +71,8 @@ function AgentRunsPage() {
       queued: all.filter((r) => r.status === 'queued').length,
       running: all.filter((r) => r.status === 'running').length,
       success: all.filter((r) => r.status === 'success').length,
+      merged: all.filter((r) => r.status === 'merged').length,
+      closed: all.filter((r) => r.status === 'closed').length,
       error: all.filter((r) => r.status === 'error').length,
     }
   }, [runsQuery.data])
@@ -85,7 +99,7 @@ function AgentRunsPage() {
       </div>
 
       <div className="agent-runs-filters">
-        {(['all', 'running', 'queued', 'success', 'error'] as StatusFilter[]).map(
+        {(['all', 'running', 'queued', 'success', 'merged', 'closed', 'error'] as StatusFilter[]).map(
           (s) => (
             <button
               key={s}
@@ -197,6 +211,55 @@ function AgentRunsPage() {
                         {run.branchName}
                       </span>
                     )}
+                  </div>
+                )}
+
+                {run.status === 'merged' && (
+                  <div className="agent-run-outcome success">
+                    {run.prUrl ? (
+                      <a
+                        className="agent-run-pr-link"
+                        href={run.prUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <GitMerge size={14} />
+                        <span>Pull Request merged — task completed</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    ) : (
+                      <span className="agent-run-outcome-text">
+                        <GitMerge size={14} />
+                        Merged — task completed.
+                      </span>
+                    )}
+                    {run.branchName && (
+                      <span className="agent-run-branch">
+                        <GitBranch size={12} />
+                        {run.branchName}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {run.status === 'closed' && (
+                  <div className="agent-run-outcome error">
+                    <div className="agent-run-error-main">
+                      <GitPullRequestClosed size={14} />
+                      <span>PR was closed without merging.</span>
+                    </div>
+                    <button
+                      className="agent-run-retry"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        giveMut.mutate({ data: { taskId: run.taskId } })
+                      }}
+                      disabled={giveMut.isPending}
+                    >
+                      <RefreshCw size={12} className={giveMut.isPending ? 'spin' : ''} />
+                      <span>{giveMut.isPending ? 'Retrying…' : 'Retry'}</span>
+                    </button>
                   </div>
                 )}
 

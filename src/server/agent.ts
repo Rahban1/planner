@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and, isNotNull } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import type { AgentRun } from '#/db/schema'
 
@@ -90,6 +90,16 @@ export const listQueuedAgentRuns = createServerFn({ method: 'GET' })
     return runs as AgentRun[]
   })
 
+export const listAwaitingMergeRuns = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    const runs = await db
+      .select()
+      .from(schema.agentRuns)
+      .where(and(eq(schema.agentRuns.status, 'success'), isNotNull(schema.agentRuns.prUrl)))
+      .orderBy(schema.agentRuns.createdAt)
+    return runs as AgentRun[]
+  })
+
 export const listAgentRuns = createServerFn({ method: 'GET' })
   .handler(async () => {
     const runs = await db
@@ -126,7 +136,7 @@ export const updateAgentRun = createServerFn({ method: 'POST' })
   .validator(
     z.object({
       id: z.string(),
-      status: z.enum(['queued', 'running', 'success', 'error']).optional(),
+      status: z.enum(['queued', 'running', 'success', 'error', 'merged', 'closed']).optional(),
       branchName: z.string().optional(),
       prUrl: z.string().optional(),
       prNumber: z.number().optional(),
@@ -162,6 +172,15 @@ export const updateAgentRun = createServerFn({ method: 'POST' })
         updatedAt: now(),
       })
       .where(eq(schema.agentRuns.id, data.id))
+
+    // When a run's PR is merged, automatically complete the task.
+    if (data.status === 'merged' && existing.status !== 'merged') {
+      const t = now()
+      await db
+        .update(schema.tasks)
+        .set({ status: 'done', completedAt: t, updatedAt: t })
+        .where(eq(schema.tasks.id, existing.taskId))
+    }
 
     const [run] = await db
       .select()

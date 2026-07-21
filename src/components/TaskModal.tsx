@@ -131,9 +131,8 @@ export function TaskModal(props: TaskModalProps) {
           },
         },
         {
-          onSuccess: (saved) => {
+          onSuccess: () => {
             onClose()
-            if (saved) props.onTaskSaved?.(saved.id)
           },
         },
       )
@@ -149,9 +148,8 @@ export function TaskModal(props: TaskModalProps) {
           },
         },
         {
-          onSuccess: (created) => {
+          onSuccess: () => {
             onClose()
-            if (created) props.onTaskSaved?.(created.id)
           },
         },
       )

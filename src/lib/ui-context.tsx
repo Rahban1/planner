@@ -25,6 +25,9 @@ interface UIContextValue {
   openTask: (taskId: string, projectName?: string | null, projectRepoUrl?: string | null) => void
   openNewTask: (projectId: string, projectName?: string | null, projectRepoUrl?: string | null) => void
   closeTask: () => void
+  agentRunModal: { taskId: string } | null
+  openAgentRun: (taskId: string) => void
+  closeAgentRun: () => void
   cmdkOpen: boolean
   openCmdk: () => void
   closeCmdk: () => void
@@ -43,6 +46,7 @@ const Ctx = createContext<UIContextValue | null>(null)
 
 export function UIProvider({ children }: { children: ReactNode }) {
   const [taskModal, setTaskModal] = useState<TaskModalState | null>(null)
+  const [agentRunModal, setAgentRunModal] = useState<{ taskId: string } | null>(null)
   const [cmdkOpen, setCmdkOpen] = useState(false)
   const [projectModalOpen, setProjectModalOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -70,6 +74,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
         openNewTask: (projectId, projectName = null, projectRepoUrl = null) =>
           setTaskModal({ taskId: null, projectIdForNew: projectId, projectName, projectRepoUrl }),
         closeTask: () => setTaskModal(null),
+        agentRunModal,
+        openAgentRun: (taskId) => setAgentRunModal({ taskId }),
+        closeAgentRun: () => setAgentRunModal(null),
         cmdkOpen,
         openCmdk: () => setCmdkOpen(true),
         closeCmdk: () => setCmdkOpen(false),

@@ -6,6 +6,7 @@ import appCss from '../styles.css?url'
 import { useTheme } from '../lib/theme'
 import { TopBar } from '../components/TopBar'
 import { TaskModal } from '../components/TaskModal'
+import { AgentRunModal } from '../components/AgentRunModal'
 import { ProjectModal } from '../components/ProjectModal'
 import { CommandPalette } from '../components/CommandPalette'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
@@ -100,6 +101,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           ui.openTask(savedTaskId, projectName, projectRepoUrl)
         }}
       />
+      <AgentRunModal />
       <ProjectModal />
       <CommandPalette onToggleTheme={toggle} />
       <ShortcutsHelp />

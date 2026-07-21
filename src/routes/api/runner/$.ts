@@ -4,6 +4,7 @@ import {
   getAgentRun,
   updateAgentRun,
   listQueuedAgentRuns,
+  listAwaitingMergeRuns,
 } from '#/server/agent'
 import { getTask } from '#/server/tasks'
 import { getProject } from '#/server/projects'
@@ -16,6 +17,11 @@ export const Route = createFileRoute('/api/runner/$')({
 
         if (rest === 'queue') {
           const result = await listQueuedAgentRuns()
+          return Response.json(result)
+        }
+
+        if (rest === 'awaiting-merge') {
+          const result = await listAwaitingMergeRuns()
           return Response.json(result)
         }
 

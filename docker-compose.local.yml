@@ -35,6 +35,7 @@ services:
       - LLM_MODEL=${LLM_MODEL:-openai/kimi-k2.6}
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_API_BASE=${LLM_API_BASE:-https://opencode.ai/zen/go/v1}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
       - RUNNER_WORKSPACE=/workspace/runs
     restart: unless-stopped
 
