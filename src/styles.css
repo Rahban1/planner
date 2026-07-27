@@ -1623,10 +1623,23 @@ body {
 
   /* agent runs page */
   .agent-runs-page {
-    padding: 0 16px 16px;
+    padding: 0 12px calc(20px + env(safe-area-inset-bottom));
+  }
+  .agent-runs-head {
+    margin-bottom: 18px;
+  }
+  .agent-runs-back {
+    min-height: 44px;
+    margin-bottom: 8px;
+    padding: 0 4px;
   }
   .agent-runs-title {
     font-size: 28px;
+  }
+  .agent-runs-subtitle {
+    font-size: 12px;
+    line-height: 1.55;
+    max-width: 36ch;
   }
   .agent-runs-filters {
     flex-wrap: nowrap;
@@ -1642,32 +1655,95 @@ body {
   }
   .agent-runs-filter {
     flex-shrink: 0;
-    padding: 5px 11px;
+    min-height: 40px;
+    padding: 7px 12px;
     font-size: 11px;
   }
+  .agent-runs-list {
+    gap: 10px;
+    padding: 0 0 8px;
+    margin: 0;
+  }
+  .agent-run-card {
+    border-radius: 16px;
+  }
   .agent-run-card-head {
-    padding: 14px 16px 12px;
+    flex-direction: column;
+    padding: 16px;
     gap: 12px;
+  }
+  .agent-run-card-actions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .agent-run-card-chev {
+    width: 40px;
+    height: 40px;
+    padding: 12px;
+    border: 1px solid var(--line-2);
+    border-radius: 9999px;
   }
   .agent-run-task-title {
     font-size: 20px;
+    line-height: 1.1;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
   .agent-run-card-meta {
     gap: 10px;
   }
   .agent-run-meta-item.repo {
-    max-width: 140px;
+    max-width: min(72vw, 290px);
   }
-  .agent-run-logs {
-    padding: 8px 16px 12px;
-  }
-  .agent-run-logs-toggle {
-    padding: 8px 16px;
-  }
-  .agent-run-card-foot {
-    padding: 8px 16px;
+  .agent-run-status-badge {
+    min-height: 40px;
+    padding: 7px 12px;
   }
   .agent-run-outcome {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+    line-height: 1.45;
+  }
+  .agent-run-error-main,
+  .agent-run-outcome-text,
+  .agent-run-pr-link {
+    align-items: flex-start;
+  }
+  .agent-run-pr-link {
+    min-height: 36px;
+  }
+  .agent-run-branch {
+    width: 100%;
+    margin-left: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agent-run-retry {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .agent-run-logs {
+    max-height: 46dvh;
+    padding: 10px 16px 14px;
+    overscroll-behavior: contain;
+  }
+  .agent-run-log-line {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 8px;
+    padding: 5px 0;
+  }
+  .agent-run-card-foot {
+    min-height: 52px;
     padding: 8px 16px;
   }
 }
