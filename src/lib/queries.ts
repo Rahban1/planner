@@ -43,10 +43,22 @@ import {
   stopAgentRun,
   listAgentRuns,
 } from '#/server/agent'
+import {
+  listProjectMembers,
+  addProjectMember,
+  removeProjectMember,
+  updateMemberRole,
+  requestPlanApproval,
+  listPlanApprovals,
+  listPendingApprovalsForUser,
+  respondToApproval,
+  addPlanSuggestion,
+  listPlanSuggestions,
+} from '#/server/collaboration'
 import type {TaskWithSubtasks} from '#/server/tasks';
-import type { Project, Task, Attachment } from '#/db/schema'
+import type { Project, Task, Attachment, ProjectMember, PlanApproval, PlanSuggestion } from '#/db/schema'
 
-export type { Project, Task, Attachment, PriorityCard, TaskWithSubtasks }
+export type { Project, Task, Attachment, PriorityCard, TaskWithSubtasks, ProjectMember, PlanApproval, PlanSuggestion }
 
 // ----- query keys -----
 export const qk = {
@@ -60,6 +72,10 @@ export const qk = {
   agentRunForTask: (taskId: string) => ['agent-runs', 'task', taskId] as const,
   planRunForTask: (taskId: string) => ['agent-runs', 'plan', taskId] as const,
   agentRuns: ['agent-runs'] as const,
+  projectMembers: (projectId: string) => ['projects', projectId, 'members'] as const,
+  planApprovals: (agentRunId: string) => ['agent-runs', agentRunId, 'approvals'] as const,
+  planSuggestions: (agentRunId: string) => ['agent-runs', agentRunId, 'suggestions'] as const,
+  pendingApprovals: (email: string) => ['approvals', 'pending', email] as const,
 }
 
 // ----- query options -----
@@ -406,6 +422,127 @@ export function useDeleteAttachmentMutation() {
       if (!attachment) return
       qc.invalidateQueries({ queryKey: qk.attachments(attachment.taskId) })
       qc.invalidateQueries({ queryKey: qk.task(attachment.taskId) })
+    },
+  })
+}
+
+// ----- collaboration query options -----
+export const projectMembersQueryOptions = (projectId: string) =>
+  queryOptions({
+    queryKey: qk.projectMembers(projectId),
+    queryFn: () => listProjectMembers({ data: { projectId } }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  })
+
+export function useProjectMembers(projectId?: string) {
+  return useQuery(projectMembersQueryOptions(projectId ?? ''))
+}
+
+export const planApprovalsQueryOptions = (agentRunId: string) =>
+  queryOptions({
+    queryKey: qk.planApprovals(agentRunId),
+    queryFn: () => listPlanApprovals({ data: { agentRunId } }),
+    enabled: !!agentRunId,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+  })
+
+export function usePlanApprovals(agentRunId?: string) {
+  return useQuery(planApprovalsQueryOptions(agentRunId ?? ''))
+}
+
+export const planSuggestionsQueryOptions = (agentRunId: string) =>
+  queryOptions({
+    queryKey: qk.planSuggestions(agentRunId),
+    queryFn: () => listPlanSuggestions({ data: { agentRunId } }),
+    enabled: !!agentRunId,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+  })
+
+export function usePlanSuggestions(agentRunId?: string) {
+  return useQuery(planSuggestionsQueryOptions(agentRunId ?? ''))
+}
+
+export const pendingApprovalsQueryOptions = (email: string) =>
+  queryOptions({
+    queryKey: qk.pendingApprovals(email),
+    queryFn: () => listPendingApprovalsForUser({ data: { email } }),
+    enabled: !!email,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+  })
+
+export function usePendingApprovals(email?: string) {
+  return useQuery(pendingApprovalsQueryOptions(email ?? ''))
+}
+
+// ----- collaboration mutations -----
+export function useAddProjectMemberMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: addProjectMember,
+    onSuccess: (member) => {
+      if (!member) return
+      qc.invalidateQueries({ queryKey: qk.projectMembers(member.projectId) })
+    },
+  })
+}
+
+export function useRemoveProjectMemberMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: removeProjectMember,
+    onSuccess: () => {
+      // Invalidate all project-related queries since we don't know the projectId from the response
+      qc.invalidateQueries({ queryKey: ['projects'] })
+    },
+  })
+}
+
+export function useUpdateMemberRoleMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateMemberRole,
+    onSuccess: (member) => {
+      if (!member) return
+      qc.invalidateQueries({ queryKey: qk.projectMembers(member.projectId) })
+    },
+  })
+}
+
+export function useRequestPlanApprovalMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: requestPlanApproval,
+    onSuccess: (approval) => {
+      if (!approval) return
+      qc.invalidateQueries({ queryKey: qk.planApprovals(approval.agentRunId) })
+      qc.invalidateQueries({ queryKey: qk.pendingApprovals(approval.requestedFrom) })
+    },
+  })
+}
+
+export function useRespondToApprovalMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: respondToApproval,
+    onSuccess: (approval) => {
+      if (!approval) return
+      qc.invalidateQueries({ queryKey: qk.planApprovals(approval.agentRunId) })
+      qc.invalidateQueries({ queryKey: qk.pendingApprovals(approval.requestedFrom) })
+    },
+  })
+}
+
+export function useAddPlanSuggestionMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: addPlanSuggestion,
+    onSuccess: (suggestion) => {
+      if (!suggestion) return
+      qc.invalidateQueries({ queryKey: qk.planSuggestions(suggestion.agentRunId) })
     },
   })
 }

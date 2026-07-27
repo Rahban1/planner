@@ -1,5 +1,5 @@
 import { createFileRoute, useLoaderData, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, Trash2, Users } from 'lucide-react'
 import { useEffect } from 'react'
 import { PriorityPanel } from '#/components/PriorityPanel'
 import {
@@ -133,6 +133,15 @@ function ProjectPage() {
             tabIndex={0}
           >
             + new task
+          </span>
+          <span
+            className="pp-members"
+            onClick={() => ui.openMembers(project.id)}
+            role="button"
+            tabIndex={0}
+            title="Manage members"
+          >
+            <Users size={16} />
           </span>
           <span
             className="pp-delete-proj"

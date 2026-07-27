@@ -1117,6 +1117,25 @@ body {
 .pp-add-task:hover {
   color: var(--accent);
 }
+.pp-members {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 1px solid var(--line-2);
+  display: grid;
+  place-items: center;
+  color: var(--g-700);
+  cursor: pointer;
+  transition:
+    color 150ms,
+    border-color 150ms,
+    background 150ms;
+}
+.pp-members:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
 .pp-actions {
   display: flex;
   align-items: center;
