@@ -1657,13 +1657,15 @@ body {
   color: var(--g-500);
 }
 .arm-exit {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 1px 7px;
+  padding: 1px 5px;
   border-radius: 9999px;
   border: 1px solid var(--line-2);
   color: var(--g-500);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .arm-exit.ok {
   color: var(--accent);
