@@ -5,6 +5,7 @@ import {
   useUpdateTaskMutation,
   useCreateTaskMutation,
   useCompleteTaskMutation,
+  useUncompleteTaskMutation,
   useDeleteTaskMutation,
   useUploadAttachmentMutation,
   useDeleteAttachmentMutation,
@@ -471,7 +472,7 @@ function NewSubtaskRow({ parentId, projectId }: { parentId: string; projectId: s
 
 function SubtaskRow({ subtask }: { subtask: Task }) {
   const completeMut = useCompleteTaskMutation()
-  const uncompleteMut = useUpdateTaskMutation()
+  const uncompleteMut = useUncompleteTaskMutation()
   const deleteMut = useDeleteTaskMutation()
   const ui = useUI()
   const isDone = subtask.status === 'done'
@@ -484,9 +485,7 @@ function SubtaskRow({ subtask }: { subtask: Task }) {
           if (!isDone) {
             completeMut.mutate({ data: { id: subtask.id } })
           } else {
-            uncompleteMut.mutate({
-              data: { id: subtask.id, status: 'todo' },
-            })
+            uncompleteMut.mutate({ data: { id: subtask.id } })
           }
         }}
         role="button"
@@ -495,7 +494,7 @@ function SubtaskRow({ subtask }: { subtask: Task }) {
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             if (!isDone) completeMut.mutate({ data: { id: subtask.id } })
-            else uncompleteMut.mutate({ data: { id: subtask.id, status: 'todo' } })
+            else uncompleteMut.mutate({ data: { id: subtask.id } })
           }
         }}
       />
