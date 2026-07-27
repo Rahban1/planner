@@ -1341,6 +1341,164 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* ---------- mobile ---------- */
+@media (max-width: 768px) {
+  /* top bar */
+  .topbar {
+    padding: 12px 16px;
+  }
+  .topbar .wordmark {
+    font-size: 20px;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .topbar-link span {
+    display: none;
+  }
+  .topbar-link {
+    padding: 0 8px;
+  }
+  .kbd-chip-wrap .kbd-hint {
+    display: none;
+  }
+
+  /* dashboard */
+  .dashboard {
+    padding: 0 12px 12px;
+  }
+  .priority-section {
+    padding: 10px 12px 8px;
+    border-radius: 12px;
+  }
+  .pcard {
+    flex: 0 0 220px;
+    padding: 11px 13px;
+  }
+  .pcard .title {
+    font-size: 18px;
+  }
+
+  /* columns */
+  .columns-wrap {
+    gap: 8px;
+  }
+  .columns-head {
+    padding: 0 2px;
+  }
+  .columns {
+    gap: 10px;
+    padding: 0 2px 4px;
+    scroll-snap-type: x mandatory;
+  }
+  .column {
+    flex: 0 0 85vw;
+    min-width: auto;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .column-head {
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+  }
+  .column-head .name {
+    font-size: 22px;
+  }
+  .column-head .repo {
+    max-width: 100px;
+  }
+  .add-card {
+    flex: 0 0 85vw;
+    min-width: auto;
+    padding: 20px;
+    font-size: 18px;
+  }
+
+  /* task row */
+  .task {
+    padding: 10px 4px 10px 8px;
+    margin: 0 -4px 0 -8px;
+    gap: 8px;
+  }
+  .task .t-title {
+    font-size: 17px;
+  }
+
+  /* project page */
+  .project-page {
+    padding: 0 16px 16px;
+  }
+  .pp-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .pp-title .name {
+    font-size: 26px;
+  }
+  .pp-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* modal */
+  .modal-backdrop {
+    padding: 16px;
+  }
+  .modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 14px;
+  }
+  .modal-head {
+    padding: 16px 18px 12px;
+  }
+  .modal-head .title-input {
+    font-size: 24px;
+  }
+  .modal-body {
+    padding: 16px 18px;
+    gap: 16px;
+  }
+  .modal-close {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* command palette */
+  .palette-backdrop {
+    padding: 16px;
+  }
+  .palette {
+    width: 100%;
+    max-height: 70vh;
+  }
+
+  /* agent runs page */
+  .agent-runs-wrap {
+    padding: 0 16px 16px;
+  }
+  .agent-run-card-head {
+    padding: 14px 16px 12px;
+    gap: 12px;
+  }
+  .agent-run-task-title {
+    font-size: 20px;
+  }
+  .agent-run-logs {
+    padding: 8px 16px 12px;
+  }
+  .agent-run-logs-toggle {
+    padding: 8px 16px;
+  }
+  .agent-run-card-foot {
+    padding: 8px 16px;
+  }
+  .agent-run-outcome {
+    padding: 8px 16px;
+  }
+}
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
