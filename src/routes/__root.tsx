@@ -35,6 +35,8 @@ export const Route = createRootRoute({
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap',
       },
+      { rel: 'preload', as: 'image', href: '/bg.png' },
+      { rel: 'preload', as: 'image', href: '/bg-dark.png' },
     ],
     scripts: [
       {
