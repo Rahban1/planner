@@ -949,6 +949,7 @@ body {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: var(--g-1000);
+  transition: color 150ms;
 }
 .subtask-row.done .st-input {
   color: var(--g-700);

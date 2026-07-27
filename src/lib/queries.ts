@@ -266,6 +266,7 @@ export function useUpdateTaskMutation() {
     onSuccess: (task) => {
       if (!task) return
       qc.setQueryData<TaskWithSubtasks>(qk.task(task.id), task)
+      if (task.parentId) qc.invalidateQueries({ queryKey: qk.task(task.parentId) })
       // Refresh summary so priority, due, title all reflect
       qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
       qc.invalidateQueries({ queryKey: qk.priority })
@@ -278,7 +279,10 @@ export function useCompleteTaskMutation() {
   return useMutation({
     mutationFn: completeTask,
     onSuccess: (task) => {
-      if (task) qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+      if (task) {
+        qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+        if (task.parentId) qc.invalidateQueries({ queryKey: qk.task(task.parentId) })
+      }
       qc.invalidateQueries({ queryKey: qk.priority })
     },
   })
@@ -289,7 +293,10 @@ export function useUncompleteTaskMutation() {
   return useMutation({
     mutationFn: uncompleteTask,
     onSuccess: (task) => {
-      if (task) qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+      if (task) {
+        qc.invalidateQueries({ queryKey: qk.projectSummary(task.projectId) })
+        if (task.parentId) qc.invalidateQueries({ queryKey: qk.task(task.parentId) })
+      }
       qc.invalidateQueries({ queryKey: qk.priority })
     },
   })
