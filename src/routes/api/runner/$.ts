@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { env } from 'cloudflare:workers'
 import {
   giveTaskToAgent,
   planTask,
@@ -13,10 +14,25 @@ import {
 import { getTask } from '#/server/tasks'
 import { getProject } from '#/server/projects'
 
+// The runner bridge is machine-to-machine. When RUNNER_API_TOKEN is set
+// (production), every request must present it as X-Runner-Token. When unset
+// (local dev), requests are allowed through.
+function authorizeRunner(request: Request): Response | null {
+  const token = (env as { RUNNER_API_TOKEN?: string }).RUNNER_API_TOKEN
+  if (!token) return null
+  if (request.headers.get('X-Runner-Token') !== token) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+  return null
+}
+
 export const Route = createFileRoute('/api/runner/$')({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
+        const denied = authorizeRunner(request)
+        if (denied) return denied
+
         const rest = params._splat ?? ''
 
         if (rest === 'queue') {
@@ -63,6 +79,9 @@ export const Route = createFileRoute('/api/runner/$')({
         return new Response('Not found', { status: 404 })
       },
       POST: async ({ params, request }) => {
+        const denied = authorizeRunner(request)
+        if (denied) return denied
+
         const rest = params._splat ?? ''
         const body = (await request.json()) as Record<string, unknown>
 

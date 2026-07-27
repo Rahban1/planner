@@ -10,6 +10,7 @@
 		{
 			"binding": "DB",
 			"database_name": "planner",
+			"database_id": "cb5ce300-f9ce-4b44-9bb2-5f856fd05927",
 			"migrations_dir": "drizzle/migrations"
 		}
 	],

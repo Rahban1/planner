@@ -138,6 +138,15 @@ pnpm preview   # run built Worker locally before deploy
 pnpm deploy     # builds + wrangler deploy
 ```
 
+### Production topology
+
+- **App**: https://planner.rahban-ghani2001.workers.dev (Worker `planner`)
+- **D1 (remote)**: database `planner`, id `cb5ce300-f9ce-4b44-9bb2-5f856fd05927` — migrations applied with `pnpm wrangler d1 execute planner --remote --file=...`. No seed data in prod.
+- **R2**: bucket `planner-attachments` (binding `ATTACHMENTS`) shared between dev and prod.
+- **Runner bridge auth**: `/api/runner/*` requires header `X-Runner-Token` when the Worker secret `RUNNER_API_TOKEN` is set (prod). Set/rotate with `pnpm wrangler secret put RUNNER_API_TOKEN`; the same value lives in `.env` for the Docker runner. When unset (local dev), the bridge is open.
+- **Runner in prod mode**: `PLANNER_BASE_URL` in `.env` points at the workers.dev URL. For local agent dev, flip it back to `http://host.docker.internal:3000` and recreate the container (`docker compose -f docker-compose.local.yml up -d --build --force-recreate agent-runner`).
+- **UI access**: protected by Cloudflare Access (Zero Trust) configured in the Cloudflare dashboard — not in code.
+
 ### Database (Cloudflare D1)
 
 Schema lives in `src/db/schema.ts`. Drizzle migrations live in `drizzle/migrations/`.
@@ -171,7 +180,7 @@ pnpm wrangler types
 
 `projects`: {id, name, position, repoUrl, createdAt, updatedAt, archived}
 `tasks`: {id, projectId → projects, parentId → tasks, title, notes, priority (low|medium|high|urgent), status (todo|in_progress|done), dueAt, position, completedAt, createdAt, updatedAt}
-`agentRuns`: {id, taskId → tasks, projectId → projects, status (queued|running|success|error|merged|closed), repoUrl, branchName, prUrl, prNumber, logs (JSON array of {t, level, message}), errorMessage, createdAt, updatedAt}
+`agentRuns`: {id, taskId → tasks, projectId → projects, status (queued|running|success|error|merged|closed|plan_ready|approved|stopped), kind (implement|plan), repoUrl, branchName, prUrl, prNumber, planMd, planFeedback, planVersion, logs (JSON array of {t, level, message}), errorMessage, createdAt, updatedAt}
 
 Priority sort = `(priority_rank asc, dueAt asc)`, with NULL dueAt treated as `Number.MAX_SAFE_INTEGER`.
 
@@ -231,6 +240,18 @@ The "Give to Agent" feature is split across the Planner UI and an external Node.
 3. `agent-runner/src/index.ts` polls `/api/runner/queue`, starts an OpenHands conversation for each queued run, streams events back as logs, and writes `.agent-pr-url` / `.agent-branch-name` marker files.
 4. OpenHands Agent Server runs in Docker, clones the project's `repoUrl`, creates a branch, implements the task, pushes, and opens a PR.
 5. Merge watcher: every 15s the runner fetches `/api/runner/awaiting-merge` (runs with `status='success'` + `prUrl`) and checks each PR via the GitHub REST API (`agent-runner/src/github.ts`, uses `GITHUB_TOKEN`). Merged PR → run status `merged` and the task is auto-completed (`updateAgentRun` sets task `done` + `completedAt`). PR closed without merging → run status `closed` (task untouched, retry available in the UI).
+6. Stop: `stopAgentRun` sets an active run to `stopped`; the runner polls `/api/runner/runs/{id}` every 5s (`watchForUserStop`) and abandons the session.
+
+## Plan mode (plannotator-style review)
+
+Runs have `kind` (`implement` | `plan`). Plan runs explore the repo read-only and write a markdown plan to `.agent-plan-md` — no branch, no PR.
+
+1. UI: the no-run state offers both actions — split button with dropdown in `PriorityPanel` (`variant="split"`), two icon buttons in `ProjectColumn` (`variant="icons"`). Menu renders via portal (clipping-safe).
+2. `planTask(taskId)` queues a `kind='plan'` run; runner uses `buildPlanPrompt` / `buildPlanRevisionPrompt` and ends at status `plan_ready` with `planMd`.
+3. `PlanModal` (open via status button) renders the plan markdown (`marked`) with Approve / Request changes.
+4. `requestPlanChanges(runId, feedback)` → stores `planFeedback`, bumps `planVersion`, re-queues; runner revises.
+5. `approvePlan(runId)` → status `approved` + auto-queues a `kind='implement'` run; the implement prompt includes the approved plan (via `task-context` → `approvedPlanMd`).
+6. Plan statuses: `plan_ready`, `approved` (schema enum; UI labels "Plan Ready"/"Planning…"/"Approved").
 
 ### Local Docker setup
 

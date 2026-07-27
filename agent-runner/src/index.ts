@@ -49,6 +49,7 @@ const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
 const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
 const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? ''
+const RUNNER_API_TOKEN = process.env.RUNNER_API_TOKEN ?? ''
 const MAX_RUNTIME_MS = 15 * 60 * 1000 // 15 minutes
 const MERGE_CHECK_INTERVAL_MS = 15_000
 
@@ -408,6 +409,7 @@ async function plannerFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      ...(RUNNER_API_TOKEN ? { 'X-Runner-Token': RUNNER_API_TOKEN } : {}),
       ...(init?.headers ?? {}),
     },
   })

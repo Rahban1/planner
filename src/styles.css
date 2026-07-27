@@ -1475,8 +1475,28 @@ body {
   }
 
   /* agent runs page */
-  .agent-runs-wrap {
+  .agent-runs-page {
     padding: 0 16px 16px;
+  }
+  .agent-runs-title {
+    font-size: 28px;
+  }
+  .agent-runs-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding-bottom: 4px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
+  }
+  .agent-runs-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .agent-runs-filter {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    font-size: 11px;
   }
   .agent-run-card-head {
     padding: 14px 16px 12px;
@@ -1484,6 +1504,12 @@ body {
   }
   .agent-run-task-title {
     font-size: 20px;
+  }
+  .agent-run-card-meta {
+    gap: 10px;
+  }
+  .agent-run-meta-item.repo {
+    max-width: 140px;
   }
   .agent-run-logs {
     padding: 8px 16px 12px;
