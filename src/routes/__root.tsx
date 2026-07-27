@@ -8,6 +8,7 @@ import { TopBar } from '../components/TopBar'
 import { TaskModal } from '../components/TaskModal'
 import { AgentRunModal } from '../components/AgentRunModal'
 import { PlanModal } from '../components/PlanModal'
+import { MembersModal } from '../components/MembersModal'
 import { ProjectModal } from '../components/ProjectModal'
 import { CommandPalette } from '../components/CommandPalette'
 import { ShortcutsHelp } from '../components/ShortcutsHelp'
@@ -106,6 +107,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       />
       <AgentRunModal />
       <PlanModal />
+      <MembersModal />
       <ProjectModal />
       <CommandPalette onToggleTheme={toggle} />
       <ShortcutsHelp />

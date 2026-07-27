@@ -85,6 +85,55 @@ export const agentRuns = sqliteTable('agent_runs', {
 
 export type AgentRun = typeof agentRuns.$inferSelect
 
+export const projectMembers = sqliteTable('project_members', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  name: text('name'),
+  role: text('role', { enum: ['owner', 'manager', 'member'] })
+    .notNull()
+    .default('member'),
+  createdAt: integer('created_at').notNull(),
+})
+
+export type ProjectMember = typeof projectMembers.$inferSelect
+
+export const planApprovals = sqliteTable('plan_approvals', {
+  id: text('id').primaryKey(),
+  agentRunId: text('agent_run_id')
+    .notNull()
+    .references(() => agentRuns.id, { onDelete: 'cascade' }),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  requestedBy: text('requested_by').notNull(),
+  requestedFrom: text('requested_from').notNull(),
+  status: text('status', { enum: ['pending', 'approved', 'rejected'] })
+    .notNull()
+    .default('pending'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+})
+
+export type PlanApproval = typeof planApprovals.$inferSelect
+
+export const planSuggestions = sqliteTable('plan_suggestions', {
+  id: text('id').primaryKey(),
+  agentRunId: text('agent_run_id')
+    .notNull()
+    .references(() => agentRuns.id, { onDelete: 'cascade' }),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  suggestedBy: text('suggested_by').notNull(),
+  content: text('content').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
+
+export type PlanSuggestion = typeof planSuggestions.$inferSelect
+
 export const priorityRank: Record<Task['priority'], number> = {
   urgent: 0,
   high: 1,
