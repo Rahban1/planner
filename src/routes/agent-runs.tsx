@@ -25,6 +25,19 @@ export const Route = createFileRoute('/agent-runs')({
 
 type StatusFilter = 'all' | 'queued' | 'running' | 'success' | 'error' | 'merged' | 'closed' | 'stopped' | 'plan_ready' | 'approved'
 
+const filterLabels: Record<StatusFilter, string> = {
+  all: 'All',
+  running: 'Running',
+  queued: 'Queued',
+  success: 'Success',
+  merged: 'Merged',
+  closed: 'Closed',
+  stopped: 'Stopped',
+  plan_ready: 'Plans',
+  approved: 'Approved',
+  error: 'Errors',
+}
+
 const statusConfig: Record<
   string,
   { label: string; color: string; icon: React.ReactNode }
@@ -125,7 +138,7 @@ function AgentRunsPage() {
               className={`agent-runs-filter ${filter === s ? 'active' : ''}`}
               onClick={() => setFilter(s)}
             >
-              <span className="capitalize">{s}</span>
+              <span>{filterLabels[s]}</span>
               <span className="agent-runs-count">{counts[s]}</span>
             </button>
           ),

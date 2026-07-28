@@ -2797,6 +2797,9 @@ body {
   border-radius: 9999px;
 }
 .agent-run-card {
+  /* The list is a bounded flex column on desktop. Cards must retain their
+     content height rather than collectively shrinking when there are many. */
+  flex: 0 0 auto;
   border-radius: 14px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -3174,4 +3177,152 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 12px;
+}
+
+/* ---------- agent runs: final mobile cascade ---------- */
+/* This lives after the desktop agent-run styles so the phone layout cannot be
+   overwritten by the later desktop declarations. */
+@media (max-width: 768px) {
+  .agent-runs-page {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: 0 12px calc(24px + env(safe-area-inset-bottom));
+  }
+  .agent-runs-head {
+    margin-bottom: 16px;
+  }
+  .agent-runs-back {
+    min-height: 44px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+  }
+  .agent-runs-title {
+    font-size: clamp(32px, 10vw, 42px);
+    gap: 10px;
+  }
+  .agent-runs-title-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .agent-runs-subtitle {
+    max-width: 34ch;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .agent-runs-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    margin: 0 -12px 16px;
+    padding: 0 12px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .agent-runs-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .agent-runs-filter {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 8px 13px;
+    font-size: 12px;
+  }
+  .agent-runs-list {
+    display: flex;
+    min-height: auto;
+    overflow: visible;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+  }
+  .agent-run-card {
+    flex: 0 0 auto;
+    border-radius: 16px;
+  }
+  .agent-run-card-head {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+  }
+  .agent-run-task-title {
+    display: -webkit-box;
+    margin: 0 0 10px;
+    overflow: hidden;
+    white-space: normal;
+    font-size: 23px;
+    line-height: 1.1;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .agent-run-card-meta {
+    gap: 8px 12px;
+  }
+  .agent-run-meta-item {
+    max-width: 100%;
+  }
+  .agent-run-meta-item.repo {
+    max-width: min(74vw, 300px);
+  }
+  .agent-run-card-actions {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .agent-run-status-badge {
+    min-height: 40px;
+    padding: 7px 12px;
+  }
+  .agent-run-card-chev {
+    width: 40px;
+    height: 40px;
+    padding: 11px;
+    border: 1px solid var(--line-2);
+    border-radius: 9999px;
+  }
+  .agent-run-outcome {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+    line-height: 1.45;
+  }
+  .agent-run-error-main,
+  .agent-run-outcome-text,
+  .agent-run-pr-link {
+    align-items: flex-start;
+  }
+  .agent-run-pr-link {
+    min-height: 36px;
+  }
+  .agent-run-branch {
+    width: 100%;
+    margin-left: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agent-run-retry {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .agent-run-logs {
+    max-height: 46dvh;
+    padding: 10px 16px 14px;
+    overscroll-behavior: contain;
+  }
+  .agent-run-log-line {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 8px;
+    padding: 5px 0;
+  }
+  .agent-run-card-foot {
+    min-height: 52px;
+    padding: 8px 16px;
+  }
 }
