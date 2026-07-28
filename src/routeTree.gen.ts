@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as AgentRunsRouteImport } from './routes/agent-runs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as ApiRunnerSplatRouteImport } from './routes/api/runner/$'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
 
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentRunsRoute = AgentRunsRouteImport.update({
   id: '/agent-runs',
   path: '/agent-runs',
@@ -44,6 +50,7 @@ const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
+  '/landing': typeof LandingRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
+  '/landing': typeof LandingRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
+  '/landing': typeof LandingRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agent-runs'
+    | '/landing'
     | '/projects/$id'
     | '/api/attachments/$id'
     | '/api/runner/$'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agent-runs'
+    | '/landing'
     | '/projects/$id'
     | '/api/attachments/$id'
     | '/api/runner/$'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agent-runs'
+    | '/landing'
     | '/projects/$id'
     | '/api/attachments/$id'
     | '/api/runner/$'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentRunsRoute: typeof AgentRunsRoute
+  LandingRoute: typeof LandingRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiRunnerSplatRoute: typeof ApiRunnerSplatRoute
@@ -97,6 +110,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agent-runs': {
       id: '/agent-runs'
       path: '/agent-runs'
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentRunsRoute: AgentRunsRoute,
+  LandingRoute: LandingRoute,
   ProjectsIdRoute: ProjectsIdRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiRunnerSplatRoute: ApiRunnerSplatRoute,
