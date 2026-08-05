@@ -116,7 +116,7 @@ function AgentRunsPage() {
   return (
     <div className="agent-runs-page">
       <div className="agent-runs-head">
-        <Link to="/" className="agent-runs-back">
+        <Link to="/dashboard" className="agent-runs-back">
           <ArrowLeft size={14} />
           <span>Dashboard</span>
         </Link>

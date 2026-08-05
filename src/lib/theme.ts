@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'planner-theme'
+const THEME_COLORS = { dark: '#062318', light: '#fdfaf4' }
 type Theme = 'dark' | 'light'
 
 function readInitial(): Theme {
@@ -23,6 +24,8 @@ export function useTheme() {
   useEffect(() => {
     const apply = (next: Theme) => {
       document.documentElement.dataset.theme = next
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', THEME_COLORS[next])
       try {
         window.localStorage.setItem(STORAGE_KEY, next)
       } catch {

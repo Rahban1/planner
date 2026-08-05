@@ -93,7 +93,7 @@ function ProjectPage() {
   if (!project) {
     return (
       <main className="project-page">
-        <div className="pp-back" onClick={() => navigate({ to: '/' })}>
+        <div className="pp-back" onClick={() => navigate({ to: '/dashboard' })}>
           <ChevronLeft size={12} />
           Back to projects
         </div>
@@ -106,7 +106,7 @@ function ProjectPage() {
 
   return (
     <main className="project-page">
-      <div className="pp-back" onClick={() => navigate({ to: '/' })} role="button" tabIndex={0}>
+      <div className="pp-back" onClick={() => navigate({ to: '/dashboard' })} role="button" tabIndex={0}>
         <ChevronLeft size={12} />
         All projects
       </div>
@@ -156,7 +156,7 @@ function ProjectPage() {
               if (!confirmed) return
               deleteProjectMut.mutate(
                 { data: { id: project.id } },
-                { onSuccess: () => navigate({ to: '/' }) },
+                { onSuccess: () => navigate({ to: '/dashboard' }) },
               )
             }}
             role="button"

@@ -9,16 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AgentRunsRouteImport } from './routes/agent-runs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as ApiRunnerSplatRouteImport } from './routes/api/runner/$'
+import { Route as ApiAuthProvidersRouteImport } from './routes/api/auth/providers'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LandingRoute = LandingRouteImport.update({
   id: '/landing',
   path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentRunsRoute = AgentRunsRouteImport.update({
@@ -41,6 +54,11 @@ const ApiRunnerSplatRoute = ApiRunnerSplatRouteImport.update({
   path: '/api/runner/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthProvidersRoute = ApiAuthProvidersRouteImport.update({
+  id: '/api/auth/providers',
+  path: '/api/auth/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
   id: '/api/attachments/$id',
   path: '/api/attachments/$id',
@@ -50,26 +68,35 @@ const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
+  '/dashboard': typeof DashboardRoute
   '/landing': typeof LandingRoute
+  '/login': typeof LoginRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
+  '/dashboard': typeof DashboardRoute
   '/landing': typeof LandingRoute
+  '/login': typeof LoginRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
+  '/dashboard': typeof DashboardRoute
   '/landing': typeof LandingRoute
+  '/login': typeof LoginRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
 }
 export interface FileRouteTypes {
@@ -77,44 +104,70 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agent-runs'
+    | '/dashboard'
     | '/landing'
+    | '/login'
     | '/projects/$id'
     | '/api/attachments/$id'
+    | '/api/auth/providers'
     | '/api/runner/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/agent-runs'
+    | '/dashboard'
     | '/landing'
+    | '/login'
     | '/projects/$id'
     | '/api/attachments/$id'
+    | '/api/auth/providers'
     | '/api/runner/$'
   id:
     | '__root__'
     | '/'
     | '/agent-runs'
+    | '/dashboard'
     | '/landing'
+    | '/login'
     | '/projects/$id'
     | '/api/attachments/$id'
+    | '/api/auth/providers'
     | '/api/runner/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentRunsRoute: typeof AgentRunsRoute
+  DashboardRoute: typeof DashboardRoute
   LandingRoute: typeof LandingRoute
+  LoginRoute: typeof LoginRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
+  ApiAuthProvidersRoute: typeof ApiAuthProvidersRoute
   ApiRunnerSplatRoute: typeof ApiRunnerSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/landing': {
       id: '/landing'
       path: '/landing'
       fullPath: '/landing'
       preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agent-runs': {
@@ -145,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRunnerSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/providers': {
+      id: '/api/auth/providers'
+      path: '/api/auth/providers'
+      fullPath: '/api/auth/providers'
+      preLoaderRoute: typeof ApiAuthProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/attachments/$id': {
       id: '/api/attachments/$id'
       path: '/api/attachments/$id'
@@ -158,9 +218,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentRunsRoute: AgentRunsRoute,
+  DashboardRoute: DashboardRoute,
   LandingRoute: LandingRoute,
+  LoginRoute: LoginRoute,
   ProjectsIdRoute: ProjectsIdRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
+  ApiAuthProvidersRoute: ApiAuthProvidersRoute,
   ApiRunnerSplatRoute: ApiRunnerSplatRoute,
 }
 export const routeTree = rootRouteImport

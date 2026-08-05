@@ -21,8 +21,17 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1, viewport-fit=cover',
+      },
       { title: 'Planner' },
+      { name: 'description', content: 'Plan, track, and hand work to autonomous agents.' },
+      { name: 'theme-color', content: '#062318' },
+      { name: 'mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+      { name: 'apple-mobile-web-app-title', content: 'Planner' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
@@ -38,11 +47,19 @@ export const Route = createRootRoute({
       },
       { rel: 'preload', as: 'image', href: '/bg.png' },
       { rel: 'preload', as: 'image', href: '/bg-dark.png' },
+      { rel: 'manifest', href: '/manifest.json' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
+      { rel: 'icon', href: '/favicon.ico' },
     ],
     scripts: [
       {
         children:
-          "(function(){try{var s=localStorage.getItem('planner-theme');if(s==='light'||s==='dark'){document.documentElement.dataset.theme=s;}}catch(e){}})();",
+          "(function(){try{var s=localStorage.getItem('planner-theme');if(s==='light'||s==='dark'){document.documentElement.dataset.theme=s;var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute('content',s==='light'?'#fdfaf4':'#062318');}}catch(e){}})();",
+      },
+      {
+        children:
+          "if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(e){console.warn('SW registration failed',e)})})}",
       },
     ],
   }),
@@ -89,7 +106,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <TopBar
         theme={theme}
         onToggleTheme={toggle}
-        onWordmarkClick={() => navigate({ to: '/' })}
+        onWordmarkClick={() => navigate({ to: '/dashboard' })}
+        onLogout={() => {
+          // Cloudflare Access logout clears the CF_Authorization cookie. Load
+          // it in a hidden iframe (clears the cookie) then go to the public
+          // landing page.
+          const frame = document.createElement('iframe')
+          frame.style.display = 'none'
+          frame.src = '/cdn-cgi/access/logout'
+          document.body.appendChild(frame)
+          window.setTimeout(() => {
+            window.location.assign('/landing')
+          }, 600)
+        }}
       />
       {children}
       <TaskModal

@@ -78,7 +78,7 @@ export function useKeyboardShortcuts(onToggleTheme: () => void) {
         clearChord()
         if (lower === 'd') {
           e.preventDefault()
-          navigate({ to: '/' })
+          navigate({ to: '/dashboard' })
           return
         }
         // 'g p' could go to project page of the focused column — we don't have column focus yet

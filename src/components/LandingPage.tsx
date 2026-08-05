@@ -20,7 +20,7 @@ export function LandingPage() {
         </div>
         <div className="landing-intro">
           <p>{message}</p>
-          <a className="landing-primary" href="#control-room">See a to-do at work <ArrowRight size={16} /></a>
+          <a className="landing-primary" href="/login">Get started <ArrowRight size={16} /></a>
         </div>
       </section>
 
