@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useCreateProjectMutation } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
 
@@ -7,14 +7,14 @@ export function ProjectModal() {
   const { projectModalOpen, closeProjectModal } = useUI()
   const createMut = useCreateProjectMutation()
   const [name, setName] = useState('')
-  const [repoUrl, setRepoUrl] = useState('')
+  const [repoUrls, setRepoUrls] = useState([''])
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (projectModalOpen) {
       setName('')
-      setRepoUrl('')
+      setRepoUrls([''])
       requestAnimationFrame(() => setFadeClass('open'))
       const t = setTimeout(() => nameRef.current?.focus(), 80)
       return () => clearTimeout(t)
@@ -40,9 +40,9 @@ export function ProjectModal() {
       nameRef.current?.focus()
       return
     }
-    const repo = repoUrl.trim() || null
+    const repositories = repoUrls.map((url) => url.trim()).filter(Boolean)
     createMut.mutate(
-      { data: { name: trimmed, repoUrl: repo } },
+      { data: { name: trimmed, repoUrls: repositories } },
       { onSuccess: () => closeProjectModal() },
     )
   }
@@ -73,15 +73,42 @@ export function ProjectModal() {
 
         <div className="modal-body">
           <div className="field-group">
-            <div className="field-label">Repository URL (optional)</div>
-            <input
-              className="ctrl-input"
-              style={{ width: '100%' }}
-              type="url"
-              placeholder="https://github.com/org/repo"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-            />
+            <div className="field-label">Repository URLs (optional)</div>
+            {repoUrls.map((url, index) => (
+              <div key={index} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                <input
+                  className="ctrl-input"
+                  style={{ width: '100%' }}
+                  type="url"
+                  placeholder="https://github.com/org/repo"
+                  value={url}
+                  onChange={(e) =>
+                    setRepoUrls((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? e.target.value : item,
+                      ),
+                    )
+                  }
+                />
+                {repoUrls.length > 1 && (
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    onClick={() => setRepoUrls((current) => current.filter((_, i) => i !== index))}
+                    aria-label="Remove repository"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              className="btn btn-ghost"
+              type="button"
+              onClick={() => setRepoUrls((current) => [...current, ''])}
+            >
+              <Plus size={14} /> Add repository
+            </button>
           </div>
         </div>
 

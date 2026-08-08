@@ -26,6 +26,7 @@ export const createProject = createServerFn({ method: 'POST' })
     z.object({
       name: z.string().min(1),
       repoUrl: z.string().url().nullable().optional(),
+      repoUrls: z.array(z.string().url()).optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -39,7 +40,8 @@ export const createProject = createServerFn({ method: 'POST' })
     await db.insert(schema.projects).values({
       id: id_,
       name: data.name,
-      repoUrl: data.repoUrl ?? null,
+      repoUrl: data.repoUrls?.[0] ?? data.repoUrl ?? null,
+      repoUrls: data.repoUrls?.length ? JSON.stringify(data.repoUrls) : null,
       position,
       createdAt: now,
       updatedAt: now,
@@ -54,13 +56,18 @@ export const updateProject = createServerFn({ method: 'POST' })
       id: z.string(),
       name: z.string().min(1).optional(),
       repoUrl: z.string().url().nullable().optional(),
+      repoUrls: z.array(z.string().url()).optional(),
       position: z.number().int().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const { id: pid, ...patch } = data
+    const { id: pid, repoUrls, ...patch } = data
     const now = Date.now()
-    await db.update(schema.projects).set({ ...patch, updatedAt: now }).where(eq(schema.projects.id, pid))
+    await db.update(schema.projects).set({
+      ...patch,
+      ...(repoUrls ? { repoUrl: repoUrls[0] ?? null, repoUrls: JSON.stringify(repoUrls) } : {}),
+      updatedAt: now,
+    }).where(eq(schema.projects.id, pid))
     const rows = await db.select().from(schema.projects).where(eq(schema.projects.id, pid))
     return rows[0] as Project | undefined
   })

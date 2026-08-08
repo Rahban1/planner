@@ -5,6 +5,7 @@ export const projects = sqliteTable('projects', {
   name: text('name').notNull(),
   position: integer('position').notNull().default(0),
   repoUrl: text('repo_url'),
+  repoUrls: text('repo_urls'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
   archived: integer('archived').notNull().default(0),
