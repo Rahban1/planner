@@ -36,6 +36,13 @@
       "when": 1785159045380,
       "tag": "0004_collaboration_feature",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786222895302,
+      "tag": "0005_multiple_repositories",
+      "breakpoints": true
     }
   ]
 }

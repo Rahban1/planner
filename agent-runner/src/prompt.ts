@@ -2,7 +2,8 @@ export interface TaskContext {
   title: string
   notes: string | null
   projectName: string
-  repoUrl: string
+  repoUrl: string | null
+  repoUrls?: string[]
   priority: string
   approvedPlanMd?: string | null
   attachments: { id: string; name: string; mimeType: string; path: string; url: string }[]
@@ -10,6 +11,7 @@ export interface TaskContext {
 
 export function buildPrompt(task: TaskContext): string {
   const branchName = `agent/${slug(task.title)}-${Date.now()}`
+  const repositoryLines = formatRepositories(task)
 
   const attachmentLines =
     task.attachments && task.attachments.length > 0
@@ -26,7 +28,8 @@ Project: ${task.projectName}
 Priority: ${task.priority}
 Title: ${task.title}
 ${task.notes ? `Notes: ${task.notes}` : ''}
-Repository: ${task.repoUrl}
+Repositories:
+${repositoryLines}
 
 ## Attachments
 
@@ -40,18 +43,20 @@ ${attachmentLines}
    - git config --global user.name "Planner Agent"
    - git config --global user.email "agent@planner.local"
    - If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS pushes by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-2. Clone the repository ${task.repoUrl} into a subdirectory named \`repo\` in the current workspace (e.g. \`git clone ${task.repoUrl} repo\`).
-   - If the clone fails because the repository does not exist or you do not have access, STOP immediately and report the exact error. Do not try to create a local git repository or use the workspace root as the repository.
-3. Work inside the \`repo\` directory. Inspect the codebase, conventions, and any AGENTS.md or CONTRIBUTING.md files.
-4. Create a new branch named \`${branchName}\` from the repository's default branch.
-5. Implement the task. Make focused, minimal changes. Do not refactor unrelated code.
+2. Create a \`repo\` directory in the current workspace, then clone every repository listed above into a separate subdirectory inside it. Use stable, descriptive directory names (for example, \`frontend\` and \`backend\`), and do not initialize a new repository in the workspace root.
+   - If any clone fails because the repository does not exist or you do not have access, STOP immediately and report the exact error.
+3. Work from inside the \`repo\` directory so OpenHands has context across all repositories. Inspect each repository's conventions and any AGENTS.md or CONTRIBUTING.md files.
+4. Create a new branch named \`${branchName}\` from each repository's default branch.
+5. Implement the task across whichever repositories need changes. Make focused, minimal changes. Do not refactor unrelated code.
 6. Follow good commit guidelines: use a clear commit message in the imperative mood, e.g. "feat: refactor user model".
-7. Push the branch to the remote origin.
-8. Create a Pull Request against the repository's default branch. Do NOT merge it.
+7. Push the branch to each repository's remote origin.
+8. Create a Pull Request in each changed repository against its default branch. Do NOT merge it.
    - Authenticate the GitHub CLI first if needed: \`echo "\${GITHUB_TOKEN}" | gh auth login --with-token\`
    - Create the PR from inside the \`repo\` directory, e.g. \`gh pr create --title "..." --body-file pr-body.md\`
    - Immediately capture the PR URL by running: \`gh pr view --json url -q .url\` and save it to a shell variable or capture the printed URL.
-9. After the PR is created, capture the PR URL and branch name by running this exact command from inside the \`repo\` directory:
+9. After all PRs are created, write the primary PR URL to \`repo/.agent-pr-url\` and the shared branch name to \`repo/.agent-branch-name\`. Also report every PR URL in the final response. The planner currently tracks the primary PR URL for merge status.
+
+10. Capture the primary PR URL and branch name by running this exact command from inside the \`repo\` directory:
    \`gh pr view --json url -q .url > ../.agent-pr-url && echo "${branchName}" > ../.agent-branch-name\`
    This writes the marker files to the workspace root. Do not skip this step.
 
@@ -92,7 +97,7 @@ The human reviewer approved the following implementation plan. Follow it closely
 
 ${task.approvedPlanMd}` : ''}
 
-Begin by cloning ${task.repoUrl} and exploring the codebase.`
+Begin by creating the repo directory, cloning all listed repositories, and exploring the codebase.`
 }
 
 const PLAN_FORMAT = `## Required plan format (markdown)
@@ -117,12 +122,19 @@ What could go wrong, and how the plan accounts for it.
 ## Testing
 How to verify the change works (existing tests, dev server, manual steps).`
 
+function formatRepositories(task: TaskContext): string {
+  const repositories = task.repoUrls?.length ? task.repoUrls : task.repoUrl ? [task.repoUrl] : []
+  return repositories.length
+    ? repositories.map((url, index) => `${index + 1}. ${url}`).join('\n')
+    : 'None'
+}
+
 function buildPlanPreamble(task: TaskContext): string {
   return `Project: ${task.projectName}
 Priority: ${task.priority}
 Title: ${task.title}
 ${task.notes ? `Notes: ${task.notes}` : ''}
-Repository: ${task.repoUrl}`
+Repositories:\n${formatRepositories(task)}`
 }
 
 const PLAN_CONSTRAINTS = `## Constraints
@@ -143,7 +155,7 @@ ${buildPlanPreamble(task)}
 ## Instructions
 
 1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-2. Clone the repository ${task.repoUrl} into a subdirectory named \`repo\` (e.g. \`git clone ${task.repoUrl} repo\`).
+2. Create a \`repo\` directory and clone every listed repository into a separate subdirectory inside it. Work from the \`repo\` directory so the plan accounts for all repositories.
 3. Explore the codebase: structure, conventions, relevant modules, existing tests. Read any AGENTS.md or CONTRIBUTING.md files.
 4. Write your plan as markdown to \`.agent-plan-md\` in the workspace root, for example with a heredoc: \`cat > .agent-plan-md << 'PLAN_EOF' ... PLAN_EOF\`. Do not skip this step — the file is how your plan reaches the human reviewer.
 
@@ -151,7 +163,7 @@ ${PLAN_FORMAT}
 
 ${PLAN_CONSTRAINTS}
 
-Begin by cloning ${task.repoUrl} and exploring the codebase.`
+Begin by creating the repo directory, cloning all listed repositories, and exploring the codebase.`
 }
 
 export function buildPlanRevisionPrompt(
@@ -176,7 +188,7 @@ ${feedback}
 ## Instructions
 
 1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-2. Clone ${task.repoUrl} into a subdirectory named \`repo\` (or reuse it if it already exists from your previous session).
+2. Create a \`repo\` directory and clone every listed repository into a separate subdirectory inside it (or reuse it if it already exists from your previous session).
 3. Re-examine the codebase as needed to address the feedback.
 4. Write the REVISED plan as markdown to \`.agent-plan-md\` in the workspace root, overwriting the previous version.
 5. Address every point of the reviewer feedback. Where you disagree with a suggestion, explain why in the plan.

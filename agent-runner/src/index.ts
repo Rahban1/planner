@@ -35,7 +35,8 @@ interface TaskContext {
   title: string
   notes: string | null
   projectName: string
-  repoUrl: string
+  repoUrl: string | null
+  repoUrls?: string[]
   priority: string
   approvedPlanMd: string | null
   attachments: { id: string; name: string; mimeType: string; path: string }[]
@@ -246,7 +247,7 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
 
     const task = await fetchTaskContext(run)
     await append(`Task: ${task.title}`)
-    await append(`Repository: ${task.repoUrl}`)
+    await append(`Repositories: ${task.repoUrls?.join(', ') || task.repoUrl || 'None'}`)
 
     const workspace = await prepareWorkspace(run.id)
     const isRevision = !!(run.planMd && run.planFeedback)
@@ -320,7 +321,7 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
 
     const task = await fetchTaskContext(run)
     await append(`Task: ${task.title}`)
-    await append(`Repository: ${task.repoUrl}`)
+    await append(`Repositories: ${task.repoUrls?.join(', ') || task.repoUrl || 'None'}`)
 
     const workspace = await prepareWorkspace(run.id)
     const prompt = buildPrompt(withAttachmentUrls(task))

@@ -60,6 +60,7 @@ export const Route = createFileRoute('/api/runner/$')({
             priority: task.priority,
             projectName: project.name,
             repoUrl: project.repoUrl,
+            repoUrls: project.repoUrls ? JSON.parse(project.repoUrls) : project.repoUrl ? [project.repoUrl] : [],
             approvedPlanMd: approvedPlan?.planMd ?? null,
             attachments: task.attachments.map((a) => ({
               id: a.id,
