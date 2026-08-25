@@ -1,217 +1,80 @@
-Welcome to your new TanStack Start app! 
+# Planner
 
-# Getting Started
+Planner is a full-stack task manager for people and software agents. You can manage projects and tasks, ask an agent for a plan, approve the plan, and send the implementation to GitHub pull requests.
 
-To run this application:
+The web application runs on Cloudflare Workers. It uses TanStack Start, React, D1, R2, Drizzle, and TanStack Query. A separate Docker stack runs the Node.js agent runner and OpenHands Agent Server.
+
+## Documentation
+
+The full documentation uses ASD-STE100 Simplified Technical English.
+
+- [Documentation index](docs/README.md)
+- [Getting started](docs/GETTING_STARTED.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Operations and troubleshooting](docs/OPERATIONS.md)
+- [Technical reference](docs/REFERENCE.md)
+
+## Quick start
+
+Install the packages and start Planner on port 3000:
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev --host
 ```
 
-# Building For Production
+Open `http://localhost:3000`.
 
-To build this application for production:
+To start the agent services, create `.env` from `.env.example`, set the required secrets, and run:
 
 ```bash
-pnpm build
+docker compose -f docker-compose.local.yml up -d --build --force-recreate
 ```
 
-## Testing
+For all setup steps and checks, read [Getting started](docs/GETTING_STARTED.md).
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+## Common commands
 
 ```bash
 pnpm test
+pnpm lint
+npx tsc --noEmit
+pnpm build
+pnpm run deploy
 ```
 
-## Styling
+The `pnpm test` command also builds and tests the agent runner.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+## OAuth callback URLs
 
-### Removing Tailwind CSS
+Register the exact callback URL for each provider.
 
-If you prefer not to use Tailwind CSS:
+| Environment | Google                                                                  | GitHub                                                                  |
+| ----------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Production  | `https://planner.rahban-ghani2001.workers.dev/api/auth/callback/google` | `https://planner.rahban-ghani2001.workers.dev/api/auth/callback/github` |
+| Local       | `http://localhost:3000/api/auth/callback/google`                        | `http://localhost:3000/api/auth/callback/github`                        |
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `pnpm add @tailwindcss/vite tailwindcss --dev`
+Google can use both redirect URLs in one OAuth client. A GitHub OAuth App has one callback URL. Use a separate GitHub OAuth App for local development when necessary.
 
-## Linting & Formatting
-
-
-This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
+Set production credentials as Worker secrets:
 
 ```bash
-pnpm lint
-pnpm format
-pnpm check
+pnpm wrangler secret put GOOGLE_CLIENT_ID
+pnpm wrangler secret put GOOGLE_CLIENT_SECRET
+pnpm wrangler secret put GITHUB_CLIENT_ID
+pnpm wrangler secret put GITHUB_CLIENT_SECRET
 ```
 
+The Google scopes are `openid email profile`. The GitHub scopes are `read:user user:email`. Planner requires a verified email address.
 
-## Deploy to Cloudflare Workers
+## Repository structure
 
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`:
-
-1. Install Wrangler: `npm install -g wrangler`
-2. Authenticate: `wrangler login`
-3. Deploy: `npx wrangler deploy`
-
-For production env vars, run `wrangler secret put MY_VAR` for each secret listed in `.env.example`. Public (non-secret) vars go in `wrangler.jsonc` under `vars`.
-
-KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
+```text
+src/                    Planner Worker, React application, and server functions
+drizzle/migrations/     D1 database migrations
+agent-runner/           Node.js runner, OpenHands image, and runner tests
+public/                 Static images, icons, manifest, and service worker
+docs/                   Product, architecture, operations, and reference documents
 ```
 
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+Read [Architecture](docs/ARCHITECTURE.md) before you change authentication, data flow, or agent-run state. Read [Operations](docs/OPERATIONS.md) before you change a deployment, a migration, or the Docker services.
