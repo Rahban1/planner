@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Sun, Moon, Bot, LogOut } from 'lucide-react'
+import { Sun, Moon, Bot, BookOpenText, LogOut } from 'lucide-react'
 
 function LogoMark() {
   return (
@@ -11,8 +11,24 @@ function LogoMark() {
       aria-hidden="true"
       style={{ color: 'var(--accent)', flexShrink: 0 }}
     >
-      <rect x="15" y="16" width="16" height="4" rx="2" fill="currentColor" fillOpacity={0.4} />
-      <rect x="15" y="27" width="10" height="4" rx="2" fill="currentColor" fillOpacity={0.22} />
+      <rect
+        x="15"
+        y="16"
+        width="16"
+        height="4"
+        rx="2"
+        fill="currentColor"
+        fillOpacity={0.4}
+      />
+      <rect
+        x="15"
+        y="27"
+        width="10"
+        height="4"
+        rx="2"
+        fill="currentColor"
+        fillOpacity={0.22}
+      />
       <path
         d="M15 42 L22 49 L38 33"
         stroke="currentColor"
@@ -31,7 +47,12 @@ interface TopBarProps {
   onLogout?: () => void
 }
 
-export function TopBar({ theme, onToggleTheme, onWordmarkClick, onLogout }: TopBarProps) {
+export function TopBar({
+  theme,
+  onToggleTheme,
+  onWordmarkClick,
+  onLogout,
+}: TopBarProps) {
   return (
     <header className="topbar">
       <div
@@ -47,6 +68,10 @@ export function TopBar({ theme, onToggleTheme, onWordmarkClick, onLogout }: TopB
         Planner<span className="dot">.</span>
       </div>
       <div className="topbar-right">
+        <Link to="/docs" className="topbar-link" title="Documentation">
+          <BookOpenText size={14} />
+          <span>Docs</span>
+        </Link>
         <Link to="/agent-runs" className="topbar-link" title="Agent runs">
           <Bot size={14} />
           <span>Agents</span>
