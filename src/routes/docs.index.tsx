@@ -1,6 +1,7 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { DocsPage } from '#/components/DocsPage'
 
-export const Route = createFileRoute('/docs')({
+export const Route = createFileRoute('/docs/')({
   head: () => ({
     meta: [
       { title: 'Planner documentation' },
@@ -11,9 +12,5 @@ export const Route = createFileRoute('/docs')({
       },
     ],
   }),
-  component: DocsLayout,
+  component: () => <DocsPage slug="overview" />,
 })
-
-function DocsLayout() {
-  return <Outlet />
-}
