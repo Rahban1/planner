@@ -11,10 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AgentRunsRouteImport } from './routes/agent-runs'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
+import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as ApiRunnerSplatRouteImport } from './routes/api/runner/$'
 import { Route as ApiAuthProvidersRouteImport } from './routes/api/auth/providers'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
@@ -27,6 +30,11 @@ const LoginRoute = LoginRouteImport.update({
 const LandingRoute = LandingRouteImport.update({
   id: '/landing',
   path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -44,10 +52,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRoute,
+} as any)
 const ProjectsIdRoute = ProjectsIdRouteImport.update({
   id: '/projects/$id',
   path: '/projects/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsSlugRoute = DocsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DocsRoute,
 } as any)
 const ApiRunnerSplatRoute = ApiRunnerSplatRouteImport.update({
   id: '/api/runner/$',
@@ -69,9 +87,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
   '/dashboard': typeof DashboardRoute
+  '/docs': typeof DocsRouteWithChildren
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
@@ -82,7 +103,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/docs': typeof DocsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
@@ -92,9 +115,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agent-runs': typeof AgentRunsRoute
   '/dashboard': typeof DashboardRoute
+  '/docs': typeof DocsRouteWithChildren
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/projects/$id': typeof ProjectsIdRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
@@ -105,9 +131,12 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-runs'
     | '/dashboard'
+    | '/docs'
     | '/landing'
     | '/login'
+    | '/docs/$slug'
     | '/projects/$id'
+    | '/docs/'
     | '/api/attachments/$id'
     | '/api/auth/providers'
     | '/api/runner/$'
@@ -118,7 +147,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/landing'
     | '/login'
+    | '/docs/$slug'
     | '/projects/$id'
+    | '/docs'
     | '/api/attachments/$id'
     | '/api/auth/providers'
     | '/api/runner/$'
@@ -127,9 +158,12 @@ export interface FileRouteTypes {
     | '/'
     | '/agent-runs'
     | '/dashboard'
+    | '/docs'
     | '/landing'
     | '/login'
+    | '/docs/$slug'
     | '/projects/$id'
+    | '/docs/'
     | '/api/attachments/$id'
     | '/api/auth/providers'
     | '/api/runner/$'
@@ -139,6 +173,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentRunsRoute: typeof AgentRunsRoute
   DashboardRoute: typeof DashboardRoute
+  DocsRoute: typeof DocsRouteWithChildren
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
@@ -163,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -184,12 +226,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
     '/projects/$id': {
       id: '/projects/$id'
       path: '/projects/$id'
       fullPath: '/projects/$id'
       preLoaderRoute: typeof ProjectsIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/docs/$slug': {
+      id: '/docs/$slug'
+      path: '/$slug'
+      fullPath: '/docs/$slug'
+      preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/api/runner/$': {
       id: '/api/runner/$'
@@ -215,10 +271,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DocsRouteChildren {
+  DocsSlugRoute: typeof DocsSlugRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsSlugRoute: DocsSlugRoute,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentRunsRoute: AgentRunsRoute,
   DashboardRoute: DashboardRoute,
+  DocsRoute: DocsRouteWithChildren,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   ProjectsIdRoute: ProjectsIdRoute,
