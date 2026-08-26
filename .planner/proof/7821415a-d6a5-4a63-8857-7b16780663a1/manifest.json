@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "runId": "7821415a-d6a5-4a63-8857-7b16780663a1",
+  "testedCommitSha": "55100e5f8ac8c868c75ade566d1c2ec0f805ba3a",
+  "generatedAt": "2026-08-26T05:53:17.657532+00:00",
+  "environment": {
+    "os": "Linux aarch64",
+    "runtime": "Node.js 22.20.0",
+    "browser": "Chromium (local server blocked)"
+  },
+  "changeType": "ui",
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "taskmodal-focused-lint",
+      "title": "Task modal focused lint",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "corepack pnpm exec eslint src/components/TaskModal.tsx",
+      "exitCode": 0,
+      "durationMs": 2175,
+      "outputPath": "logs/targeted-lint.log"
+    },
+    {
+      "id": "repository-lint",
+      "title": "Full repository lint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "corepack pnpm lint",
+      "exitCode": 0,
+      "durationMs": 3273,
+      "outputPath": "logs/full-lint.log"
+    },
+    {
+      "id": "typescript-no-emit",
+      "title": "TypeScript compilation",
+      "layer": "types",
+      "status": "fail",
+      "command": "npx tsc --noEmit",
+      "exitCode": 2,
+      "durationMs": 2833,
+      "outputPath": "logs/typescript.log"
+    },
+    {
+      "id": "production-build",
+      "title": "Production build",
+      "layer": "build",
+      "status": "pass",
+      "command": "corepack pnpm build",
+      "exitCode": 0,
+      "durationMs": 3345,
+      "outputPath": "logs/build.log"
+    },
+    {
+      "id": "chromium-task-controls",
+      "title": "Chromium task-control flow",
+      "layer": "browser",
+      "status": "blocked",
+      "command": "corepack pnpm dev --host",
+      "exitCode": 1,
+      "durationMs": 1434,
+      "outputPath": "logs/browser-start.log",
+      "evidencePaths": [
+        "screenshots/desktop.png",
+        "screenshots/mobile.png",
+        "video/ui-flow.webm"
+      ]
+    },
+    {
+      "id": "automated-tests",
+      "title": "Automated regression tests",
+      "layer": "targeted",
+      "status": "not_run",
+      "evidencePaths": []
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "logs/browser-start.log",
+      "type": "log",
+      "bytes": 2682,
+      "sha256": "9c2e39ca4d2d700956112c66bc3ab31f6727b57cb85702eee35c8fb3752aceb4"
+    },
+    {
+      "path": "logs/build.log",
+      "type": "log",
+      "bytes": 5840,
+      "sha256": "1a7a2019e596247fc3841754643fc183b8facc229cb00f44717698dea2a8780d"
+    },
+    {
+      "path": "logs/dev.log",
+      "type": "log",
+      "bytes": 2657,
+      "sha256": "d788c6fc6f829ff8bf4ab532bbe4996267644e1e59d8e740dc813c4d0cdc4df3"
+    },
+    {
+      "path": "logs/full-lint.log",
+      "type": "log",
+      "bytes": 110,
+      "sha256": "f5be23505b3cb0c5fa489d2a55f0fc884f679a1c3e46606bdb6c088f7d689622"
+    },
+    {
+      "path": "logs/targeted-lint.log",
+      "type": "log",
+      "bytes": 25,
+      "sha256": "75e13d83e861190cfe249e79dd7ad2e10d7e4bf0506aca299fd5f722f2060a24"
+    },
+    {
+      "path": "logs/typescript.log",
+      "type": "log",
+      "bytes": 348,
+      "sha256": "b9fa3e7f7f50181641efcc5207d09933daad14c60d40daf4ca85ae4cf018b254"
+    },
+    {
+      "path": "video/ui-flow.webm",
+      "type": "video",
+      "bytes": 26907,
+      "sha256": "b23e36628cd8fb6b816c3a77a7aecab09463df09056c76a3ebd74ef37ad0031c"
+    },
+    {
+      "path": "screenshots/desktop.png",
+      "type": "screenshot",
+      "bytes": 30678,
+      "sha256": "cd89cd9ed6072bcefadeb8742c2d34a5af9e249d8d4c0eef2243e26277f432cd"
+    },
+    {
+      "path": "screenshots/mobile.png",
+      "type": "screenshot",
+      "bytes": 30678,
+      "sha256": "cd89cd9ed6072bcefadeb8742c2d34a5af9e249d8d4c0eef2243e26277f432cd"
+    }
+  ],
+  "limitations": [
+    "Chromium could not reach the app because the Cloudflare Vite remote proxy requires credentials.",
+    "TypeScript has three unrelated existing unused-symbol errors in MembersModal.tsx and PlanModal.tsx.",
+    "No repository test files were available for a focused regression test."
+  ],
+  "reproduce": [
+    "corepack pnpm install --frozen-lockfile",
+    "corepack pnpm exec eslint src/components/TaskModal.tsx",
+    "npx tsc --noEmit",
+    "corepack pnpm build",
+    "Configure Cloudflare local-development credentials, then run corepack pnpm dev --host and inspect Priority & due in Chromium."
+  ]
+}
