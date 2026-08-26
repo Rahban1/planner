@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Plus, Upload, FileText, Image, Loader2 } from 'lucide-react'
+import { X, Plus, Upload, FileText, Image, Loader2, Calendar, ChevronDown } from 'lucide-react'
 import {
   useTask,
   useUpdateTaskMutation,
@@ -362,24 +362,32 @@ export function TaskModal(props: TaskModalProps) {
           <div className="field-group">
             <div className="field-label">Priority & due</div>
             <div className="controls-row">
-              <select
-                className="ctrl-select"
-                value={draft.priority}
-                onChange={(e) =>
-                  setDraft({ ...draft, priority: e.target.value as Task['priority'] })
-                }
-              >
-                <option value="urgent">urgent</option>
-                <option value="high">high</option>
-                <option value="medium">medium</option>
-                <option value="low">low</option>
-              </select>
-              <input
-                className="ctrl-input"
-                type="datetime-local"
-                value={draft.dueAt}
-                onChange={(e) => setDraft({ ...draft, dueAt: e.target.value })}
-              />
+              <div className="ctrl-wrap priority-control">
+                <select
+                  className="ctrl-select"
+                  value={draft.priority}
+                  aria-label="Task priority"
+                  onChange={(e) =>
+                    setDraft({ ...draft, priority: e.target.value as Task['priority'] })
+                  }
+                >
+                  <option value="urgent">urgent</option>
+                  <option value="high">high</option>
+                  <option value="medium">medium</option>
+                  <option value="low">low</option>
+                </select>
+                <ChevronDown className="ctrl-indicator" size={14} aria-hidden="true" />
+              </div>
+              <div className="ctrl-wrap date-control">
+                <input
+                  className="ctrl-input"
+                  type="datetime-local"
+                  aria-label="Task due date"
+                  value={draft.dueAt}
+                  onChange={(e) => setDraft({ ...draft, dueAt: e.target.value })}
+                />
+                <Calendar className="ctrl-indicator" size={14} aria-hidden="true" />
+              </div>
             </div>
           </div>
         </div>

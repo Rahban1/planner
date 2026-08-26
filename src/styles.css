@@ -951,25 +951,73 @@ body {
   gap: 10px;
   flex-wrap: wrap;
 }
+.ctrl-wrap {
+  position: relative;
+  min-width: 0;
+}
+.priority-control {
+  flex: 0 1 150px;
+}
+.date-control {
+  flex: 1 1 240px;
+}
 .ctrl-select,
 .ctrl-input {
+  width: 100%;
+  min-height: 38px;
   font-family: inherit;
   font-size: 13px;
   color: var(--g-1000);
-  background: rgba(242, 244, 243, 0.04);
+  background: var(--panel);
   border: 1px solid var(--line-2);
   border-radius: 8px;
   padding: 8px 12px;
   outline: none;
-  transition: border-color 150ms;
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+.ctrl-select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 34px;
+}
+.ctrl-input {
+  color-scheme: inherit;
+  padding-right: 34px;
+}
+.ctrl-select option {
+  color: var(--g-1000);
+  background: var(--panel-strong);
+}
+.ctrl-indicator {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--g-700);
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: color 150ms;
+}
+.ctrl-wrap:focus-within .ctrl-indicator {
+  color: var(--accent);
 }
 .ctrl-select:focus,
 .ctrl-input:focus {
   border-color: var(--accent);
+  background: var(--accent-soft);
 }
 [data-theme='light'] .ctrl-select,
 [data-theme='light'] .ctrl-input {
   background: rgba(255, 253, 248, 0.5);
+}
+[data-theme='light'] .ctrl-select:focus,
+[data-theme='light'] .ctrl-input:focus {
+  background: rgba(29, 110, 90, 0.08);
+}
+.ctrl-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  cursor: pointer;
 }
 .subtasks-list {
   display: flex;
@@ -1581,6 +1629,15 @@ body {
   .btn,
   .confirm-btn {
     min-height: 44px;
+  }
+  .controls-row {
+    flex-direction: column;
+  }
+  .ctrl-wrap,
+  .priority-control,
+  .date-control {
+    width: 100%;
+    flex: 1 1 auto;
   }
   .ctrl-select,
   .ctrl-input {

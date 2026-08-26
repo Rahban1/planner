@@ -1,0 +1,6 @@
+src/components/MembersModal.tsx(11,7): error TS6133: 'roleLabels' is declared but its value is never read.
+src/components/MembersModal.tsx(17,7): error TS6133: 'roleIcons' is declared but its value is never read.
+src/components/PlanModal.tsx(61,9): error TS6133: 'pendingApprovals' is declared but its value is never read.
+
+EXIT:2
+DURATION_MS:2833
