@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ClipboardList,
   Loader2,
-  MessageSquareText,
   Send,
   X,
   Users,
@@ -206,66 +205,27 @@ export function PlanModal() {
 
         {isReady && (
           <div className="plan-review-foot">
-            {/* Collaboration tabs */}
-            <div style={{
-              display: 'flex',
-              gap: 2,
-              padding: '0 26px',
-              borderBottom: '1px solid var(--line)',
-              marginBottom: 12,
-            }}>
-              {([
-                { key: 'review', label: 'Review', icon: <ClipboardList size={12} /> },
-                { key: 'suggestions', label: `Suggestions (${suggestions.length})`, icon: <Lightbulb size={12} /> },
-                { key: 'approvals', label: `Approvals (${approvedCount}/${approvals.length})`, icon: <Users size={12} /> },
-              ] as const).map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  style={{
-                    padding: '8px 14px',
-                    fontSize: 12,
-                    fontWeight: 500,
-                    border: 'none',
-                    background: activeTab === tab.key ? 'var(--accent-soft)' : 'transparent',
-                    color: activeTab === tab.key ? 'var(--accent)' : 'var(--g-700)',
-                    borderRadius: '8px 8px 0 0',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    transition: 'all 150ms',
-                  }}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === 'review' && (
-              <>
-                <div className="plan-feedback-wrap">
-                  <MessageSquareText size={14} className="plan-feedback-icon" />
-                  <textarea
-                    className="plan-feedback"
-                    placeholder="Suggest changes… (the agent will revise the plan)"
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitChanges()
-                    }}
-                  />
+            <div className="plan-review-toolbar">
+              <div className="plan-review-tabs" role="tablist" aria-label="Plan review sections">
+                {([
+                  { key: 'review', label: 'Review', icon: <ClipboardList size={13} /> },
+                  { key: 'suggestions', label: `Suggestions (${suggestions.length})`, icon: <Lightbulb size={13} /> },
+                  { key: 'approvals', label: `Approvals (${approvedCount}/${approvals.length})`, icon: <Users size={13} /> },
+                ] as const).map((tab) => (
                   <button
-                    className="btn btn-ghost plan-send"
-                    onClick={submitChanges}
-                    disabled={busy || !feedback.trim()}
-                    title="Send feedback and request a revised plan"
+                    key={tab.key}
+                    className={`plan-review-tab ${activeTab === tab.key ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab.key)}
+                    role="tab"
+                    aria-selected={activeTab === tab.key}
                   >
-                    <Send size={13} />
-                    {changesMut.isPending ? 'Sending…' : 'Request changes'}
+                    {tab.icon}
+                    {tab.label}
                   </button>
-                </div>
+                ))}
+              </div>
+
+              {activeTab === 'review' && (
                 <div className="plan-review-actions">
                   <button className="btn btn-ghost" onClick={ui.closePlan}>
                     Review later
@@ -279,7 +239,30 @@ export function PlanModal() {
                     {approveMut.isPending ? 'Approving…' : 'Approve & implement'}
                   </button>
                 </div>
-              </>
+              )}
+            </div>
+
+            {activeTab === 'review' && (
+              <div className="plan-feedback-wrap">
+                <textarea
+                  className="plan-feedback"
+                  placeholder="Suggest changes… (the agent will revise the plan)"
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitChanges()
+                  }}
+                />
+                <button
+                  className="btn btn-ghost plan-send"
+                  onClick={submitChanges}
+                  disabled={busy || !feedback.trim()}
+                  title="Send feedback and request a revised plan"
+                >
+                  <Send size={13} />
+                  {changesMut.isPending ? 'Sending…' : 'Request changes'}
+                </button>
+              </div>
             )}
 
             {activeTab === 'suggestions' && (

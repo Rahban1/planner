@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_step() {
+  local label="$1"
+  shift
+  local started_at=$SECONDS
+
+  printf '\n==> %s\n' "$label"
+  "$@"
+  printf '<== %s (%ss)\n' "$label" "$((SECONDS - started_at))"
+}
+
+node_major="$(node --version | sed -E 's/^v([0-9]+).*/\1/')"
+if ((node_major < 20)); then
+  printf 'Node.js 20 or newer is required (found %s).\n' "$(node --version)" >&2
+  exit 1
+fi
+
+package_manager="$(node -p "require('./package.json').packageManager.split('+')[0]")"
+
+run_step 'Enable the package-manager shim' corepack enable
+run_step 'Activate the repository pnpm version' corepack prepare "$package_manager" --activate
+run_step 'Install application dependencies' pnpm install --frozen-lockfile
+run_step 'Install agent-runner dependencies' npm ci --prefix agent-runner
+run_step 'Apply local D1 migrations' env CI=1 pnpm exec wrangler d1 migrations apply planner --local
+
+printf '\nOrb setup is complete.\n'

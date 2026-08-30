@@ -15,7 +15,7 @@
   --g-1000: #f2f4f3;
   --g-900: #c8d0cd;
   --g-700: #92a09a;
-  --g-500: #5f6e68;
+  --g-500: #7d8d86;
   --amber: #e6b85c;
   --ease: cubic-bezier(0.175, 0.885, 0.32, 1.1);
   color-scheme: dark;
@@ -25,16 +25,16 @@
   --bg-img: url('/bg.png');
   --line: rgba(21, 48, 47, 0.22);
   --line-2: rgba(21, 48, 47, 0.36);
-  --panel: rgba(255, 253, 248, 0.3);
-  --panel-strong: rgba(255, 253, 248, 0.54);
+  --panel: rgba(255, 253, 248, 0.62);
+  --panel-strong: rgba(255, 253, 248, 0.78);
   --panel-border: rgba(21, 48, 47, 0.24);
   --accent: #1d6e5a;
   --accent-press: #15553f;
   --accent-soft: rgba(29, 110, 90, 0.16);
   --g-1000: #102a28;
   --g-900: #244843;
-  --g-700: #5a706c;
-  --g-500: #8a9c97;
+  --g-700: #3f5954;
+  --g-500: #49635e;
   --amber: #b5812a;
   color-scheme: light;
 }
@@ -240,7 +240,7 @@ body {
   margin-bottom: 12px;
 }
 .priority-head .label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -256,7 +256,7 @@ body {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .priority-head .hide {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -316,7 +316,7 @@ body {
   transform: translateY(-2px);
 }
 .pcard .meta {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -362,7 +362,7 @@ body {
 }
 .pcard .proj {
   margin-top: 5px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -395,7 +395,7 @@ body {
   padding: 0 6px;
 }
 .columns-head .label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -482,7 +482,7 @@ body {
   min-width: 0;
 }
 .column-head .repo {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -629,7 +629,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 7px;
@@ -708,7 +708,7 @@ body {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--line);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -807,10 +807,8 @@ body {
   max-width: 100%;
   max-height: 86vh;
   border-radius: 16px;
-  background: var(--panel-strong);
+  background: #080e1c;
   border: 1px solid var(--panel-border);
-  backdrop-filter: blur(30px) saturate(1.15);
-  -webkit-backdrop-filter: blur(30px) saturate(1.15);
   box-shadow: 0 32px 80px -20px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
@@ -820,6 +818,9 @@ body {
   transition:
     transform 200ms var(--ease),
     opacity 200ms var(--ease);
+}
+[data-theme='light'] .modal {
+  background: #fffdf8;
 }
 .modal-backdrop.open .modal {
   transform: translateY(0) scale(1);
@@ -894,7 +895,7 @@ body {
   gap: 8px;
 }
 .field-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -1259,7 +1260,7 @@ body {
   background: rgba(229, 115, 115, 0.1);
 }
 .pp-section-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -1664,6 +1665,21 @@ body {
   }
   .plan-review-foot {
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  .plan-review-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .plan-review-tabs {
+    overflow-x: auto;
+  }
+  .plan-review-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .plan-review-actions .btn {
+    flex: 1;
+    justify-content: center;
   }
   .plan-review-foot > div[style] {
     padding: 0 !important;
@@ -2537,50 +2553,87 @@ body {
 }
 .plan-review-foot {
   border-top: 1px solid var(--line);
-  padding: 14px 26px 18px;
+  padding: 12px 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+.plan-review-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.plan-review-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.plan-review-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--g-700);
+  font: 500 12px 'Inter', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms, color 150ms;
+}
+.plan-review-tab:hover {
+  color: var(--g-1000);
+  background: var(--panel);
+}
+.plan-review-tab.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 .plan-feedback-wrap {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: border-color 150ms;
 }
-.plan-feedback-icon {
-  flex-shrink: 0;
-  color: var(--g-500);
-  margin-bottom: 10px;
+.plan-feedback-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+[data-theme='light'] .plan-feedback-wrap {
+  background: rgba(21, 48, 47, 0.06);
 }
 .plan-feedback {
   flex: 1;
-  min-height: 38px;
+  min-width: 0;
+  min-height: 42px;
   max-height: 120px;
   resize: vertical;
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--g-1000);
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--line-2);
-  border-radius: 10px;
-  padding: 9px 12px;
+  background: transparent;
+  border: 0;
+  padding: 11px 12px;
   outline: none;
-  transition: border-color 150ms;
-}
-.plan-feedback:focus {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .plan-feedback::placeholder {
   color: var(--g-500);
 }
 .plan-send {
   flex-shrink: 0;
+  margin: 5px;
+  border-color: transparent;
 }
 .plan-review-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
+  margin-left: auto;
 }
 .plan-review-actions .btn,
 .plan-review-foot .btn {
