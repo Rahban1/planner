@@ -15,7 +15,7 @@
   --g-1000: #f2f4f3;
   --g-900: #c8d0cd;
   --g-700: #92a09a;
-  --g-500: #5f6e68;
+  --g-500: #7d8d86;
   --amber: #e6b85c;
   --ease: cubic-bezier(0.175, 0.885, 0.32, 1.1);
   color-scheme: dark;
@@ -25,16 +25,16 @@
   --bg-img: url('/bg.png');
   --line: rgba(21, 48, 47, 0.22);
   --line-2: rgba(21, 48, 47, 0.36);
-  --panel: rgba(255, 253, 248, 0.3);
-  --panel-strong: rgba(255, 253, 248, 0.54);
+  --panel: rgba(255, 253, 248, 0.62);
+  --panel-strong: rgba(255, 253, 248, 0.78);
   --panel-border: rgba(21, 48, 47, 0.24);
   --accent: #1d6e5a;
   --accent-press: #15553f;
   --accent-soft: rgba(29, 110, 90, 0.16);
   --g-1000: #102a28;
   --g-900: #244843;
-  --g-700: #5a706c;
-  --g-500: #8a9c97;
+  --g-700: #3f5954;
+  --g-500: #49635e;
   --amber: #b5812a;
   color-scheme: light;
 }
@@ -240,7 +240,7 @@ body {
   margin-bottom: 12px;
 }
 .priority-head .label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -256,7 +256,7 @@ body {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .priority-head .hide {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -316,7 +316,7 @@ body {
   transform: translateY(-2px);
 }
 .pcard .meta {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -362,7 +362,7 @@ body {
 }
 .pcard .proj {
   margin-top: 5px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -395,7 +395,7 @@ body {
   padding: 0 6px;
 }
 .columns-head .label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -482,7 +482,7 @@ body {
   min-width: 0;
 }
 .column-head .repo {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -629,7 +629,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 7px;
@@ -708,7 +708,7 @@ body {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--line);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -894,7 +894,7 @@ body {
   gap: 8px;
 }
 .field-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--g-700);
@@ -1259,7 +1259,7 @@ body {
   background: rgba(229, 115, 115, 0.1);
 }
 .pp-section-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--g-700);
