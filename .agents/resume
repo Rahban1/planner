@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command -v node >/dev/null
+command -v pnpm >/dev/null
+test -d node_modules
+test -d agent-runner/node_modules
+
+printf 'Orb dependencies are ready.\n'
