@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import type { Attachment, Task } from '#/db/schema'
+import { requireUser } from './auth-middleware'
 
 const id = () => crypto.randomUUID()
 
@@ -25,6 +26,7 @@ const taskWithSubtasks = async (task: Task): Promise<TaskWithSubtasks> => {
 export type TaskWithSubtasks = Task & { subtasks: Task[]; attachments: Attachment[] }
 
 export const listTasksForProject = createServerFn({ method: 'GET' })
+  .middleware([requireUser])
   .validator(
     z.object({
       projectId: z.string(),
@@ -47,6 +49,7 @@ export const listTasksForProject = createServerFn({ method: 'GET' })
   })
 
 export const listProjectSummary = createServerFn({ method: 'GET' })
+  .middleware([requireUser])
   .validator(
     z.object({
       projectId: z.string(),
@@ -84,6 +87,7 @@ export const listProjectSummary = createServerFn({ method: 'GET' })
   })
 
 export const getTask = createServerFn({ method: 'GET' })
+  .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const [task] = await db
@@ -95,6 +99,7 @@ export const getTask = createServerFn({ method: 'GET' })
   })
 
 export const createTask = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(
     z.object({
       projectId: z.string(),
@@ -142,6 +147,7 @@ export const createTask = createServerFn({ method: 'POST' })
   })
 
 export const updateTask = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(
     z.object({
       id: z.string(),
@@ -167,6 +173,7 @@ export const updateTask = createServerFn({ method: 'POST' })
   })
 
 export const completeTask = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const now = Date.now()
@@ -183,6 +190,7 @@ export const completeTask = createServerFn({ method: 'POST' })
   })
 
 export const uncompleteTask = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const now = Date.now()
@@ -198,6 +206,7 @@ export const uncompleteTask = createServerFn({ method: 'POST' })
   })
 
 export const deleteTask = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const [task] = await db

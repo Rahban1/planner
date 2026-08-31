@@ -54,7 +54,15 @@ import {
   respondToApproval,
   addPlanSuggestion,
   listPlanSuggestions,
+  createProjectInvite,
+  acceptProjectInvite,
 } from '#/server/collaboration'
+import {
+  createTaskFromMessage,
+  getTaskChat,
+  sendTaskMessage,
+  markTaskChatRead,
+} from '#/server/chat'
 import type {TaskWithSubtasks} from '#/server/tasks';
 import type { Project, Task, Attachment, ProjectMember, PlanApproval, PlanSuggestion } from '#/db/schema'
 
@@ -67,6 +75,7 @@ export const qk = {
   projectSummary: (id: string) => ['projects', id, 'summary'] as const,
   priority: ['priority'] as const,
   task: (id: string) => ['tasks', id] as const,
+  taskChat: (id: string) => ['tasks', id, 'chat'] as const,
   attachments: (taskId: string) => ['tasks', taskId, 'attachments'] as const,
   agentRun: (id: string) => ['agent-runs', id] as const,
   agentRunForTask: (taskId: string) => ['agent-runs', 'task', taskId] as const,
@@ -141,6 +150,60 @@ export function useTask(id?: string) {
 }
 export function useAttachments(taskId?: string) {
   return useQuery(attachmentsQueryOptions(taskId ?? ''))
+}
+
+export const taskChatQueryOptions = (taskId: string) =>
+  queryOptions({
+    queryKey: qk.taskChat(taskId),
+    queryFn: () => getTaskChat({ data: { taskId } }),
+    enabled: !!taskId,
+    refetchInterval: 5000,
+  })
+
+export function useTaskChat(taskId?: string) {
+  return useQuery(taskChatQueryOptions(taskId ?? ''))
+}
+
+export function useCreateTaskFromMessageMutation() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof createTaskFromMessage>[0]) => createTaskFromMessage(input),
+    onSuccess: (result) => {
+      client.invalidateQueries({ queryKey: qk.projectSummary(result.taskId) })
+      client.invalidateQueries({ queryKey: qk.priority })
+    },
+  })
+}
+
+export function useSendTaskMessageMutation() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof sendTaskMessage>[0]) => sendTaskMessage(input),
+    onSuccess: (result, input) => {
+      client.invalidateQueries({ queryKey: qk.taskChat(input.data.taskId) })
+      return result
+    },
+  })
+}
+
+export function useMarkTaskChatReadMutation() {
+  return useMutation({
+    mutationFn: (input: Parameters<typeof markTaskChatRead>[0]) => markTaskChatRead(input),
+  })
+}
+
+export function useCreateProjectInviteMutation() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Parameters<typeof createProjectInvite>[0]) => createProjectInvite(input),
+    onSuccess: (_, input) => client.invalidateQueries({ queryKey: qk.projectMembers(input.data.projectId) }),
+  })
+}
+
+export function useAcceptProjectInviteMutation() {
+  return useMutation({
+    mutationFn: (input: Parameters<typeof acceptProjectInvite>[0]) => acceptProjectInvite(input),
+  })
 }
 
 export const agentRunQueryOptions = (id: string) =>
@@ -465,17 +528,16 @@ export function usePlanSuggestions(agentRunId?: string) {
   return useQuery(planSuggestionsQueryOptions(agentRunId ?? ''))
 }
 
-export const pendingApprovalsQueryOptions = (email: string) =>
+export const pendingApprovalsQueryOptions = () =>
   queryOptions({
-    queryKey: qk.pendingApprovals(email),
-    queryFn: () => listPendingApprovalsForUser({ data: { email } }),
-    enabled: !!email,
+    queryKey: qk.pendingApprovals('current-user'),
+    queryFn: () => listPendingApprovalsForUser(),
     staleTime: 10_000,
     refetchInterval: 10_000,
   })
 
-export function usePendingApprovals(email?: string) {
-  return useQuery(pendingApprovalsQueryOptions(email ?? ''))
+export function usePendingApprovals() {
+  return useQuery(pendingApprovalsQueryOptions())
 }
 
 // ----- collaboration mutations -----

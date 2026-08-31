@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, X } from 'lucide-react'
-import { useCreateProjectMutation } from '#/lib/queries'
+import { Plus, Trash2, X } from 'lucide-react'
+import {
+  useCreateProjectMutation,
+  useProject,
+  useUpdateProjectMutation,
+} from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
 
 export function ProjectModal() {
-  const { projectModalOpen, closeProjectModal } = useUI()
+  const { projectModalOpen, projectModalProjectId, closeProjectModal } = useUI()
   const createMut = useCreateProjectMutation()
+  const updateMut = useUpdateProjectMutation()
+  const projectRes = useProject(projectModalProjectId ?? undefined)
   const [name, setName] = useState('')
   const [repoUrls, setRepoUrls] = useState([''])
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
@@ -13,15 +19,23 @@ export function ProjectModal() {
 
   useEffect(() => {
     if (projectModalOpen) {
-      setName('')
-      setRepoUrls([''])
+      if (!projectModalProjectId) {
+        setName('')
+        setRepoUrls([''])
+      }
       requestAnimationFrame(() => setFadeClass('open'))
       const t = setTimeout(() => nameRef.current?.focus(), 80)
       return () => clearTimeout(t)
     } else {
       setFadeClass('closed')
     }
-  }, [projectModalOpen])
+  }, [projectModalOpen, projectModalProjectId])
+
+  useEffect(() => {
+    if (!projectModalOpen || !projectModalProjectId || !projectRes.data) return
+    setName(projectRes.data.name)
+    setRepoUrls(projectRes.data.repoUrls.length > 0 ? projectRes.data.repoUrls : [''])
+  }, [projectModalOpen, projectModalProjectId, projectRes.data])
 
   useEffect(() => {
     if (!projectModalOpen) return
@@ -34,17 +48,24 @@ export function ProjectModal() {
 
   if (!projectModalOpen) return null
 
-  const handleCreate = () => {
+  const handleSave = () => {
     const trimmed = name.trim()
     if (!trimmed) {
       nameRef.current?.focus()
       return
     }
-    const repositories = repoUrls.map((url) => url.trim()).filter(Boolean)
-    createMut.mutate(
-      { data: { name: trimmed, repoUrls: repositories } },
-      { onSuccess: () => closeProjectModal() },
-    )
+    const repositories = [...new Set(repoUrls.map((url) => url.trim()).filter(Boolean))]
+    const options = { onSuccess: () => closeProjectModal() }
+
+    if (projectModalProjectId) {
+      updateMut.mutate(
+        { data: { id: projectModalProjectId, name: trimmed, repoUrls: repositories } },
+        options,
+      )
+      return
+    }
+
+    createMut.mutate({ data: { name: trimmed, repoUrls: repositories } }, options)
   }
 
   return (
@@ -63,7 +84,7 @@ export function ProjectModal() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCreate()
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave()
             }}
           />
           <button className="modal-close" onClick={closeProjectModal} aria-label="Close">
@@ -72,43 +93,58 @@ export function ProjectModal() {
         </div>
 
         <div className="modal-body">
-          <div className="field-group">
-            <div className="field-label">Repository URLs (optional)</div>
-            {repoUrls.map((url, index) => (
-              <div key={index} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                <input
-                  className="ctrl-input"
-                  style={{ width: '100%' }}
-                  type="url"
-                  placeholder="https://github.com/org/repo"
-                  value={url}
-                  onChange={(e) =>
-                    setRepoUrls((current) =>
-                      current.map((item, itemIndex) =>
-                        itemIndex === index ? e.target.value : item,
-                      ),
-                    )
-                  }
-                />
-                {repoUrls.length > 1 && (
-                  <button
-                    className="btn btn-ghost"
-                    type="button"
-                    onClick={() => setRepoUrls((current) => current.filter((_, i) => i !== index))}
-                    aria-label="Remove repository"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              className="btn btn-ghost"
-              type="button"
-              onClick={() => setRepoUrls((current) => [...current, ''])}
-            >
-              <Plus size={14} /> Add repository
-            </button>
+          <div className="field-group repository-field-group">
+            <div className="field-label">Repositories (optional)</div>
+            <div className="field-help">
+              The agent changes the primary repository and reads the other repositories as context.
+            </div>
+            <div className="repository-inputs">
+              {repoUrls.map((repoUrl, index) => (
+                <div className="repository-input-row" key={index}>
+                  <div className="repository-input-main">
+                    <label htmlFor={`repository-${index}`}>
+                      {index === 0 ? 'Primary repository' : `Context repository ${index}`}
+                    </label>
+                    <input
+                      id={`repository-${index}`}
+                      className="ctrl-input"
+                      type="url"
+                      placeholder="https://github.com/org/repo"
+                      value={repoUrl}
+                      onChange={(event) =>
+                        setRepoUrls((current) =>
+                          current.map((url, urlIndex) =>
+                            urlIndex === index ? event.target.value : url,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  {repoUrls.length > 1 && (
+                    <button
+                      className="repository-remove"
+                      type="button"
+                      aria-label={`Remove repository ${index + 1}`}
+                      onClick={() =>
+                        setRepoUrls((current) => current.filter((_, urlIndex) => urlIndex !== index))
+                      }
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {repoUrls.length < 8 && (
+              <button
+                className="add-repository"
+                type="button"
+                onClick={() => setRepoUrls((current) => [...current, ''])}
+              >
+                <Plus size={14} />
+                Add another repository
+              </button>
+            )}
           </div>
         </div>
 
@@ -120,10 +156,14 @@ export function ProjectModal() {
             </button>
             <button
               className="btn btn-primary"
-              onClick={handleCreate}
-              disabled={createMut.isPending}
+              onClick={handleSave}
+              disabled={createMut.isPending || updateMut.isPending}
             >
-              {createMut.isPending ? 'Creating…' : 'Create project'}
+              {createMut.isPending || updateMut.isPending
+                ? 'Saving…'
+                : projectModalProjectId
+                  ? 'Save project'
+                  : 'Create project'}
             </button>
           </div>
         </div>

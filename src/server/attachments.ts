@@ -4,6 +4,7 @@ import { asc, eq } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import { env } from 'cloudflare:workers'
 import type { Attachment } from '#/db/schema'
+import { requireUser } from './auth-middleware'
 
 const id = () => crypto.randomUUID()
 
@@ -14,6 +15,7 @@ function r2KeyFor(id_: string) {
 }
 
 export const listAttachmentsForTask = createServerFn({ method: 'GET' })
+  .middleware([requireUser])
   .validator(z.object({ taskId: z.string() }))
   .handler(async ({ data }) => {
     return db
@@ -24,6 +26,7 @@ export const listAttachmentsForTask = createServerFn({ method: 'GET' })
   })
 
 export const uploadAttachment = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(z.instanceof(FormData))
   .handler(async ({ data }): Promise<Attachment> => {
     const taskId = data.get('taskId')
@@ -76,6 +79,7 @@ export const uploadAttachment = createServerFn({ method: 'POST' })
   })
 
 export const deleteAttachment = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const [row] = await db

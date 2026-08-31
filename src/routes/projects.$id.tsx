@@ -1,4 +1,11 @@
-import { createFileRoute, useLoaderData, useNavigate } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  redirect,
+  Outlet,
+  useRouterState,
+  useLoaderData,
+  useNavigate,
+} from '@tanstack/react-router'
 import { ChevronLeft, Trash2, Users } from 'lucide-react'
 import { useEffect } from 'react'
 import { PriorityPanel } from '#/components/PriorityPanel'
@@ -11,17 +18,27 @@ import {
   useDeleteTaskMutation,
   useDeleteProjectMutation,
 } from '#/lib/queries'
-import type {Task, TaskWithSubtasks, PriorityCard} from '#/lib/queries';
+import type { Task, TaskWithSubtasks, PriorityCard } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
-import { useFocus  } from '#/lib/focus-context'
-import type {TaskActions} from '#/lib/focus-context';
+import { useFocus } from '#/lib/focus-context'
+import type { TaskActions } from '#/lib/focus-context'
 import { priorityClass, formatDue } from '#/lib/format'
 import { listProjectSummary } from '#/server/tasks'
-import { getProject } from '#/server/projects'
+import { getCurrentUser, getProject } from '#/server/projects'
 import { listPriority } from '#/server/priority'
 
 export const Route = createFileRoute('/projects/$id')({
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
+    if (!(await getCurrentUser())) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+          error: undefined,
+          detail: undefined,
+        },
+      })
+    }
     const [project, summary, priority] = await Promise.all([
       getProject({ data: { id: params.id } }),
       listProjectSummary({ data: { projectId: params.id } }),
@@ -33,6 +50,17 @@ export const Route = createFileRoute('/projects/$id')({
 })
 
 function ProjectPage() {
+  const showingTaskChat = useRouterState({
+    select: (state) =>
+      state.matches.some(
+        (match) => match.routeId === '/projects/$id/tasks/$taskId',
+      ),
+  })
+
+  return showingTaskChat ? <Outlet /> : <ProjectPageContent />
+}
+
+function ProjectPageContent() {
   const { id } = Route.useParams()
   const projectRes = useProject(id)
   const summaryRes = useProjectSummary(id)
@@ -47,9 +75,13 @@ function ProjectPage() {
   const loaderData = useLoaderData({ from: '/projects/$id' })
 
   const project = projectRes.data ?? loaderData.project
-  const summary =
-    summaryRes.data ?? loaderData.summary ?? { active: [] as TaskWithSubtasks[], completed: [] as Task[] }
-  const priorities: PriorityCard[] = priorityRes.data ?? loaderData.priority ?? []
+  const summary = summaryRes.data ??
+    loaderData.summary ?? {
+      active: [] as TaskWithSubtasks[],
+      completed: [] as Task[],
+    }
+  const priorities: PriorityCard[] =
+    priorityRes.data ?? loaderData.priority ?? []
 
   // Register flat task list + handlers for keyboard navigation
   useEffect(() => {
@@ -61,7 +93,7 @@ function ProjectPage() {
       if (t.project.id !== id) continue
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => ui.openTask(t.id, t.project.name, t.project.repoUrl),
+        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id: t.project.id, taskId: t.id } }),
         complete: () => completeMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
@@ -71,7 +103,7 @@ function ProjectPage() {
     for (const t of summary.active) {
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => ui.openTask(t.id, project?.name, project?.repoUrl),
+        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } }),
         complete: () => completeMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
@@ -81,14 +113,24 @@ function ProjectPage() {
     for (const t of summary.completed) {
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => ui.openTask(t.id, project?.name, project?.repoUrl),
+        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } }),
         complete: () => uncompleteMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
     }
 
     focus.register(taskIds, handlers)
-  }, [priorities, summary, project, id, ui, completeMut, uncompleteMut, deleteMut, focus])
+  }, [
+    priorities,
+    summary,
+    project,
+    id,
+    ui,
+    completeMut,
+    uncompleteMut,
+    deleteMut,
+    focus,
+  ])
 
   if (!project) {
     return (
@@ -106,29 +148,50 @@ function ProjectPage() {
 
   return (
     <main className="project-page">
-      <div className="pp-back" onClick={() => navigate({ to: '/dashboard' })} role="button" tabIndex={0}>
+      <div
+        className="pp-back"
+        onClick={() => navigate({ to: '/dashboard' })}
+        role="button"
+        tabIndex={0}
+      >
         <ChevronLeft size={12} />
         All projects
       </div>
 
       <div className="pp-head">
         <div className="pp-title">
-          <div className="name" role="textbox">{project.name}</div>
-          {project.repoUrl && (
-            <a
-              className="repo"
-              href={project.repoUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {project.repoUrl.replace(/^https?:\/\//, '')}
-            </a>
+          <div className="name" role="textbox">
+            {project.name}
+          </div>
+          {project.repoUrls.length > 0 && (
+            <div className="pp-repositories">
+              {project.repoUrls.map((repoUrl, index) => (
+                <a
+                  className="repo"
+                  href={repoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  key={repoUrl}
+                >
+                  {index === 0 ? 'Primary' : 'Context'} ·{' '}
+                  {repoUrl.replace(/^https?:\/\//, '')}
+                </a>
+              ))}
+            </div>
           )}
         </div>
         <div className="pp-actions">
+          <button
+            className="btn btn-ghost pp-manage-repositories"
+            onClick={() => ui.openProjectModal(project.id)}
+          >
+            Manage repositories
+          </button>
           <span
             className="pp-add-task"
-            onClick={() => ui.openNewTask(project.id, project.name, project.repoUrl)}
+            onClick={() =>
+              ui.openNewTask(project.id, project.name, project.repoUrl)
+            }
             role="button"
             tabIndex={0}
           >
@@ -148,7 +211,8 @@ function ProjectPage() {
             onClick={async () => {
               const confirmed = await ui.requestConfirm({
                 title: `Delete "${project.name}"?`,
-                message: 'All of its tasks will be removed. This cannot be undone.',
+                message:
+                  'All of its tasks will be removed. This cannot be undone.',
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
                 destructive: true,
@@ -175,12 +239,15 @@ function ProjectPage() {
             key={t.id}
             task={t}
             focused={focus.focusedTaskId === t.id}
-            onClick={() => ui.openTask(t.id, project.name, project.repoUrl)}
+            onClick={() => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } })}
             onComplete={() => completeMut.mutate({ data: { id: t.id } })}
           />
         ))}
         {summary.active.length === 0 && (
-          <div className="serif italic" style={{ color: 'var(--g-700)', padding: '12px 0' }}>
+          <div
+            className="serif italic"
+            style={{ color: 'var(--g-700)', padding: '12px 0' }}
+          >
             All clear here.
           </div>
         )}
@@ -193,12 +260,15 @@ function ProjectPage() {
                 key={t.id}
                 task={t}
                 focused={focus.focusedTaskId === t.id}
-                onClick={() => ui.openTask(t.id, project.name, project.repoUrl)}
+                onClick={() => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } })}
                 onRestore={() => uncompleteMut.mutate({ data: { id: t.id } })}
               />
             ))}
             {summary.completed.length === 0 && (
-              <div className="serif italic" style={{ color: 'var(--g-500)', padding: '8px 12px' }}>
+              <div
+                className="serif italic"
+                style={{ color: 'var(--g-500)', padding: '8px 12px' }}
+              >
                 Nothing here yet.
               </div>
             )}
@@ -266,7 +336,17 @@ function ActiveTaskRow({
           {dueTxt ? ` · ${dueTxt}` : ''}
         </span>
       </div>
-      <svg className="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        className="chev"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <polyline points="6 9 12 15 18 9" />
       </svg>
     </div>

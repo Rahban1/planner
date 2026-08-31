@@ -4,7 +4,9 @@ import {
   Bot,
   CheckCircle2,
   ChevronRight,
+  Check,
   Clock,
+  Copy,
   ExternalLink,
   FileText,
   Flag,
@@ -19,30 +21,69 @@ import {
   Terminal,
   X,
 } from 'lucide-react'
-import { useAgentRunForTask, useGiveTaskToAgentMutation, useStopAgentRunMutation, useTask } from '#/lib/queries'
+import {
+  useAgentRunForTask,
+  useGiveTaskToAgentMutation,
+  useStopAgentRunMutation,
+  useTask,
+} from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
+import { copyText, formatAgentLogs } from '#/lib/agent-logs'
+import type { AgentLogEntry } from '#/lib/agent-logs'
 
-type LogEntry = {
-  t: number
-  level: 'info' | 'warn' | 'error'
-  message: string
-}
+type LogEntry = AgentLogEntry
 
-const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; className: string; icon: React.ReactNode }
+> = {
   queued: { label: 'Queued', className: 'queued', icon: <Clock size={12} /> },
-  running: { label: 'Running', className: 'running', icon: <Loader2 size={12} className="spin" /> },
-  success: { label: 'PR Ready', className: 'success', icon: <CheckCircle2 size={12} /> },
-  merged: { label: 'Merged', className: 'merged', icon: <GitMerge size={12} /> },
-  closed: { label: 'PR Closed', className: 'closed', icon: <GitPullRequestClosed size={12} /> },
-  stopped: { label: 'Stopped', className: 'stopped', icon: <Square size={12} /> },
-  error: { label: 'Error', className: 'error', icon: <AlertCircle size={12} /> },
-  plan_ready: { label: 'Plan Ready', className: 'plan', icon: <CheckCircle2 size={12} /> },
-  approved: { label: 'Approved', className: 'merged', icon: <CheckCircle2 size={12} /> },
+  running: {
+    label: 'Running',
+    className: 'running',
+    icon: <Loader2 size={12} className="spin" />,
+  },
+  success: {
+    label: 'PR Ready',
+    className: 'success',
+    icon: <CheckCircle2 size={12} />,
+  },
+  merged: {
+    label: 'Merged',
+    className: 'merged',
+    icon: <GitMerge size={12} />,
+  },
+  closed: {
+    label: 'PR Closed',
+    className: 'closed',
+    icon: <GitPullRequestClosed size={12} />,
+  },
+  stopped: {
+    label: 'Stopped',
+    className: 'stopped',
+    icon: <Square size={12} />,
+  },
+  error: {
+    label: 'Error',
+    className: 'error',
+    icon: <AlertCircle size={12} />,
+  },
+  plan_ready: {
+    label: 'Plan Ready',
+    className: 'plan',
+    icon: <CheckCircle2 size={12} />,
+  },
+  approved: {
+    label: 'Approved',
+    className: 'merged',
+    icon: <CheckCircle2 size={12} />,
+  },
 }
 
 // ----- log parsing -----
 
-type EntryKind = 'milestone' | 'action' | 'observation' | 'prompt' | 'message' | 'error'
+type EntryKind =
+  'milestone' | 'action' | 'observation' | 'prompt' | 'message' | 'error'
 
 interface FeedEntry {
   key: number
@@ -56,10 +97,12 @@ interface FeedEntry {
 
 /** Strip ANSI escape sequences and terminal control junk. */
 function cleanText(input: string): string {
-  return input
-    // eslint-disable-next-line no-control-regex
-    .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '') // ANSI CSI sequences
-    .replace(/\[\??\d{3,4}[a-zA-Z]/g, '') // bracketed-paste leftovers like [?2004l
+  return (
+    input
+      // eslint-disable-next-line no-control-regex
+      .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '') // ANSI CSI sequences
+      .replace(/\[\??\d{3,4}[a-zA-Z]/g, '')
+  ) // bracketed-paste leftovers like [?2004l
 }
 
 /** Remove git progress-rewrite spam ("[K remote: Counting objects: 37% ..."). */
@@ -70,7 +113,9 @@ function cleanDetail(input: string): string {
     .filter(
       (chunk) =>
         chunk.length > 0 &&
-        !/(Counting|Compressing|Receiving|Resolving|Enumerating) objects:\s*\d+%/.test(chunk) &&
+        !/(Counting|Compressing|Receiving|Resolving|Enumerating) objects:\s*\d+%/.test(
+          chunk,
+        ) &&
         !/^\d+%\s*\(\d+\/\d+\)/.test(chunk),
     )
     .join(' · ')
@@ -93,11 +138,18 @@ const MILESTONE_PREFIXES = [
   'Stopped:',
 ]
 
-const COMMAND_STARTERS = /^(git|gh|npm|pnpm|npx|yarn|bun|node|python|pip|cd|cat|ls|grep|rg|curl|wget|view|sed|echo|mkdir|rm|cp|mv|touch|chmod|docker|bash|sh|make|tsc|eslint|tar|unzip|find|diff|patch|open|apt|brew|\$|\.|\/|~)/
+const COMMAND_STARTERS =
+  /^(git|gh|npm|pnpm|npx|yarn|bun|node|python|pip|cd|cat|ls|grep|rg|curl|wget|view|sed|echo|mkdir|rm|cp|mv|touch|chmod|docker|bash|sh|make|tsc|eslint|tar|unzip|find|diff|patch|open|apt|brew|\$|\.|\/|~)/
 
 function parseEntry(log: LogEntry, index: number): FeedEntry {
   const text = cleanText(log.message).trim()
-  const base = { key: index, t: log.t, command: null, detail: null, exitCode: null }
+  const base = {
+    key: index,
+    t: log.t,
+    command: null,
+    detail: null,
+    exitCode: null,
+  }
 
   if (log.level === 'error') {
     return { ...base, kind: 'error', summary: text }
@@ -109,10 +161,13 @@ function parseEntry(log: LogEntry, index: number): FeedEntry {
     const exitCode = exitMatch ? Number(exitMatch[1]) : null
     const withoutExit = rest.replace(/\s*\(exit\s+-?\d+\)\s*/, ' ')
     const arrowIdx = withoutExit.indexOf('→')
-    const command = (arrowIdx >= 0 ? withoutExit.slice(0, arrowIdx) : withoutExit)
+    const command = (
+      arrowIdx >= 0 ? withoutExit.slice(0, arrowIdx) : withoutExit
+    )
       .replace(/^Observation:?\s*/, '')
       .trim()
-    const output = arrowIdx >= 0 ? cleanDetail(withoutExit.slice(arrowIdx + 1)) : ''
+    const output =
+      arrowIdx >= 0 ? cleanDetail(withoutExit.slice(arrowIdx + 1)) : ''
     return {
       ...base,
       kind: 'observation',
@@ -162,7 +217,11 @@ function parseEntry(log: LogEntry, index: number): FeedEntry {
     }
   }
 
-  return { ...base, kind: log.level === 'warn' ? 'error' : 'message', summary: text }
+  return {
+    ...base,
+    kind: log.level === 'warn' ? 'error' : 'message',
+    summary: text,
+  }
 }
 
 function truncate(s: string, max: number): string {
@@ -171,9 +230,11 @@ function truncate(s: string, max: number): string {
 
 function entryIcon(entry: FeedEntry): React.ReactNode {
   if (entry.kind === 'milestone') {
-    if (entry.summary.startsWith('Pull request created')) return <GitPullRequest size={12} />
+    if (entry.summary.startsWith('Pull request created'))
+      return <GitPullRequest size={12} />
     if (entry.summary.startsWith('PR merged')) return <GitMerge size={12} />
-    if (entry.summary.startsWith('PR was closed')) return <GitPullRequestClosed size={12} />
+    if (entry.summary.startsWith('PR was closed'))
+      return <GitPullRequestClosed size={12} />
     return <Flag size={12} />
   }
   if (entry.kind === 'action') return <Terminal size={12} />
@@ -183,7 +244,13 @@ function entryIcon(entry: FeedEntry): React.ReactNode {
   return <AlertCircle size={12} />
 }
 
-function Expandable({ label, children }: { label: string; children: React.ReactNode }) {
+function Expandable({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   const [open, setOpen] = useState(false)
   return (
     <div className="arm-expand">
@@ -212,7 +279,9 @@ function FeedRow({ entry }: { entry: FeedEntry }) {
       <div className="arm-entry-body">
         <div className="arm-entry-head">
           <span className="arm-entry-summary">
-            {isLongMessage ? truncate(entry.summary, LONG_MESSAGE) : entry.summary}
+            {isLongMessage
+              ? truncate(entry.summary, LONG_MESSAGE)
+              : entry.summary}
           </span>
           {entry.exitCode !== null && (
             <span className={`arm-exit ${entry.exitCode === 0 ? 'ok' : 'bad'}`}>
@@ -254,22 +323,30 @@ export function AgentRunModal() {
   const stickToBottomRef = useRef(true)
   const logsEndRef = useRef<HTMLDivElement>(null)
   const prevEntryCountRef = useRef(0)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
+    'idle',
+  )
 
   const run = runRes.data
   const status = run?.status
   const isActive = status === 'queued' || status === 'running'
   const stopMut = useStopAgentRunMutation()
 
-  const entries: FeedEntry[] = useMemo(() => {
+  const logs: LogEntry[] = useMemo(() => {
     if (!run?.logs) return []
     try {
       const parsed = JSON.parse(run.logs)
-      if (Array.isArray(parsed)) return parsed.map((log, i) => parseEntry(log, i))
+      if (Array.isArray(parsed)) return parsed
     } catch {
       // ignore
     }
     return []
   }, [run?.logs])
+
+  const entries: FeedEntry[] = useMemo(
+    () => logs.map((log, index) => parseEntry(log, index)),
+    [logs],
+  )
 
   // Fade-in on open (same pattern as TaskModal).
   useEffect(() => {
@@ -293,7 +370,9 @@ export function AgentRunModal() {
   // Auto-scroll only when NEW entries arrive while the user is pinned to the
   // bottom — never on initial load, so the feed reads from the top.
   useEffect(() => {
-    const grew = prevEntryCountRef.current > 0 && entries.length > prevEntryCountRef.current
+    const grew =
+      prevEntryCountRef.current > 0 &&
+      entries.length > prevEntryCountRef.current
     prevEntryCountRef.current = entries.length
     if (grew && stickToBottomRef.current) {
       logsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -304,18 +383,39 @@ export function AgentRunModal() {
   useEffect(() => {
     prevEntryCountRef.current = 0
     stickToBottomRef.current = true
+    setCopyState('idle')
   }, [taskId])
 
   if (!isOpen || !taskId) return null
 
   const task = taskRes.data
-  const meta = STATUS_META[status ?? ''] ?? { label: 'No runs yet', className: 'queued', icon: <Bot size={12} /> }
+  const meta = STATUS_META[status ?? ''] ?? {
+    label: 'No runs yet',
+    className: 'queued',
+    icon: <Bot size={12} />,
+  }
+  const repositoryPullRequests =
+    run?.repositories?.filter((repository) => repository.prUrl) ?? []
 
   const onLogsScroll = () => {
     const pane = paneRef.current
     if (!pane) return
     stickToBottomRef.current =
       pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 40
+  }
+
+  const copyLogs = async () => {
+    if (!run) return
+    const copied = await copyText(
+      formatAgentLogs({
+        title: task?.title ?? 'Untitled task',
+        status: meta.label,
+        errorMessage: run.errorMessage,
+        logs,
+      }),
+    )
+    setCopyState(copied ? 'copied' : 'error')
+    window.setTimeout(() => setCopyState('idle'), 2000)
   }
 
   return (
@@ -325,7 +425,10 @@ export function AgentRunModal() {
         if (e.target === e.currentTarget) ui.closeAgentRun()
       }}
     >
-      <div className="modal agent-run-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal agent-run-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <div className="arm-title-wrap">
             <div className="arm-eyebrow">
@@ -339,7 +442,11 @@ export function AgentRunModal() {
               {meta.icon}
               <span>{meta.label}</span>
             </span>
-            <button className="modal-close" onClick={ui.closeAgentRun} aria-label="Close">
+            <button
+              className="modal-close"
+              onClick={ui.closeAgentRun}
+              aria-label="Close"
+            >
               <X size={14} />
             </button>
           </div>
@@ -354,7 +461,25 @@ export function AgentRunModal() {
                   {run.branchName}
                 </span>
               )}
-              {run.prUrl && (
+              {repositoryPullRequests.length > 0 ? (
+                repositoryPullRequests.map((repository) => (
+                  <a
+                    className="arm-chip arm-chip-link"
+                    href={repository.prUrl ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    key={repository.repoUrl}
+                  >
+                    <GitPullRequest size={11} />
+                    {repository.repoUrl.replace(
+                      /^https?:\/\/github\.com\//,
+                      '',
+                    )}
+                    {repository.prNumber ? ` #${repository.prNumber}` : ''}
+                    <ExternalLink size={10} />
+                  </a>
+                ))
+              ) : run.prUrl ? (
                 <a
                   className="arm-chip arm-chip-link"
                   href={run.prUrl}
@@ -365,10 +490,21 @@ export function AgentRunModal() {
                   {run.prNumber ? `PR #${run.prNumber}` : 'Open PR'}
                   <ExternalLink size={10} />
                 </a>
-              )}
+              ) : null}
               <span className="arm-chip arm-chip-muted">
                 Started {new Date(run.createdAt).toLocaleString()}
               </span>
+              {run.runnerJobUrl && (
+                <a
+                  className="arm-chip arm-chip-link"
+                  href={run.runnerJobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GitHub runner
+                  <ExternalLink size={10} />
+                </a>
+              )}
             </div>
           )}
 
@@ -379,10 +515,32 @@ export function AgentRunModal() {
             </div>
           )}
 
-          <div className="field-label arm-logs-label">Activity</div>
+          <div className="arm-logs-heading">
+            <div className="field-label arm-logs-label">Activity</div>
+            {run && (
+              <button
+                className={`arm-copy-logs ${copyState === 'error' ? 'error' : ''}`}
+                onClick={copyLogs}
+                title="Copy logs and error details"
+              >
+                {copyState === 'copied' ? (
+                  <Check size={12} />
+                ) : (
+                  <Copy size={12} />
+                )}
+                {copyState === 'copied'
+                  ? 'Copied'
+                  : copyState === 'error'
+                    ? 'Copy failed'
+                    : 'Copy logs'}
+              </button>
+            )}
+          </div>
           <div className="arm-logs" ref={paneRef} onScroll={onLogsScroll}>
             {!run ? (
-              <div className="arm-logs-empty">No agent run yet for this task.</div>
+              <div className="arm-logs-empty">
+                No agent run yet for this task.
+              </div>
             ) : entries.length === 0 ? (
               <div className="arm-logs-empty">No activity yet.</div>
             ) : (
@@ -412,20 +570,27 @@ export function AgentRunModal() {
                 {stopMut.isPending ? 'Stopping…' : 'Stop run'}
               </button>
             )}
-            {(status === 'error' || status === 'closed' || status === 'stopped') && (
+            {(status === 'error' ||
+              status === 'closed' ||
+              status === 'stopped') && (
               <button
                 className="btn btn-ghost"
                 onClick={() => giveMut.mutate({ data: { taskId } })}
                 disabled={giveMut.isPending}
               >
-                <RefreshCw size={13} className={giveMut.isPending ? 'spin' : ''} />
+                <RefreshCw
+                  size={13}
+                  className={giveMut.isPending ? 'spin' : ''}
+                />
                 {giveMut.isPending ? 'Retrying…' : 'Retry run'}
               </button>
             )}
-            {run?.prUrl && (
+            {(repositoryPullRequests[0]?.prUrl || run?.prUrl) && (
               <a
                 className="btn btn-ghost"
-                href={run.prUrl}
+                href={
+                  repositoryPullRequests[0]?.prUrl ?? run?.prUrl ?? undefined
+                }
                 target="_blank"
                 rel="noreferrer"
               >

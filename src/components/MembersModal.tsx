@@ -1,24 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Users, X, Plus, Trash2, Shield, User } from 'lucide-react'
+import { Users, X, Plus, Trash2 } from 'lucide-react'
 import {
   useProjectMembers,
   useAddProjectMemberMutation,
   useRemoveProjectMemberMutation,
   useUpdateMemberRoleMutation,
+  useCreateProjectInviteMutation,
 } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
-
-const roleLabels: Record<string, string> = {
-  owner: 'Owner',
-  manager: 'Manager',
-  member: 'Member',
-}
-
-const roleIcons: Record<string, React.ReactNode> = {
-  owner: <Shield size={12} />,
-  manager: <Shield size={12} />,
-  member: <User size={12} />,
-}
 
 export function MembersModal() {
   const ui = useUI()
@@ -29,11 +18,13 @@ export function MembersModal() {
   const addMut = useAddProjectMemberMutation()
   const removeMut = useRemoveProjectMemberMutation()
   const roleMut = useUpdateMemberRoleMutation()
+  const inviteMut = useCreateProjectInviteMutation()
 
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [role, setRole] = useState<'owner' | 'manager' | 'member'>('member')
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
 
   const members = membersRes.data ?? []
 
@@ -45,6 +36,7 @@ export function MembersModal() {
       setEmail('')
       setName('')
       setRole('member')
+      setInviteLink(null)
     }
   }, [isOpen])
 
@@ -69,6 +61,20 @@ export function MembersModal() {
         setName('')
         setRole('member')
       }},
+    )
+  }
+
+  const createInvite = () => {
+    const trimmed = email.trim()
+    if (!trimmed) return
+    inviteMut.mutate(
+      { data: { projectId, email: trimmed } },
+      {
+        onSuccess: (result) => {
+          setInviteLink(`${window.location.origin}${result.invitePath}`)
+          setEmail('')
+        },
+      },
     )
   }
 
@@ -156,7 +162,21 @@ export function MembersModal() {
               >
                 <Plus size={14} />
               </button>
+              <button
+                className="btn btn-ghost"
+                onClick={createInvite}
+                disabled={inviteMut.isPending || !email.trim()}
+                title="Create invite link"
+              >
+                Invite
+              </button>
             </div>
+            {inviteLink && (
+              <div className="invite-link-row">
+                <span>Invite link ready</span>
+                <button className="btn btn-ghost" onClick={() => void navigator.clipboard?.writeText(inviteLink)}>Copy link</button>
+              </div>
+            )}
           </div>
 
           {/* Member list */}

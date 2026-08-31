@@ -37,10 +37,15 @@ export function ProjectColumn(props: ProjectColumnProps) {
           {project.name}
         </div>
         <div className="right">
-          {project.repoUrl && (
-            <a className="repo" href={project.repoUrl} target="_blank" rel="noreferrer">
-              {project.repoUrl.replace(/^https?:\/\//, '')}
-            </a>
+          {project.repoUrls.length > 0 && (
+            <div className="repo-summary">
+              <a className="repo" href={project.repoUrls[0]} target="_blank" rel="noreferrer">
+                {project.repoUrls[0].replace(/^https?:\/\//, '')}
+              </a>
+              {project.repoUrls.length > 1 && (
+                <span className="repo-count">+{project.repoUrls.length - 1}</span>
+              )}
+            </div>
           )}
           <span
             className="add-task"
@@ -179,6 +184,7 @@ function TaskCard({
             {task.priority}
             {dueTxt ? ` · ${dueTxt}` : ''}
           </span>
+          {task.lifecycleState && <span className="pill state-pill">{task.lifecycleState.replace('_', ' ')}</span>}
         </div>
       </div>
       <div className="task-actions">

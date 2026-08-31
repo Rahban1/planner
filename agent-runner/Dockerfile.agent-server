@@ -7,6 +7,7 @@ WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    ffmpeg \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
 
@@ -26,13 +27,16 @@ RUN uv pip install --system --no-cache-dir \
     openhands-sdk==1.32.0 \
     openhands-tools==1.32.0 \
     openhands-workspace==1.32.0 \
-    openhands-agent-server==1.32.0
+    openhands-agent-server==1.32.0 \
+    playwright==1.50.0
 
 # OpenHands' browser_use tool looks for Playwright browsers under
 # ~/.cache/ms-playwright, but the Playwright image installs them at
 # /ms-playwright. Symlink so OpenHands can discover Chromium.
 RUN mkdir -p /root/.cache \
     && ln -s /ms-playwright /root/.cache/ms-playwright
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # The workspace directory is where repositories will be cloned
 RUN mkdir -p /workspace/runs
