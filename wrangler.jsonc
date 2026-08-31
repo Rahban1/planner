@@ -28,7 +28,7 @@
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_classes": ["TaskChatRoom"] }
+    { "tag": "v1", "new_sqlite_classes": ["TaskChatRoom"] }
   ],
   "d1_databases": [
     {
