@@ -45,6 +45,7 @@ export function TaskModal(props: TaskModalProps) {
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT)
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const titleRef = useRef<HTMLInputElement>(null)
+  const dueDateRef = useRef<HTMLInputElement>(null)
   const messageRef = useRef<HTMLTextAreaElement>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -116,6 +117,22 @@ export function TaskModal(props: TaskModalProps) {
 
   const isExisting = !!taskId
   const isNew = !isExisting
+
+  const handleDueDateClick = () => {
+    const input = dueDateRef.current
+    if (!input) return
+
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker()
+        return
+      } catch {
+        // Fall through to focusing the input when the browser rejects the call.
+      }
+    }
+
+    input.focus()
+  }
 
   const handleSave = () => {
     const trimmedTitle = draft.title.trim()
@@ -398,11 +415,13 @@ export function TaskModal(props: TaskModalProps) {
               </div>
               <div className="ctrl-wrap date-control">
                 <input
+                  ref={dueDateRef}
                   className="ctrl-input"
                   type="datetime-local"
                   aria-label="Task due date"
                   value={draft.dueAt}
                   onChange={(e) => setDraft({ ...draft, dueAt: e.target.value })}
+                  onClick={handleDueDateClick}
                 />
                 <Calendar className="ctrl-indicator" size={14} aria-hidden="true" />
               </div>

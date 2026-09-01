@@ -1123,6 +1123,9 @@ body {
 .date-control {
   flex: 1 1 240px;
 }
+.date-control .ctrl-input {
+  cursor: pointer;
+}
 .ctrl-select,
 .ctrl-input {
   width: 100%;
