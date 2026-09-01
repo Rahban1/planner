@@ -4,6 +4,7 @@ import {
   getPullRequestDetails,
   listPullRequestCommitShas,
   listPullRequestFilePaths,
+  pushBranchToRemote,
   updatePullRequestBody,
 } from './github.js'
 import type {
@@ -47,6 +48,7 @@ export interface PublishProofOptions {
   taskTitle: string
   token: string
   github?: ProofGithubApi
+  pushBranch?: typeof pushBranchToRemote
 }
 
 export interface PublishProofResult {
@@ -75,11 +77,13 @@ export async function publishProofToPullRequest({
   taskTitle,
   token,
   github = defaultGithub,
+  pushBranch = pushBranchToRemote,
 }: PublishProofOptions): Promise<PublishProofResult> {
   let resolvedPrUrl = prUrl
   let createdFallback = false
 
   if (!resolvedPrUrl && branchName && token) {
+    await pushBranch(repoDir, branchName, token)
     const incomplete = renderProofSection({
       state: 'incomplete',
       manifest: null,

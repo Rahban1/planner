@@ -78,6 +78,15 @@ jobs:
           docker logs planner-openhands
           exit 1
 
+      - name: Validate agent toolchain
+        shell: bash
+        run: |
+          docker exec planner-openhands node --version
+          docker exec planner-openhands npm --version
+          docker exec planner-openhands pnpm --version
+          docker exec planner-openhands git --version
+          docker run --rm planner-agent-runner git --version
+
       - name: Run exact Planner task
         shell: bash
         run: |

@@ -157,12 +157,46 @@ test('creates a ready fallback PR when a branch exists but the agent did not cre
     taskTitle: 'Add proof',
     token: 'token',
     github: github.api,
+    pushBranch: async () => {},
   })
 
   assert.equal(result.prUrl, 'https://github.com/acme/widget/pull/7')
   assert.equal(github.created.length, 1)
   assert.equal(github.created[0].draft, false)
   assert.match(github.created[0].body, /runner created this ready pull request/i)
+})
+
+test('pushes a local branch before creating a fallback pull request', async () => {
+  const { workspace } = await makeLibraryProof()
+  let branchPushed = false
+  const github = githubFixture({
+    async createPullRequestForBranch(_repoUrl, _token, input) {
+      if (!branchPushed) {
+        throw new Error(
+          'GitHub API 422: Validation Failed: PullRequest head invalid',
+        )
+      }
+      github.created.push(input)
+      return { number: 7, url: 'https://github.com/acme/widget/pull/7' }
+    },
+  })
+
+  const result = await publishProofToPullRequest({
+    repoUrl: 'https://github.com/acme/widget',
+    prUrl: null,
+    branchName: 'agent/proof',
+    workspace,
+    runId: RUN_ID,
+    taskTitle: 'Add proof',
+    token: 'token',
+    github: github.api,
+    pushBranch: async () => {
+      branchPushed = true
+    },
+  })
+
+  assert.equal(branchPushed, true)
+  assert.equal(result.prUrl, 'https://github.com/acme/widget/pull/7')
 })
 
 test('surfaces GitHub proof update failures', async () => {
