@@ -1,5 +1,7 @@
 // Minimal GitHub REST client for checking pull request merge state.
 
+import { spawn } from 'node:child_process'
+
 export interface PullRequestState {
   state: string // 'open' | 'closed'
   merged: boolean
@@ -39,6 +41,70 @@ export interface CreatedPullRequest {
 }
 
 type FetchImpl = typeof fetch
+
+export async function pushBranchToRemote(
+  repoDir: string,
+  branchName: string,
+  token: string,
+): Promise<void> {
+  if (!token) throw new Error('GITHUB_TOKEN is required to push the branch.')
+
+  const basicAuth = Buffer.from(`x-access-token:${token}`).toString('base64')
+  const authHeader = `AUTHORIZATION: basic ${basicAuth}`
+  const output = await new Promise<{
+    code: number | null
+    stderr: string
+    timedOut: boolean
+  }>(
+    (resolve, reject) => {
+      const child = spawn(
+        'git',
+        ['push', '--set-upstream', 'origin', `HEAD:refs/heads/${branchName}`],
+        {
+          cwd: repoDir,
+          env: {
+            ...process.env,
+            GIT_TERMINAL_PROMPT: '0',
+            GIT_CONFIG_COUNT: '1',
+            GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+            GIT_CONFIG_VALUE_0: authHeader,
+          },
+          stdio: ['ignore', 'ignore', 'pipe'],
+        },
+      )
+      let stderr = ''
+      let timedOut = false
+      const timeout = setTimeout(() => {
+        timedOut = true
+        child.kill('SIGTERM')
+      }, 60_000)
+      child.stderr.setEncoding('utf8')
+      child.stderr.on('data', (chunk: string) => {
+        if (stderr.length < 8_000) stderr += chunk
+      })
+      child.once('error', (error) => {
+        clearTimeout(timeout)
+        reject(error)
+      })
+      child.once('close', (code) => {
+        clearTimeout(timeout)
+        resolve({ code, stderr, timedOut })
+      })
+    },
+  )
+
+  if (output.code !== 0) {
+    const safeError = output.stderr
+      .replaceAll(token, '<REDACTED>')
+      .replaceAll(basicAuth, '<REDACTED>')
+      .trim()
+    throw new Error(
+      output.timedOut
+        ? `Could not push fallback branch ${branchName}: git timed out after 60 seconds.`
+        : `Could not push fallback branch ${branchName} (git exit ${output.code ?? 'unknown'}): ${safeError.slice(0, 500)}`,
+    )
+  }
+}
 
 export function parsePrUrl(prUrl: string): ParsedPrUrl | null {
   const match = prUrl.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/)

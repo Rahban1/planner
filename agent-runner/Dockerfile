@@ -2,6 +2,12 @@ FROM node:22-slim
 
 WORKDIR /app
 
+# The runner pushes a committed fallback branch before it creates a PR.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package.json tsconfig.json ./
 RUN npm install
 
