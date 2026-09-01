@@ -28,7 +28,12 @@ RUN uv pip install --system --no-cache-dir \
     openhands-tools==1.32.0 \
     openhands-workspace==1.32.0 \
     openhands-agent-server==1.32.0 \
+    'mcp<2' \
     playwright==1.50.0
+
+# browser-use 0.11.x calls this MCP 1.x API while it starts. Fail the image
+# build if dependency resolution selects the incompatible MCP 2.x API.
+RUN python -c "from mcp.server.lowlevel.server import Server; assert hasattr(Server, 'list_tools')"
 
 # OpenHands' browser_use tool looks for Playwright browsers under
 # ~/.cache/ms-playwright, but the Playwright image installs them at
