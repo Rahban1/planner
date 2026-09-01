@@ -429,6 +429,7 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
     await finishWithError(run, logs, 'No plan file found after agent run')
   } catch (err) {
     clearTimeout(timeout)
+    unwatchStop()
     const message = err instanceof Error ? err.message : String(err)
     await append(`Error: ${message}`, 'error')
     await updateRun(run.id, { status: 'error', errorMessage: message })
@@ -597,6 +598,7 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
     })
   } catch (err) {
     clearTimeout(timeout)
+    unwatchStop()
     const message = err instanceof Error ? err.message : String(err)
     await append(`Error: ${message}`, 'error')
     await updateRun(run.id, { status: 'error', errorMessage: message })
