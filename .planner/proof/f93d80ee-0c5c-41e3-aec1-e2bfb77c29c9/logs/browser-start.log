@@ -1,0 +1,29 @@
+$ pnpm dev --host 0.0.0.0
+
+> planner@ dev /workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo
+> vite dev --port 3000 --host 0.0.0.0
+
+⎔ Establishing remote connection...
+error when starting dev server:
+Error: Failed to start the remote proxy session, see the error details below:
+
+Could not start remote dev session. No credentials found, and the environment is non-interactive so browser login cannot be started.
+Either:
+ - Set a CLOUDFLARE_API_TOKEN environment variable
+ - Run `wrangler login` in an interactive terminal first
+
+You can run `wrangler whoami` to check your current authentication status.
+    at /workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/wrangler@4.107.0/node_modules/wrangler/wrangler-dist/cli.js:362728:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startRemoteProxySession (/workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/wrangler@4.107.0/node_modules/wrangler/wrangler-dist/cli.js:362701:18)
+    at async Module.maybeStartOrUpdateRemoteProxySession (/workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/wrangler@4.107.0/node_modules/wrangler/wrangler-dist/cli.js:362872:32)
+    at async file:///workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/@cloudflare+vite-plugin@1.43.0_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_21ed1b217016c76ba7b85ff4cd58ac34/node_modules/@cloudflare/vite-plugin/dist/index.mjs:64646:80
+    at async Promise.all (index 0)
+    at async getDevMiniflareOptions (file:///workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/@cloudflare+vite-plugin@1.43.0_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_21ed1b217016c76ba7b85ff4cd58ac34/node_modules/@cloudflare/vite-plugin/dist/index.mjs:64643:70)
+    at async BasicMinimalPluginContext.configureServer (file:///workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/@cloudflare+vite-plugin@1.43.0_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_21ed1b217016c76ba7b85ff4cd58ac34/node_modules/@cloudflare/vite-plugin/dist/index.mjs:65065:27)
+    at async _createServer (file:///workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.23.0/node_modules/vite/dist/node/chunks/node.js:25575:84)
+    at async CAC.<anonymous> (file:///workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.23.0/node_modules/vite/dist/node/cli.js:708:18)
+ ELIFECYCLE  Command failed with exit code 1.
+
+exit=1
+durationMs=2203

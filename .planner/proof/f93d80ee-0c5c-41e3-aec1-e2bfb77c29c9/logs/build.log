@@ -1,0 +1,135 @@
+$ pnpm build
+
+> planner@ build /workspace/runs/f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9/repo
+> vite build
+
+vite v8.1.3 building client environment for production...
+[2Ktransforming...
+[@tanstack/devtools-vite] Removed devtools code from: /src/routes/__root.tsx
+
+✓ 2286 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore                                    0.02 kB
+dist/client/assets/DocsPage-zpwbop3O.css                     8.72 kB │ gzip:   2.38 kB
+dist/client/assets/styles-D2KXRVqv.css                      95.47 kB │ gzip:  16.93 kB
+dist/client/assets/root-DLTE-HSj.js                          0.03 kB │ gzip:   0.05 kB
+dist/client/assets/matchContext-GQpJ4Iuv.js                  0.14 kB │ gzip:   0.12 kB
+dist/client/assets/arrow-left-Dhkc5iCv.js                    0.15 kB │ gzip:   0.15 kB
+dist/client/assets/arrow-right-DUw51Dfl.js                   0.15 kB │ gzip:   0.15 kB
+dist/client/assets/docs.index-CoM6MR9t.js                    0.15 kB │ gzip:   0.15 kB
+dist/client/assets/docs-NwKQH6Qn.js                          0.15 kB │ gzip:   0.14 kB
+dist/client/assets/docs._slug-DWWFrsFj.js                    0.21 kB │ gzip:   0.18 kB
+dist/client/assets/qss-CuvTgpZA.js                           0.39 kB │ gzip:   0.26 kB
+dist/client/assets/redirect-C-eRQtnH.js                      0.55 kB │ gzip:   0.33 kB
+dist/client/assets/utils-Cxno7cNB.js                         0.60 kB │ gzip:   0.35 kB
+dist/client/assets/useMatch-Cgz1hZOh.js                      0.62 kB │ gzip:   0.39 kB
+dist/client/assets/invite._token-QGalu9V6.js                 1.11 kB │ gzip:   0.59 kB
+dist/client/assets/react-dom-CQmWuZA8.js                     3.54 kB │ gzip:   1.34 kB
+dist/client/assets/login-Dy138jXt.js                         3.55 kB │ gzip:   1.50 kB
+dist/client/assets/link-CKM_6yhH.js                          4.44 kB │ gzip:   2.19 kB
+dist/client/assets/projects._id.tasks._taskId-DTzE_1zf.js    4.70 kB │ gzip:   1.84 kB
+dist/client/assets/landing-jorUDxM4.js                       4.78 kB │ gzip:   1.64 kB
+dist/client/assets/useStore-avoZ_eM9.js                      5.54 kB │ gzip:   2.35 kB
+dist/client/assets/PriorityPanel-BqG76Yh4.js                 5.61 kB │ gzip:   1.82 kB
+dist/client/assets/projects._id-CPfmrwxr.js                  5.97 kB │ gzip:   1.98 kB
+dist/client/assets/jsx-runtime-n5LQ9ujS.js                   8.53 kB │ gzip:   3.26 kB
+dist/client/assets/dashboard-BqOPBukZ.js                     9.12 kB │ gzip:   3.25 kB
+dist/client/assets/agent-runs-Zh_tG-VI.js                    9.87 kB │ gzip:   2.57 kB
+dist/client/assets/ClientOnly-CY4QPgaH.js                   13.14 kB │ gzip:   4.57 kB
+dist/client/assets/collaboration-bXS9Z_US.js                38.14 kB │ gzip:  12.80 kB
+dist/client/assets/DocsPage-BBH8edIg.js                     94.92 kB │ gzip:  27.82 kB
+dist/client/assets/index-BHn4JySj.js                       520.67 kB │ gzip: 158.74 kB
+
+✓ built in 1.64s
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+vite v8.1.3 building ssr environment for production...
+[2Ktransforming...
+[@tanstack/devtools-vite] Removed devtools code from: /src/routes/__root.tsx
+
+✓ 2459 modules transformed.
+rendering chunks...
+Using secrets defined in process.env
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mMissing required secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, RUNNER_API_TOKEN, GITHUB_ACTIONS_DISPATCH_TOKEN. Add them to .dev.vars, .env, or set as environment variables.[0m
+
+
+computing gzip size...
+dist/server/wrangler.json                                               2.20 kB │ gzip:   1.14 kB
+dist/server/.vite/manifest.json                                        21.61 kB │ gzip:   2.72 kB
+dist/server/assets/DocsPage-zpwbop3O.css                                8.72 kB │ gzip:   2.38 kB
+dist/server/assets/styles-D2KXRVqv.css                                 95.47 kB │ gzip:  16.93 kB
+dist/server/assets/empty-plugin-adapters-CCGZbMac.js                    0.28 kB │ gzip:   0.18 kB
+dist/server/assets/start-B7Vg9sF8.js                                    0.28 kB │ gzip:   0.20 kB
+dist/server/assets/docs-B5ALT4B4.js                                     0.35 kB │ gzip:   0.24 kB
+dist/server/assets/check-BWzGGlH7.js                                    0.37 kB │ gzip:   0.27 kB
+dist/server/assets/docs.index-B-qRWeJH.js                               0.38 kB │ gzip:   0.24 kB
+dist/server/assets/loader-circle-DTJc-da1.js                            0.40 kB │ gzip:   0.29 kB
+dist/server/assets/arrow-left-BsXl62_5.js                               0.42 kB │ gzip:   0.30 kB
+dist/server/assets/arrow-right-DbyotZL2.js                              0.43 kB │ gzip:   0.29 kB
+dist/server/assets/createServerRpc-B97C-GQo.js                          0.45 kB │ gzip:   0.30 kB
+dist/server/assets/docs._slug-DaN2HtFX.js                               0.47 kB │ gzip:   0.28 kB
+dist/server/assets/root-BP-MJ8-n.js                                     0.52 kB │ gzip:   0.28 kB
+dist/server/assets/matchContext-DTpkD8j_.js                             0.53 kB │ gzip:   0.29 kB
+dist/server/assets/docs._slug-Cty9rMx_.js                               0.56 kB │ gzip:   0.35 kB
+dist/server/assets/users-5WQx4yZS.js                                    0.60 kB │ gzip:   0.36 kB
+dist/server/assets/git-pull-request-CcjzqEbp.js                         0.62 kB │ gzip:   0.37 kB
+dist/server/assets/bot-D7DROauy.js                                      0.65 kB │ gzip:   0.37 kB
+dist/server/assets/createSsrRpc-CEjohLgt.js                             0.66 kB │ gzip:   0.39 kB
+dist/server/assets/invite._token-D7m4k9gF.js                            0.72 kB │ gzip:   0.41 kB
+dist/server/assets/projects._id-BcVro40o.js                             1.02 kB │ gzip:   0.53 kB
+dist/server/assets/chevron-right-BJthO5wI.js                            1.05 kB │ gzip:   0.45 kB
+dist/server/assets/useSearch-Dg-Jo2bU.js                                1.09 kB │ gzip:   0.58 kB
+dist/server/assets/projects._id.tasks._taskId-kiW4chn_.js               1.38 kB │ gzip:   0.75 kB
+dist/server/assets/rolldown-runtime-B-1-B7_t.js                         1.40 kB │ gzip:   0.66 kB
+dist/server/assets/priority-D9L4sJg2.js                                 1.55 kB │ gzip:   0.74 kB
+dist/server/assets/useMatch-B2UqJHSd.js                                 1.92 kB │ gzip:   0.81 kB
+dist/server/assets/projects-EHCKan28.js                                 2.08 kB │ gzip:   0.82 kB
+dist/server/assets/useNavigate-BvDq0-UK.js                              2.17 kB │ gzip:   0.94 kB
+dist/server/assets/redirect-B4aPqzlW.js                                 2.32 kB │ gzip:   0.97 kB
+dist/server/assets/invite._token-CKj8HAQE.js                            2.34 kB │ gzip:   0.88 kB
+dist/server/assets/utils-DXZc1tP5.js                                    2.89 kB │ gzip:   1.20 kB
+dist/server/assets/refresh-cw-D18JI5Rf.js                               2.97 kB │ gzip:   0.82 kB
+dist/server/assets/createLucideIcon-CyLgt_qK.js                         3.35 kB │ gzip:   1.19 kB
+dist/server/assets/_tanstack-start-manifest_v-CetypYNT.js               3.45 kB │ gzip:   0.98 kB
+dist/server/assets/collaboration-CbqHUrcd.js                            3.47 kB │ gzip:   1.15 kB
+dist/server/assets/attachments-B34cotX2.js                              3.49 kB │ gzip:   1.27 kB
+dist/server/assets/agent-logs-Cb-tDTjc.js                               3.81 kB │ gzip:   1.36 kB
+dist/server/assets/agent-CP8lUlv2.js                                    5.34 kB │ gzip:   1.70 kB
+dist/server/assets/react-dom-D3bqrEa_.js                                6.67 kB │ gzip:   1.96 kB
+dist/server/assets/login-ccHu7Oto.js                                    6.69 kB │ gzip:   2.09 kB
+dist/server/assets/projects-Bc5jKR_O.js                                 7.55 kB │ gzip:   2.19 kB
+dist/server/assets/tasks-yVfhEzn8.js                                    7.75 kB │ gzip:   1.90 kB
+dist/server/assets/focus-context-BpJ956S8.js                            8.06 kB │ gzip:   2.31 kB
+dist/server/assets/projects._id.tasks._taskId-ttPrYOzq.js               9.24 kB │ gzip:   2.72 kB
+dist/server/assets/landing-BfPEGSb7.js                                  9.89 kB │ gzip:   2.27 kB
+dist/server/assets/__23tanstack-start-server-fn-resolver-CSV3YGzY.js   10.71 kB │ gzip:   3.13 kB
+dist/server/assets/PriorityPanel-Cb61nS7o.js                           11.09 kB │ gzip:   2.65 kB
+dist/server/assets/atom-p0akJP7l.js                                    11.60 kB │ gzip:   3.07 kB
+dist/server/assets/collaboration-CyeFQQW9.js                           11.72 kB │ gzip:   2.66 kB
+dist/server/assets/lazyRouteComponent-DBYxblCE.js                      11.75 kB │ gzip:   3.20 kB
+dist/server/assets/chat-DMu9i8Ra.js                                    12.05 kB │ gzip:   3.37 kB
+dist/server/assets/projects._id-CcQ5bZ7o.js                            13.04 kB │ gzip:   3.39 kB
+dist/server/assets/useStore-Bqw1FTSC.js                                15.95 kB │ gzip:   5.29 kB
+dist/server/assets/link-pyr2VwES.js                                    16.00 kB │ gzip:   4.40 kB
+dist/server/assets/Match-BlnCR3sm.js                                   16.93 kB │ gzip:   3.82 kB
+dist/server/assets/jsx-runtime-BhGdSeMR.js                             17.06 kB │ gzip:   4.48 kB
+dist/server/assets/agent-runs-DVtJ1Eew.js                              19.81 kB │ gzip:   3.69 kB
+dist/server/assets/dashboard-B4NZdlBn.js                               20.50 kB │ gzip:   5.09 kB
+dist/server/assets/createMiddleware-C_6w8bEu.js                        25.59 kB │ gzip:   7.05 kB
+dist/server/assets/agent-gcGIhjnt.js                                   27.00 kB │ gzip:   6.49 kB
+dist/server/assets/ClientOnly-DrPxolYh.js                              34.92 kB │ gzip:   8.80 kB
+dist/server/assets/queries-DIcO9GTg.js                                 80.73 kB │ gzip:  17.10 kB
+dist/server/assets/scroll-restoration-IjYD_LCW.js                      85.90 kB │ gzip:  20.70 kB
+dist/server/assets/DocsPage-B4bSnTsP.js                               110.42 kB │ gzip:  30.09 kB
+dist/server/assets/schemas-Bf8SEYIk.js                                319.93 kB │ gzip:  67.05 kB
+dist/server/index.js                                                  603.39 kB │ gzip: 126.74 kB
+dist/server/assets/router-DBXMXv95.js                                 750.39 kB │ gzip: 159.29 kB
+
+✓ built in 1.73s
+
+exit=0
+durationMs=6328

@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "runId": "f93d80ee-0c5c-41e3-aec1-e2bfb77c29c9",
+  "testedCommitSha": "9a7d11b91281958bde82a74b489ba77bdeda772f",
+  "generatedAt": "2026-09-01T16:29:00Z",
+  "environment": {
+    "os": "Linux",
+    "runtime": "Node.js via pnpm",
+    "browser": "Chromium (application blocked by Cloudflare dev credentials)"
+  },
+  "changeType": "ui",
+  "overall": "partial",
+  "checks": [
+    {
+      "id": "repository-lint",
+      "title": "Full repository lint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationMs": 6887,
+      "outputPath": "logs/lint.log"
+    },
+    {
+      "id": "typescript-no-emit",
+      "title": "TypeScript compilation",
+      "layer": "types",
+      "status": "pass",
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "durationMs": 7254,
+      "outputPath": "logs/types.log"
+    },
+    {
+      "id": "production-build",
+      "title": "Production build",
+      "layer": "build",
+      "status": "pass",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 6328,
+      "outputPath": "logs/build.log"
+    },
+    {
+      "id": "chromium-task-modal",
+      "title": "Chromium task-modal flow",
+      "layer": "browser",
+      "status": "blocked",
+      "command": "pnpm dev --host 0.0.0.0",
+      "exitCode": 1,
+      "durationMs": 2203,
+      "outputPath": "logs/browser-start.log",
+      "evidencePaths": [
+        "screenshots/desktop.png",
+        "screenshots/mobile.png",
+        "video/ui-flow.webm"
+      ]
+    },
+    {
+      "id": "focused-regression",
+      "title": "Focused TaskModal regression test",
+      "layer": "targeted",
+      "status": "not_run",
+      "evidencePaths": []
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 2196,
+      "sha256": "82a8d53f70d64738b3f58f1cf7a6fc92c533c56b9621b9f4f443581cfc3130f6"
+    },
+    {
+      "path": "logs/browser-start.log",
+      "type": "log",
+      "bytes": 2715,
+      "sha256": "cb88f4fa34ff04240c6098a79150c17219f2a2e96949d80ff4d9c00e0fb499c8"
+    },
+    {
+      "path": "logs/build.log",
+      "type": "log",
+      "bytes": 10945,
+      "sha256": "fa3385ce941d74ff398e2cedb5fdab883fbed1b8eef5ad335f6eacf958673970"
+    },
+    {
+      "path": "logs/dev.log",
+      "type": "log",
+      "bytes": 2665,
+      "sha256": "78278e566db03e18954d0e892d6daf780893614b10752a7b2d53fb4da47f4c28"
+    },
+    {
+      "path": "logs/lint.log",
+      "type": "log",
+      "bytes": 479,
+      "sha256": "92dabc7a1e7bf3988cad588a0206ce1119cf056c3081ecd3b26961cdd1288ff8"
+    },
+    {
+      "path": "logs/preview.log",
+      "type": "log",
+      "bytes": 2670,
+      "sha256": "305774c699030ba99fd9946c6932aef843e68d04d7bc4c0988bda35343e44d0b"
+    },
+    {
+      "path": "logs/types.log",
+      "type": "log",
+      "bytes": 43,
+      "sha256": "f5162b26692c5922f4c463642f0aed55c9d2ce77355d4c8d0811283451f8f873"
+    },
+    {
+      "path": "screenshots/desktop.png",
+      "type": "screenshot",
+      "bytes": 30683,
+      "sha256": "6c1e2914e5dde56ca8cfe58fce272b470a9f7a2580144d6831b010759a5966da"
+    },
+    {
+      "path": "screenshots/mobile.png",
+      "type": "screenshot",
+      "bytes": 6029,
+      "sha256": "dc38ae87638748697ed05a7ab4e4436886379202b1aa178c9cb1422a06da459c"
+    },
+    {
+      "path": "video/ui-flow.webm",
+      "type": "video",
+      "bytes": 19667,
+      "sha256": "bdd9d81ce3f117afc01617d5d4f3cad38fb598f01d23738dbbeaee50d8ade7d2"
+    }
+  ],
+  "limitations": [
+    "Cloudflare Vite remote proxy could not start without credentials, so Chromium could not reach the app.",
+    "No focused TaskModal component-test harness exists and native picker rendering is unavailable in jsdom."
+  ],
+  "reproduce": [
+    "pnpm install --frozen-lockfile",
+    "pnpm lint",
+    "npx tsc --noEmit",
+    "pnpm build",
+    "Configure Cloudflare credentials, then run pnpm dev --host 0.0.0.0 and inspect the task modal due-date field in Chromium."
+  ]
+}
