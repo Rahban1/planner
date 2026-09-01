@@ -38,7 +38,8 @@ interface UIContextValue {
   openCmdk: () => void
   closeCmdk: () => void
   projectModalOpen: boolean
-  openProjectModal: () => void
+  projectModalProjectId: string | null
+  openProjectModal: (projectId?: string) => void
   closeProjectModal: () => void
   shortcutsOpen: boolean
   openShortcuts: () => void
@@ -57,6 +58,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [membersModal, setMembersModal] = useState<{ projectId: string } | null>(null)
   const [cmdkOpen, setCmdkOpen] = useState(false)
   const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [projectModalProjectId, setProjectModalProjectId] = useState<string | null>(null)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
 
@@ -95,8 +97,15 @@ export function UIProvider({ children }: { children: ReactNode }) {
         openCmdk: () => setCmdkOpen(true),
         closeCmdk: () => setCmdkOpen(false),
         projectModalOpen,
-        openProjectModal: () => setProjectModalOpen(true),
-        closeProjectModal: () => setProjectModalOpen(false),
+        projectModalProjectId,
+        openProjectModal: (projectId) => {
+          setProjectModalProjectId(projectId ?? null)
+          setProjectModalOpen(true)
+        },
+        closeProjectModal: () => {
+          setProjectModalOpen(false)
+          setProjectModalProjectId(null)
+        },
         shortcutsOpen,
         openShortcuts: () => setShortcutsOpen(true),
         closeShortcuts: () => setShortcutsOpen(false),

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import {
   ArrowLeft,
   Bot,
@@ -16,14 +16,41 @@ import {
   GitMerge,
   GitPullRequestClosed,
   Folder,
+  Check,
+  Copy,
 } from 'lucide-react'
 import { useAgentRuns, useGiveTaskToAgentMutation } from '#/lib/queries'
+import { copyText, formatAgentLogs } from '#/lib/agent-logs'
+import type { AgentLogEntry } from '#/lib/agent-logs'
+import { getCurrentUser } from '#/server/projects'
 
 export const Route = createFileRoute('/agent-runs')({
+  loader: async ({ location }) => {
+    if (!(await getCurrentUser())) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+          error: undefined,
+          detail: undefined,
+        },
+      })
+    }
+  },
   component: AgentRunsPage,
 })
 
-type StatusFilter = 'all' | 'queued' | 'running' | 'success' | 'error' | 'merged' | 'closed' | 'stopped' | 'plan_ready' | 'approved'
+type StatusFilter =
+  | 'all'
+  | 'queued'
+  | 'running'
+  | 'success'
+  | 'error'
+  | 'merged'
+  | 'closed'
+  | 'stopped'
+  | 'plan_ready'
+  | 'approved'
 
 const filterLabels: Record<StatusFilter, string> = {
   all: 'All',
@@ -86,6 +113,7 @@ function AgentRunsPage() {
   const giveMut = useGiveTaskToAgentMutation()
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [copiedRunId, setCopiedRunId] = useState<string | null>(null)
 
   const runs = useMemo(() => {
     const all = runsQuery.data ?? []
@@ -113,6 +141,24 @@ function AgentRunsPage() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
+  const copyLogs = async (
+    runId: string,
+    title: string,
+    status: string,
+    errorMessage: string | null,
+    logs: AgentLogEntry[],
+  ) => {
+    const copied = await copyText(
+      formatAgentLogs({ title, status, errorMessage, logs }),
+    )
+    if (!copied) return
+    setCopiedRunId(runId)
+    window.setTimeout(
+      () => setCopiedRunId((current) => (current === runId ? null : current)),
+      2000,
+    )
+  }
+
   return (
     <div className="agent-runs-page">
       <div className="agent-runs-head">
@@ -131,18 +177,29 @@ function AgentRunsPage() {
       </div>
 
       <div className="agent-runs-filters">
-        {(['all', 'running', 'queued', 'success', 'merged', 'closed', 'stopped', 'plan_ready', 'approved', 'error'] as StatusFilter[]).map(
-          (s) => (
-            <button
-              key={s}
-              className={`agent-runs-filter ${filter === s ? 'active' : ''}`}
-              onClick={() => setFilter(s)}
-            >
-              <span>{filterLabels[s]}</span>
-              <span className="agent-runs-count">{counts[s]}</span>
-            </button>
-          ),
-        )}
+        {(
+          [
+            'all',
+            'running',
+            'queued',
+            'success',
+            'merged',
+            'closed',
+            'stopped',
+            'plan_ready',
+            'approved',
+            'error',
+          ] as StatusFilter[]
+        ).map((s) => (
+          <button
+            key={s}
+            className={`agent-runs-filter ${filter === s ? 'active' : ''}`}
+            onClick={() => setFilter(s)}
+          >
+            <span>{filterLabels[s]}</span>
+            <span className="agent-runs-count">{counts[s]}</span>
+          </button>
+        ))}
       </div>
 
       {runsQuery.isLoading ? (
@@ -167,6 +224,8 @@ function AgentRunsPage() {
             const repoPath = run.repoUrl
               ? run.repoUrl.replace(/^https?:\/\//, '')
               : null
+            const repositoryPullRequests =
+              run.repositories?.filter((repository) => repository.prUrl) ?? []
 
             return (
               <div
@@ -219,7 +278,30 @@ function AgentRunsPage() {
 
                 {run.status === 'success' && (
                   <div className="agent-run-outcome success">
-                    {run.prUrl ? (
+                    {repositoryPullRequests.length > 0 ? (
+                      repositoryPullRequests.map((repository) => (
+                        <a
+                          className="agent-run-pr-link"
+                          href={repository.prUrl ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          key={repository.repoUrl}
+                        >
+                          <GitPullRequest size={14} />
+                          <span>
+                            {repository.repoUrl.replace(
+                              /^https?:\/\/github\.com\//,
+                              '',
+                            )}
+                            {repository.prNumber
+                              ? ` #${repository.prNumber}`
+                              : ''}
+                          </span>
+                          <ExternalLink size={12} />
+                        </a>
+                      ))
+                    ) : run.prUrl ? (
                       <a
                         className="agent-run-pr-link"
                         href={run.prUrl}
@@ -248,7 +330,30 @@ function AgentRunsPage() {
 
                 {run.status === 'merged' && (
                   <div className="agent-run-outcome success">
-                    {run.prUrl ? (
+                    {repositoryPullRequests.length > 0 ? (
+                      repositoryPullRequests.map((repository) => (
+                        <a
+                          className="agent-run-pr-link"
+                          href={repository.prUrl ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          key={repository.repoUrl}
+                        >
+                          <GitMerge size={14} />
+                          <span>
+                            {repository.repoUrl.replace(
+                              /^https?:\/\/github\.com\//,
+                              '',
+                            )}
+                            {repository.prNumber
+                              ? ` #${repository.prNumber}`
+                              : ''}
+                          </span>
+                          <ExternalLink size={12} />
+                        </a>
+                      ))
+                    ) : run.prUrl ? (
                       <a
                         className="agent-run-pr-link"
                         href={run.prUrl}
@@ -289,7 +394,10 @@ function AgentRunsPage() {
                       }}
                       disabled={giveMut.isPending}
                     >
-                      <RefreshCw size={12} className={giveMut.isPending ? 'spin' : ''} />
+                      <RefreshCw
+                        size={12}
+                        className={giveMut.isPending ? 'spin' : ''}
+                      />
                       <span>{giveMut.isPending ? 'Retrying…' : 'Retry'}</span>
                     </button>
                   </div>
@@ -309,7 +417,10 @@ function AgentRunsPage() {
                       }}
                       disabled={giveMut.isPending}
                     >
-                      <RefreshCw size={12} className={giveMut.isPending ? 'spin' : ''} />
+                      <RefreshCw
+                        size={12}
+                        className={giveMut.isPending ? 'spin' : ''}
+                      />
                       <span>{giveMut.isPending ? 'Retrying…' : 'Retry'}</span>
                     </button>
                   </div>
@@ -329,17 +440,47 @@ function AgentRunsPage() {
                       }}
                       disabled={giveMut.isPending}
                     >
-                      <RefreshCw size={12} className={giveMut.isPending ? 'spin' : ''} />
+                      <RefreshCw
+                        size={12}
+                        className={giveMut.isPending ? 'spin' : ''}
+                      />
                       <span>{giveMut.isPending ? 'Retrying…' : 'Retry'}</span>
                     </button>
                   </div>
                 )}
 
                 {isOpen && (
-                  <div className="agent-run-logs" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="agent-run-logs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="agent-run-logs-head">
                       <span>Logs</span>
-                      <span className="agent-run-logs-count">{logs.length} entries</span>
+                      <div className="agent-run-logs-actions">
+                        <span className="agent-run-logs-count">
+                          {logs.length} entries
+                        </span>
+                        <button
+                          className="agent-run-copy-logs"
+                          onClick={() =>
+                            copyLogs(
+                              run.id,
+                              run.taskTitle ?? 'Untitled task',
+                              cfg.label,
+                              run.errorMessage,
+                              logs,
+                            )
+                          }
+                          title="Copy logs and error details"
+                        >
+                          {copiedRunId === run.id ? (
+                            <Check size={11} />
+                          ) : (
+                            <Copy size={11} />
+                          )}
+                          {copiedRunId === run.id ? 'Copied' : 'Copy logs'}
+                        </button>
+                      </div>
                     </div>
                     {logs.length === 0 ? (
                       <div className="agent-run-log-empty">
@@ -364,14 +505,27 @@ function AgentRunsPage() {
                 )}
 
                 <div className="agent-run-card-foot">
-                  <Link
-                    to="/projects/$id"
-                    params={{ id: run.projectId }}
-                    className="agent-run-foot-link"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    View project
-                  </Link>
+                  <div>
+                    <Link
+                      to="/projects/$id"
+                      params={{ id: run.projectId }}
+                      className="agent-run-foot-link"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View project
+                    </Link>
+                    {run.runnerJobUrl && (
+                      <a
+                        href={run.runnerJobUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="agent-run-foot-link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        GitHub runner <ExternalLink size={10} />
+                      </a>
+                    )}
+                  </div>
                   <span className="agent-run-updated">
                     Updated {formatRelative(run.updatedAt)}
                   </span>
@@ -385,9 +539,7 @@ function AgentRunsPage() {
   )
 }
 
-function parseLogs(
-  raw: string | null,
-): Array<{ t: number; level: 'info' | 'warn' | 'error'; message: string }> {
+function parseLogs(raw: string | null): AgentLogEntry[] {
   if (!raw) return []
   try {
     const parsed = JSON.parse(raw)

@@ -1,4 +1,9 @@
-import { HeadContent, Scripts, createRootRoute, useNavigate } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Scripts,
+  createRootRoute,
+  useNavigate,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
@@ -26,11 +31,17 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1, viewport-fit=cover',
       },
       { title: 'Planner' },
-      { name: 'description', content: 'Plan, track, and hand work to autonomous agents.' },
+      {
+        name: 'description',
+        content: 'Plan, track, and hand work to autonomous agents.',
+      },
       { name: 'theme-color', content: '#062318' },
       { name: 'mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
-      { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+      {
+        name: 'apple-mobile-web-app-status-bar-style',
+        content: 'black-translucent',
+      },
       { name: 'apple-mobile-web-app-title', content: 'Planner' },
     ],
     links: [
@@ -55,7 +66,7 @@ export const Route = createRootRoute({
     scripts: [
       {
         children:
-          "(function(){try{var s=localStorage.getItem('planner-theme');if(s==='light'||s==='dark'){document.documentElement.dataset.theme=s;var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute('content',s==='light'?'#fdfaf4':'#062318');}}catch(e){}})();",
+          "(function(){try{var s=localStorage.getItem('planner-theme');var t=s==='light'||s==='dark'?s:matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name=\"theme-color\"]').forEach(function(m){m.setAttribute('content',t==='light'?'#fdfaf4':'#062318')});}catch(e){}})();",
       },
       {
         children:
@@ -68,7 +79,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
@@ -108,16 +119,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
         onToggleTheme={toggle}
         onWordmarkClick={() => navigate({ to: '/dashboard' })}
         onLogout={() => {
-          // Cloudflare Access logout clears the CF_Authorization cookie. Load
-          // it in a hidden iframe (clears the cookie) then go to the public
-          // landing page.
-          const frame = document.createElement('iframe')
-          frame.style.display = 'none'
-          frame.src = '/cdn-cgi/access/logout'
-          document.body.appendChild(frame)
-          window.setTimeout(() => {
-            window.location.assign('/landing')
-          }, 600)
+          fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+            const frame = document.createElement('iframe')
+            frame.style.display = 'none'
+            frame.src = '/cdn-cgi/access/logout'
+            document.body.appendChild(frame)
+            window.setTimeout(() => window.location.assign('/landing'), 400)
+          })
         }}
       />
       {children}
@@ -127,11 +135,15 @@ function AppShell({ children }: { children: React.ReactNode }) {
         projectName={ui.taskModal?.projectName}
         projectRepoUrl={ui.taskModal?.projectRepoUrl}
         onClose={ui.closeTask}
-        onOpenProject={(pid) => navigate({ to: '/projects/$id', params: { id: pid } })}
+        onOpenProject={(pid) =>
+          navigate({ to: '/projects/$id', params: { id: pid } })
+        }
         onTaskSaved={(savedTaskId) => {
-          const projectName = ui.taskModal?.projectName
-          const projectRepoUrl = ui.taskModal?.projectRepoUrl
-          ui.openTask(savedTaskId, projectName, projectRepoUrl)
+          const projectId = ui.taskModal?.projectIdForNew
+          if (projectId) {
+            ui.closeTask()
+            navigate({ to: '/projects/$id/tasks/$taskId', params: { id: projectId, taskId: savedTaskId } })
+          }
         }}
       />
       <AgentRunModal />

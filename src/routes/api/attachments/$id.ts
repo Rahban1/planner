@@ -2,11 +2,15 @@ import { createFileRoute } from '@tanstack/react-router'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import { env } from 'cloudflare:workers'
+import { getUserFromCookie } from '#/server/auth'
 
 export const Route = createFileRoute('/api/attachments/$id')({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
+        const user = await getUserFromCookie(request.headers.get('cookie'))
+        if (!user) return new Response('Unauthorized', { status: 401 })
+
         const [row] = await db
           .select()
           .from(schema.attachments)

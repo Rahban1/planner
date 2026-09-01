@@ -4,6 +4,7 @@ import { db, schema } from '#/db/index'
 import { priorityRank } from '#/db/schema'
 import type { Project } from '#/db/schema'
 import { listProjects } from './projects'
+import { requireUser } from './auth-middleware'
 
 export type PriorityCard = {
   id: string
@@ -13,8 +14,11 @@ export type PriorityCard = {
   project: { id: string; name: string; repoUrl?: string | null }
 }
 
-// All unresolved tasks across all projects, sorted by (priority_rank, due_at asc).
-export const listPriority = createServerFn({ method: 'GET' }).handler(async () => {
+// Top five unresolved tasks across all projects, sorted by
+// (priority_rank, due_at asc).
+export const listPriority = createServerFn({ method: 'GET' })
+  .middleware([requireUser])
+  .handler(async () => {
   const projects = (await listProjects()) as Project[]
   const projectsById = new Map(projects.map((p) => [p.id, p]))
 
@@ -50,7 +54,7 @@ export const listPriority = createServerFn({ method: 'GET' }).handler(async () =
     return aDue - bDue
   })
 
-  return enriched
+  return enriched.slice(0, 5)
 })
 
 // Unused; keeps asc/or imports alive without lint complaints during scaffolding

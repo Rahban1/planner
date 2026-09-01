@@ -1,0 +1,125 @@
+name: Planner agent run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Planner agent run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: planner-runner
+    env:
+      PLANNER_BASE_URL: ${{ vars.PLANNER_BASE_URL }}
+      RUNNER_API_TOKEN: ${{ secrets.RUNNER_API_TOKEN }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_BASE: ${{ vars.LLM_API_BASE || 'https://opencode.ai/zen/go/v1' }}
+      LLM_MODEL: ${{ vars.LLM_MODEL || 'openai/kimi-k2.6' }}
+      AGENT_GITHUB_TOKEN: ${{ secrets.AGENT_GITHUB_TOKEN }}
+      RUNNER_RUN_ID: ${{ inputs.run_id }}
+      RUNNER_JOB_ID: ${{ github.run_id }}
+      RUNNER_JOB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - name: Check out Planner
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Validate configuration
+        shell: bash
+        run: |
+          : "${PLANNER_BASE_URL:?Set the PLANNER_BASE_URL environment variable}"
+          : "${RUNNER_API_TOKEN:?Set the RUNNER_API_TOKEN environment secret}"
+          : "${LLM_API_KEY:?Set the LLM_API_KEY environment secret}"
+          : "${AGENT_GITHUB_TOKEN:?Set the AGENT_GITHUB_TOKEN environment secret}"
+
+      - name: Build cached runner images
+        shell: bash
+        run: |
+          docker buildx create --name planner-builder --use
+          docker buildx build \
+            --load \
+            --cache-from type=gha,scope=planner-openhands \
+            --cache-to type=gha,mode=max,scope=planner-openhands \
+            --tag planner-openhands-agent-server \
+            --file agent-runner/Dockerfile.agent-server \
+            agent-runner
+          docker buildx build \
+            --load \
+            --cache-from type=gha,scope=planner-agent-runner \
+            --cache-to type=gha,mode=max,scope=planner-agent-runner \
+            --tag planner-agent-runner \
+            --file agent-runner/Dockerfile \
+            agent-runner
+
+      - name: Start OpenHands
+        shell: bash
+        run: |
+          docker network create planner-agent-network
+          docker volume create planner-agent-workspace
+          docker run --detach \
+            --name planner-openhands \
+            --network planner-agent-network \
+            --volume planner-agent-workspace:/workspace/runs \
+            --env GITHUB_TOKEN="$AGENT_GITHUB_TOKEN" \
+            planner-openhands-agent-server
+          for attempt in $(seq 1 40); do
+            if docker exec planner-openhands curl --fail --silent http://localhost:8000/alive >/dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker logs planner-openhands
+          exit 1
+
+      - name: Run exact Planner task
+        shell: bash
+        run: |
+          docker run --rm \
+            --network planner-agent-network \
+            --volume planner-agent-workspace:/workspace/runs \
+            --env PLANNER_BASE_URL \
+            --env RUNNER_API_TOKEN \
+            --env LLM_API_KEY \
+            --env LLM_API_BASE \
+            --env LLM_MODEL \
+            --env RUNNER_RUN_ID \
+            --env RUNNER_JOB_ID \
+            --env RUNNER_JOB_URL \
+            --env GITHUB_TOKEN="$AGENT_GITHUB_TOKEN" \
+            --env OPENHANDS_BASE_URL=http://planner-openhands:8000 \
+            planner-agent-runner
+
+      - name: Report workflow result to Planner
+        if: always()
+        shell: bash
+        env:
+          WORKFLOW_OUTCOME: ${{ job.status }}
+        run: |
+          payload=$(jq -n \
+            --arg runId "$RUNNER_RUN_ID" \
+            --arg outcome "$WORKFLOW_OUTCOME" \
+            --arg jobId "$RUNNER_JOB_ID" \
+            --arg jobUrl "$RUNNER_JOB_URL" \
+            '{runId: $runId, outcome: $outcome, jobId: $jobId, jobUrl: $jobUrl}')
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "X-Runner-Token: $RUNNER_API_TOKEN" \
+            --data "$payload" \
+            "$PLANNER_BASE_URL/api/runner/workflow-complete"
+
+      - name: Clean up containers
+        if: always()
+        shell: bash
+        run: |
+          docker rm --force planner-openhands 2>/dev/null || true
+          docker volume rm planner-agent-workspace 2>/dev/null || true
+          docker network rm planner-agent-network 2>/dev/null || true
+          docker buildx rm planner-builder 2>/dev/null || true

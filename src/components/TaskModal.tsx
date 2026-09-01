@@ -7,6 +7,7 @@ import {
   useCompleteTaskMutation,
   useUncompleteTaskMutation,
   useDeleteTaskMutation,
+  useCreateTaskFromMessageMutation,
   useUploadAttachmentMutation,
   useDeleteAttachmentMutation,
 } from '#/lib/queries'
@@ -44,6 +45,8 @@ export function TaskModal(props: TaskModalProps) {
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT)
   const [fadeClass, setFadeClass] = useState<'closed' | 'open'>('closed')
   const titleRef = useRef<HTMLInputElement>(null)
+  const messageRef = useRef<HTMLTextAreaElement>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // Fetch the task when editing an existing one.
   const taskRes = useTask(taskId ?? '')
@@ -52,6 +55,7 @@ export function TaskModal(props: TaskModalProps) {
 
   const updateMut = useUpdateTaskMutation()
   const createMut = useCreateTaskMutation()
+  const createChatMut = useCreateTaskFromMessageMutation()
   const completeMut = useCompleteTaskMutation()
   const deleteMut = useDeleteTaskMutation()
   const uploadMut = useUploadAttachmentMutation()
@@ -115,10 +119,14 @@ export function TaskModal(props: TaskModalProps) {
 
   const handleSave = () => {
     const trimmedTitle = draft.title.trim()
-    if (!trimmedTitle) {
-      titleRef.current?.focus()
+    const initialMessage = isNew ? draft.notes.trim() || trimmedTitle : trimmedTitle
+    if (!initialMessage) {
+      setSaveError('Write the first message before creating the task.')
+      if (isNew) messageRef.current?.focus()
+      else titleRef.current?.focus()
       return
     }
+    setSaveError(null)
     const dueAt = draft.dueAt ? Date.parse(draft.dueAt) : null
     if (isExisting && taskId) {
       updateMut.mutate(
@@ -135,22 +143,27 @@ export function TaskModal(props: TaskModalProps) {
           onSuccess: () => {
             onClose()
           },
+          onError: (error) => {
+            setSaveError(error instanceof Error ? error.message : 'Could not save the task.')
+          },
         },
       )
     } else if (isNew && projectId) {
-      createMut.mutate(
+      createChatMut.mutate(
         {
           data: {
             projectId,
-            title: trimmedTitle,
-            notes: draft.notes || null,
-            priority: draft.priority,
-            dueAt: Number.isFinite(dueAt) ? dueAt : undefined,
+            body: initialMessage,
+            clientMessageId: crypto.randomUUID(),
           },
         },
         {
-          onSuccess: () => {
+          onSuccess: (result) => {
+            props.onTaskSaved?.(result.taskId)
             onClose()
+          },
+          onError: (error) => {
+            setSaveError(error instanceof Error ? error.message : 'Could not create the task.')
           },
         },
       )
@@ -295,16 +308,16 @@ export function TaskModal(props: TaskModalProps) {
     >
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <input
-            ref={titleRef}
-            className="title-input"
-            placeholder="Task title…"
-            value={draft.title}
-            onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave()
-            }}
-          />
+          {isNew ? <div className="title-input" style={{ color: 'var(--g-500)' }}>New task conversation</div> : <input
+              ref={titleRef}
+              className="title-input"
+              placeholder="Task title…"
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave()
+              }}
+            />}
           <button className="modal-close" onClick={onClose} aria-label="Close">
             <X size={14} />
           </button>
@@ -321,10 +334,14 @@ export function TaskModal(props: TaskModalProps) {
               onDrop={onDrop}
             >
               <textarea
+                ref={messageRef}
                 className="notes-input"
-                placeholder="Context for you and the agent…&#10;Paste images directly here"
+                placeholder={isNew ? 'Describe what needs to happen…\nThis first message opens the shared task chat.' : 'Context for you and the agent…\nPaste images directly here'}
                 value={draft.notes}
-                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+                onChange={(e) => {
+                  setSaveError(null)
+                  setDraft({ ...draft, notes: e.target.value })
+                }}
                 onPaste={handlePasteImages}
               />
               <div className="notes-hint">
@@ -332,6 +349,7 @@ export function TaskModal(props: TaskModalProps) {
                 <span>Paste images or drop files to attach them</span>
               </div>
               {pasteHint && <div className="notes-paste-hint">{pasteHint}</div>}
+              {saveError && <div className="task-modal-error" role="alert">{saveError}</div>}
             </div>
           </div>
 
@@ -359,7 +377,7 @@ export function TaskModal(props: TaskModalProps) {
             </div>
           )}
 
-          <div className="field-group">
+          {isExisting && <div className="field-group">
             <div className="field-label">Priority & due</div>
             <div className="controls-row">
               <div className="ctrl-wrap priority-control">
@@ -389,7 +407,7 @@ export function TaskModal(props: TaskModalProps) {
                 <Calendar className="ctrl-indicator" size={14} aria-hidden="true" />
               </div>
             </div>
-          </div>
+          </div>}
         </div>
 
         <div className="modal-foot">
@@ -419,8 +437,8 @@ export function TaskModal(props: TaskModalProps) {
                 </button>
               </>
             )}
-            <button className="btn btn-primary" onClick={handleSave}>
-              {isNew ? 'Create' : 'Save'}
+            <button className="btn btn-primary" onClick={handleSave} disabled={createChatMut.isPending || updateMut.isPending}>
+              {createChatMut.isPending || updateMut.isPending ? 'Saving…' : isNew ? 'Create' : 'Save'}
             </button>
           </div>
         </div>

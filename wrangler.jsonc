@@ -1,29 +1,52 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "planner",
-	"compatibility_date": "2025-09-02",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"global_fetch_strictly_public"
-	],
-	"main": "@tanstack/react-start/server-entry",
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "planner",
-			"database_id": "cb5ce300-f9ce-4b44-9bb2-5f856fd05927",
-			"migrations_dir": "drizzle/migrations"
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "ATTACHMENTS",
-			"bucket_name": "planner-attachments"
-		},
-		{
-			"bucket_name": "planner-attachments",
-			"binding": "planner_attachments",
-			"remote": true
-		}
-	]
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "planner",
+  "compatibility_date": "2025-09-02",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "vars": {
+    "CF_ACCESS_TEAM_DOMAIN": "https://lingering-morning-658a.cloudflareaccess.com",
+    "CF_ACCESS_AUDIENCE": "ca0e50f2e3868fb061ee50e86db5a908e7fc22197b29fd836c4b6ef49c3e40d9",
+    "GITHUB_ACTIONS_OWNER": "Rahban1",
+    "GITHUB_ACTIONS_REPOSITORY": "planner",
+    "GITHUB_ACTIONS_WORKFLOW": "planner-agent-run.yml",
+    "GITHUB_ACTIONS_REF": "master",
+  },
+  "secrets": {
+    "required": [
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "RUNNER_API_TOKEN",
+      "GITHUB_ACTIONS_DISPATCH_TOKEN",
+    ],
+  },
+  "main": "src/worker.ts",
+  "durable_objects": {
+    "bindings": [
+      { "name": "TASK_CHAT_ROOMS", "class_name": "TaskChatRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TaskChatRoom"] }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "planner",
+      "database_id": "cb5ce300-f9ce-4b44-9bb2-5f856fd05927",
+      "migrations_dir": "drizzle/migrations",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ATTACHMENTS",
+      "bucket_name": "planner-attachments",
+    },
+    {
+      "bucket_name": "planner-attachments",
+      "binding": "planner_attachments",
+      "remote": true,
+    },
+  ],
 }
