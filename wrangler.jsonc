@@ -21,7 +21,7 @@
       "GITHUB_ACTIONS_DISPATCH_TOKEN",
     ],
   },
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/worker.ts",
   "durable_objects": {
     "bindings": [
       { "name": "TASK_CHAT_ROOMS", "class_name": "TaskChatRoom" }

@@ -1,13 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { getUserFromCookie } from '#/server/auth'
-import { TaskChatRoom } from '#/server/task-chat-room'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 
 type ChatEnv = Env & { TASK_CHAT_ROOMS?: DurableObjectNamespace }
-
-export { TaskChatRoom }
 
 export const Route = createFileRoute('/api/chat/$taskId')({
   server: {
