@@ -423,6 +423,16 @@ async function createSessionResponse(
   return response
 }
 
+export async function createLocalProofSession(request: Request) {
+  const userId = await findOrCreateUser('github', {
+    id: 'planner-local-proof-user',
+    email: 'proof@planner.local',
+    name: 'Planner Proof',
+    avatarUrl: null,
+  })
+  return createSessionResponse(request, userId, '/dashboard')
+}
+
 export async function completeOAuth(
   request: Request,
   provider: AuthProvider,

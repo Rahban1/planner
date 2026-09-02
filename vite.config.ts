@@ -14,7 +14,12 @@ const config = defineConfig({
   },
   plugins: [
     devtools(),
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
+    cloudflare({
+      viteEnvironment: { name: 'ssr' },
+      ...(process.env.PLANNER_UI_PROOF_STATE
+        ? { persistState: { path: process.env.PLANNER_UI_PROOF_STATE } }
+        : {}),
+    }),
     tailwindcss(),
     tanstackStart(),
     viteReact(),
