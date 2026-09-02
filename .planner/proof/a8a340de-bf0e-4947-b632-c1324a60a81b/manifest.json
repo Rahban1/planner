@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "runId": "a8a340de-bf0e-4947-b632-c1324a60a81b",
+  "testedCommitSha": "4f1e3dc788dabcfdca9edae959589f1ff083f87b",
+  "generatedAt": "2026-09-02T18:24:00Z",
+  "environment": {
+    "os": "Linux",
+    "runtime": "Node.js v22.20.0"
+  },
+  "changeType": "ui",
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "taskmodal-regression",
+      "title": "TaskModal regression tests",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "pnpm exec vitest run src/components/TaskModal.test.tsx",
+      "exitCode": 0,
+      "durationMs": 1728,
+      "outputPath": "logs/taskmodal-test.log"
+    },
+    {
+      "id": "taskmodal-lint",
+      "title": "TaskModal focused lint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "./node_modules/.bin/eslint src/components/TaskModal.tsx",
+      "exitCode": 0,
+      "durationMs": 4061,
+      "outputPath": "logs/taskmodal-lint.log"
+    },
+    {
+      "id": "stylesheet-format",
+      "title": "Edited stylesheet formatting check",
+      "layer": "lint",
+      "status": "fail",
+      "command": "pnpm exec prettier --check src/styles.css",
+      "exitCode": 1,
+      "durationMs": 825,
+      "outputPath": "logs/prettier-styles.log"
+    },
+    {
+      "id": "chromium-modal-flow",
+      "title": "Chromium task creation modal flow",
+      "layer": "browser",
+      "status": "not_run",
+      "evidencePaths": []
+    },
+    {
+      "id": "typescript",
+      "title": "TypeScript compilation",
+      "layer": "types",
+      "status": "not_run"
+    },
+    {
+      "id": "production-build",
+      "title": "Production build",
+      "layer": "build",
+      "status": "not_run"
+    },
+    {
+      "id": "full-tests",
+      "title": "Full test suite",
+      "layer": "full",
+      "status": "not_run"
+    },
+    {
+      "id": "api-cli-data",
+      "title": "API, CLI, and data checks",
+      "layer": "api",
+      "status": "not_run"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 2188,
+      "sha256": "d8292c690f513aefd7ed4955df5ef5b05608fe9692672a44ce8dd25065a16e60"
+    },
+    {
+      "path": "logs/prettier-styles.log",
+      "type": "log",
+      "bytes": 153,
+      "sha256": "1dfb130255581df5cfe645bb93b1fe7c4d2f7bf469b32707b3fd642c76659da5"
+    },
+    {
+      "path": "logs/taskmodal-lint.log",
+      "type": "log",
+      "bytes": 25,
+      "sha256": "00f90f097ca6f4880febb80a86326b3533e81293fa18734407e8c4f1f74c299f"
+    },
+    {
+      "path": "logs/taskmodal-test.log",
+      "type": "log",
+      "bytes": 532,
+      "sha256": "63b5edbd00c1e749fdb55a0f076a837fed2a5bfe6969db1f5bd95353d808ea7b"
+    }
+  ],
+  "limitations": [
+    "Chromium proof is pending and no UI media is available yet.",
+    "Prettier reports existing formatting drift in src/styles.css; unrelated formatting was not rewritten."
+  ],
+  "reproduce": [
+    "pnpm install --frozen-lockfile",
+    "pnpm exec vitest run src/components/TaskModal.test.tsx",
+    "./node_modules/.bin/eslint src/components/TaskModal.tsx",
+    "pnpm dev --host and inspect the task creation modal in Chromium"
+  ]
+}
