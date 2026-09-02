@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "runId": "4968c9aa-12be-4ae5-a227-8ff899d16653",
+  "testedCommitSha": "4db5fd2dd3db1edf664b8bbae26d841d1126c8ba",
+  "generatedAt": "2026-09-01T16:53:36.968405+00:00",
+  "environment": {
+    "os": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "runtime": "Node v22.23.2"
+  },
+  "changeType": "ui",
+  "overall": "partial",
+  "checks": [
+    {
+      "id": "task-modal-reopen",
+      "title": "New task modal starts blank after reopening",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "pnpm exec vitest run src/components/TaskModal.test.tsx",
+      "exitCode": 0,
+      "durationMs": 1402,
+      "outputPath": "logs/taskmodal-test.log",
+      "evidencePaths": [
+        "logs/taskmodal-test.log"
+      ]
+    },
+    {
+      "id": "changed-files-lint",
+      "title": "Changed task modal files pass lint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "pnpm exec eslint src/components/TaskModal.tsx src/components/TaskModal.test.tsx",
+      "exitCode": 0,
+      "durationMs": 3542,
+      "outputPath": "logs/eslint-changed.log",
+      "evidencePaths": [
+        "logs/eslint-changed.log"
+      ]
+    },
+    {
+      "id": "browser-flow",
+      "title": "Chromium verifies creating two tasks consecutively",
+      "layer": "browser",
+      "status": "blocked",
+      "command": "pnpm dev --host",
+      "exitCode": 1,
+      "durationMs": 3000,
+      "outputPath": "logs/dev-startup.log",
+      "evidencePaths": [
+        "logs/dev-startup.log",
+        "logs/preview-startup.log"
+      ]
+    },
+    {
+      "id": "typecheck-final",
+      "title": "TypeScript compilation on tested commit",
+      "layer": "types",
+      "status": "not_run",
+      "evidencePaths": [
+        "logs/tsc.log"
+      ]
+    },
+    {
+      "id": "production-build-final",
+      "title": "Production build on tested commit",
+      "layer": "build",
+      "status": "not_run",
+      "evidencePaths": [
+        "logs/build.log"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "logs/build.log",
+      "type": "log",
+      "bytes": 10950,
+      "sha256": "c568d390e8c4e15ca06ed429a5aff669fb8fb5473d24a6a98a1c5c8668ccb4bc"
+    },
+    {
+      "path": "logs/dev-startup.log",
+      "type": "log",
+      "bytes": 2657,
+      "sha256": "5784a0022d25ccdfd4ef3eb7bb459bb71105f6d3d62abc8eaf57b63df17a4215"
+    },
+    {
+      "path": "logs/eslint-changed.log",
+      "type": "log",
+      "bytes": 25,
+      "sha256": "84de8eaceb4ebee28fda7c813fb359d57f3447d09844f3677defce67ed031aca"
+    },
+    {
+      "path": "logs/eslint-taskmodal.log",
+      "type": "log",
+      "bytes": 42,
+      "sha256": "a1498511c940a94e22121b3b2e5310e7c71540b9fec1a0b8c4cbe667b1d2a5b7"
+    },
+    {
+      "path": "logs/preview-startup.log",
+      "type": "log",
+      "bytes": 2662,
+      "sha256": "3f188e0bef37084967929d357298ecd693edbbaa212bf3c854b60cf270b6e652"
+    },
+    {
+      "path": "logs/taskmodal-test.log",
+      "type": "log",
+      "bytes": 528,
+      "sha256": "ad9e86e7e7dfabebd652fbba1155861b6b9c411e3bb7abc090e52545b28f84b8"
+    },
+    {
+      "path": "logs/tsc.log",
+      "type": "log",
+      "bytes": 43,
+      "sha256": "4546d11fbf93e150fbd1425da4d81292ba0d8e026bdfe227bb993187585a95a7"
+    },
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 1700,
+      "sha256": "89df3b9ed1db80ae0e6a3f9398fdbd8f2a87e0e2379364e1f1adca9d27f712ae"
+    }
+  ],
+  "limitations": [
+    "Browser verification and required UI media were blocked by missing Cloudflare credentials.",
+    "Typecheck and build logs were generated before the test-only commit; the source change was unchanged, but they are not counted as final-commit checks.",
+    "No deployed-site evidence was attributed to this branch."
+  ],
+  "reproduce": [
+    "pnpm install --frozen-lockfile",
+    "pnpm exec vitest run src/components/TaskModal.test.tsx",
+    "pnpm exec eslint src/components/TaskModal.tsx src/components/TaskModal.test.tsx",
+    "pnpm dev --host"
+  ]
+}

@@ -82,8 +82,8 @@ export function TaskModal(props: TaskModalProps) {
         priority: task.priority,
         dueAt: task.dueAt ? toDatetimeLocal(task.dueAt) : '',
       })
-    } else if (!taskId && projectId && seenId !== null) {
-      // switching from existing task → new-task mode
+    } else if (!taskId && projectId) {
+      // New-task mode must always start with a blank draft.
       setSeenId(null)
       setDraft(INITIAL_DRAFT)
     } else if (!taskId && !projectId && seenId !== null) {
