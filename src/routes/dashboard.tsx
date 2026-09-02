@@ -98,7 +98,7 @@ function Dashboard() {
     for (const t of priorities) {
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id: t.project.id, taskId: t.id } }),
+        open: () => ui.openTask(t.id, t.project.name, t.project.repoUrl),
         complete: () => completeMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
@@ -109,7 +109,7 @@ function Dashboard() {
       for (const t of summary.active) {
         taskIds.push(t.id)
         handlers[t.id] = {
-          open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id: project.id, taskId: t.id } }),
+          open: () => ui.openTask(t.id, project.name, project.repoUrl),
           complete: () => completeMut.mutate({ data: { id: t.id } }),
           delete: () => deleteMut.mutate({ data: { id: t.id } }),
         }
@@ -117,7 +117,7 @@ function Dashboard() {
     }
 
     focus.register(taskIds, handlers)
-  }, [priorities, summaries, navigate, completeMut, deleteMut, focus])
+  }, [priorities, summaries, ui, completeMut, deleteMut, focus])
 
   return (
     <main className="dashboard">
@@ -125,7 +125,7 @@ function Dashboard() {
         items={priorities}
         onTaskClick={(id) => {
           const project = priorities.find((t) => t.id === id)?.project
-          if (project) navigate({ to: '/projects/$id/tasks/$taskId', params: { id: project.id, taskId: id } })
+          ui.openTask(id, project?.name, project?.repoUrl)
         }}
       />
 
@@ -152,9 +152,7 @@ function Dashboard() {
               project={project}
               active={summary.active}
               completed={summary.completed}
-              onTaskClick={(tid) =>
-                navigate({ to: '/projects/$id/tasks/$taskId', params: { id: project.id, taskId: tid } })
-              }
+              onTaskClick={(tid) => ui.openTask(tid, project.name, project.repoUrl)}
               onProjectClick={() =>
                 navigate({ to: '/projects/$id', params: { id: project.id } })
               }

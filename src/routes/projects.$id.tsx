@@ -1,8 +1,6 @@
 import {
   createFileRoute,
   redirect,
-  Outlet,
-  useRouterState,
   useLoaderData,
   useNavigate,
 } from '@tanstack/react-router'
@@ -50,17 +48,6 @@ export const Route = createFileRoute('/projects/$id')({
 })
 
 function ProjectPage() {
-  const showingTaskChat = useRouterState({
-    select: (state) =>
-      state.matches.some(
-        (match) => match.routeId === '/projects/$id/tasks/$taskId',
-      ),
-  })
-
-  return showingTaskChat ? <Outlet /> : <ProjectPageContent />
-}
-
-function ProjectPageContent() {
   const { id } = Route.useParams()
   const projectRes = useProject(id)
   const summaryRes = useProjectSummary(id)
@@ -93,7 +80,7 @@ function ProjectPageContent() {
       if (t.project.id !== id) continue
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id: t.project.id, taskId: t.id } }),
+        open: () => ui.openTask(t.id, t.project.name, t.project.repoUrl),
         complete: () => completeMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
@@ -103,7 +90,7 @@ function ProjectPageContent() {
     for (const t of summary.active) {
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } }),
+        open: () => ui.openTask(t.id, project?.name, project?.repoUrl),
         complete: () => completeMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
@@ -113,7 +100,7 @@ function ProjectPageContent() {
     for (const t of summary.completed) {
       taskIds.push(t.id)
       handlers[t.id] = {
-        open: () => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } }),
+        open: () => ui.openTask(t.id, project?.name, project?.repoUrl),
         complete: () => uncompleteMut.mutate({ data: { id: t.id } }),
         delete: () => deleteMut.mutate({ data: { id: t.id } }),
       }
@@ -239,7 +226,7 @@ function ProjectPageContent() {
             key={t.id}
             task={t}
             focused={focus.focusedTaskId === t.id}
-            onClick={() => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } })}
+            onClick={() => ui.openTask(t.id, project.name, project.repoUrl)}
             onComplete={() => completeMut.mutate({ data: { id: t.id } })}
           />
         ))}
@@ -260,7 +247,7 @@ function ProjectPageContent() {
                 key={t.id}
                 task={t}
                 focused={focus.focusedTaskId === t.id}
-                onClick={() => navigate({ to: '/projects/$id/tasks/$taskId', params: { id, taskId: t.id } })}
+                onClick={() => ui.openTask(t.id, project.name, project.repoUrl)}
                 onRestore={() => uncompleteMut.mutate({ data: { id: t.id } })}
               />
             ))}
