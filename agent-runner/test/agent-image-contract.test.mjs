@@ -18,6 +18,7 @@ test('agent image supplies every browser recording asset omitted by OpenHands 1.
   )
 
   assert.match(dockerfile, /apt-get install[\s\S]*\btime\b/)
+  assert.match(dockerfile, /corepack\/dist\/corepack\.js/)
   assert.match(dockerfile, /COPY openhands-browser-js\//)
   assert.match(dockerfile, /wait-for-rrweb\.js/)
 
@@ -33,5 +34,6 @@ test('hosted runner validates the browser recording assets before a task starts'
   )
 
   assert.match(workflow, /docker exec planner-openhands \/usr\/bin\/time --version/)
+  assert.match(workflow, /docker exec planner-openhands corepack --version/)
   assert.match(workflow, /wait-for-rrweb\.js/)
 })
