@@ -29,5 +29,5 @@ function InvitePage() {
       setPending(false)
     }
   }
-  return <main className="landing-page"><section className="landing-shell login-shell"><div className="login-card"><p className="landing-eyebrow">Project invite</p><h1>Join this <em>Planner.</em> project</h1><p className="login-sub">Accept the invite to collaborate in the shared task chats.</p><button className="btn btn-primary" onClick={accept} disabled={pending}>{pending ? 'Joining…' : 'Accept invite'}</button>{error && <p className="login-error">{error}</p>}</div></section></main>
+  return <main className="landing-page"><section className="landing-shell login-shell"><div className="login-card"><p className="landing-eyebrow">Project invite</p><h1>Join this <em>Planner.</em> project</h1><p className="login-sub">Accept the invite to collaborate on project tasks.</p><button className="btn btn-primary" onClick={accept} disabled={pending}>{pending ? 'Joining…' : 'Accept invite'}</button>{error && <p className="login-error">{error}</p>}</div></section></main>
 }

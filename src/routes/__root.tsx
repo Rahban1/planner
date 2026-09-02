@@ -139,11 +139,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
           navigate({ to: '/projects/$id', params: { id: pid } })
         }
         onTaskSaved={(savedTaskId) => {
-          const projectId = ui.taskModal?.projectIdForNew
-          if (projectId) {
-            ui.closeTask()
-            navigate({ to: '/projects/$id/tasks/$taskId', params: { id: projectId, taskId: savedTaskId } })
-          }
+          const projectName = ui.taskModal?.projectName
+          const projectRepoUrl = ui.taskModal?.projectRepoUrl
+          ui.openTask(savedTaskId, projectName, projectRepoUrl)
         }}
       />
       <AgentRunModal />
