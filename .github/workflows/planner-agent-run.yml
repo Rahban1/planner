@@ -85,6 +85,8 @@ jobs:
           docker exec planner-openhands npm --version
           docker exec planner-openhands pnpm --version
           docker exec planner-openhands git --version
+          docker exec planner-openhands /usr/bin/time --version
+          docker exec planner-openhands python -c "from pathlib import Path; import openhands.tools.browser_use as browser_use; root = Path(browser_use.__file__).parent / 'js'; required = {'flush-events.js', 'rrweb-loader.js', 'start-recording-simple.js', 'start-recording.js', 'stop-recording.js', 'wait-for-rrweb.js'}; missing = required - {path.name for path in root.glob('*.js')}; assert not missing, f'Missing browser assets: {sorted(missing)}'"
           docker run --rm planner-agent-runner git --version
 
       - name: Run exact Planner task

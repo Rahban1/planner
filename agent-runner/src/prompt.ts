@@ -93,9 +93,9 @@ ${buildCloneInstructions(task)}
 4. In every repository that needs changes, create a new branch named \`${branchName}\` from that repository's default branch. Immediately record it inside that repository by running \`echo "${branchName}" > .git/planner-agent-branch\`. Do not create a branch in a repository that needs no changes.
 5. Inspect the repository's test commands and define a minimum sufficient matrix before you change code. Prefer one focused regression command that covers the main behavior and an edge case, plus at most one cheap repository-native gate that gives different evidence. Use only relevant layers: lint, types, targeted tests, full tests, build, API, CLI, data, and browser.
 6. Implement the task. Make focused, minimal changes. Add a focused regression test when the repository has a suitable test framework. Do not refactor unrelated code.
-7. Use about 10 minutes for inspection and implementation. Reserve the remaining time for testing, evidence, commit, push, and the ready pull request. Stop adding features when the verification window begins.
-8. Commit the code that you will test. Record its full Git SHA. Run the minimum sufficient matrix against that commit. Do not repeat equivalent checks, and do not run a full suite after a focused suite unless the changed surface or repository guidance makes the full suite necessary. Skip unrelated lint, type, build, API, CLI, data, and browser checks. Record each skipped layer as NOT RUN with a short reason. Record every result honestly as PASS, FAIL, BLOCKED, or NOT RUN.
-9. In each changed repository, create and commit the proof pack described below. Follow good commit guidelines and push each changed repository's branch to its remote origin.
+7. Use at most 8 minutes for inspection and implementation. Reserve the remaining time for testing, evidence, commit, push, and the ready pull request. Stop adding features when the verification window begins.
+8. Commit the code that you will test. Record its full Git SHA. Run the minimum sufficient matrix against that commit. Run one verification command at a time so one slow process cannot hide the result of another process. Do not use \`/usr/bin/time\`; use shell timestamps when you need a duration. Do not repeat equivalent checks, and do not run a full suite after a focused suite unless the changed surface or repository guidance makes the full suite necessary. Skip unrelated lint, type, build, API, CLI, data, and browser checks. Record each skipped layer as NOT RUN with a short reason. Record every result honestly as PASS, FAIL, BLOCKED, or NOT RUN.
+9. In each changed repository, write a valid partial manifest, report, and available command logs before browser work. Record the browser check as NOT RUN while it is pending. Commit and push this proof checkpoint. Then run browser proof and update the proof pack. If browser capture is blocked, keep the browser check BLOCKED, keep the proof result partial, and do not invent missing media. Follow good commit guidelines and push each later proof update to the same branch.
 10. Create one ready Pull Request in each changed repository against that repository's default branch, even when a check fails or could not run. Do NOT create draft PRs. Do NOT merge them. Show failed and incomplete checks prominently.
    - Authenticate the GitHub CLI first if needed: \`echo "\${GITHUB_TOKEN}" | gh auth login --with-token\`
    - Create each PR from inside its repository directory, e.g. \`gh pr create --title "..." --body-file pr-body.md\`.
@@ -113,7 +113,7 @@ Required files:
 - \`${proofRoot}/manifest.json\`
 - \`${proofRoot}/report.md\`
 - Command output under \`${proofRoot}/logs/\`
-- For UI or mixed changes: \`${proofRoot}/screenshots/desktop.png\`, \`${proofRoot}/screenshots/mobile.png\`, and one short \`${proofRoot}/video/ui-flow.webm\`
+- For a passing UI or mixed browser check: \`${proofRoot}/screenshots/desktop.png\`, \`${proofRoot}/screenshots/mobile.png\`, and one short \`${proofRoot}/video/ui-flow.webm\`
 
 The manifest must use this JSON shape:
 
@@ -151,7 +151,7 @@ Set \`overall\` to \`fail\` if any check fails. Otherwise, set it to \`partial\`
 
 For a BLOCKED or NOT RUN check, omit \`command\`, \`exitCode\`, and \`durationMs\` when no command ran. Do not invent a zero duration or exit code. A completed PASS or FAIL check must include its real \`durationMs\`.
 
-For a UI change, start the current branch locally and test the primary flow in Chromium. Do not use a deployed production application as proof of an unmerged branch. If the repository provides a dedicated UI proof command such as \`pnpm proof:ui\`, use it and follow its local proof documentation. Capture the final desktop state, the final mobile state, browser console health, and a short WebM of the main flow. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.
+For a UI change, start the current branch locally and test the primary flow in Chromium. Do not use a deployed production application as proof of an unmerged branch. If the repository provides a dedicated UI proof command such as \`pnpm proof:ui\`, use it and follow its local proof documentation. Capture the final desktop state, the final mobile state, browser console health, and a short WebM of the main flow. If browser startup, navigation, screenshots, or recording is blocked, record that browser check as BLOCKED, set the result to partial, and omit only the unavailable media. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.
 
 ## Required Pull Request body format
 

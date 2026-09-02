@@ -21,7 +21,7 @@ test('implementation prompt requires the proof contract and reserves verificatio
 
   assert.match(prompt, /\.planner\/proof\/run-123\/manifest\.json/)
   assert.match(prompt, /PASS.*FAIL.*BLOCKED.*NOT RUN/s)
-  assert.match(prompt, /about 10 minutes/i)
+  assert.match(prompt, /at most 8 minutes/i)
   assert.match(prompt, /remaining.*testing.*evidence.*pull request/is)
   assert.match(prompt, /desktop.*mobile.*WebM/is)
   assert.match(prompt, /start the current branch locally/i)
@@ -33,6 +33,10 @@ test('implementation prompt requires the proof contract and reserves verificatio
   assert.match(prompt, /minimum sufficient matrix/i)
   assert.match(prompt, /do not repeat equivalent checks/i)
   assert.match(prompt, /skip.*unrelated.*NOT RUN/i)
+  assert.match(prompt, /one verification command at a time/i)
+  assert.match(prompt, /do not use `\/usr\/bin\/time`/i)
+  assert.match(prompt, /write.*partial.*manifest.*before.*browser/is)
+  assert.match(prompt, /browser.*blocked.*partial/is)
   assert.match(prompt, /Writable repositories:/)
   assert.match(
     prompt,
