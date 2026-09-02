@@ -311,7 +311,15 @@ function validateReferences(manifest: ProofManifestV1, errors: string[]) {
 function validateRequiredArtifacts(manifest: ProofManifestV1, errors: string[]) {
   const paths = new Set(manifest.artifacts.map((artifact) => artifact.path))
   if (!paths.has('report.md')) errors.push('Proof pack must include report.md.')
-  if (manifest.changeType === 'ui' || manifest.changeType === 'mixed') {
+  const browserCaptureUnavailable = manifest.checks.some(
+    (check) =>
+      check.layer === 'browser' &&
+      (check.status === 'blocked' || check.status === 'not_run'),
+  )
+  if (
+    (manifest.changeType === 'ui' || manifest.changeType === 'mixed') &&
+    !browserCaptureUnavailable
+  ) {
     for (const required of [
       'screenshots/desktop.png',
       'screenshots/mobile.png',

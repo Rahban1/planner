@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { mkdtemp, mkdir, readFile, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -127,6 +127,57 @@ test('reports FAIL, BLOCKED, and NOT RUN checks without rejecting honest proof',
   })
 
   assert.equal(proof.state, 'fail')
+  assert.deepEqual(proof.errors, [])
+})
+
+test('accepts partial UI proof when browser capture is blocked', async () => {
+  const { repoDir, manifest, proofDir } = await makeProofPack()
+  const missingMedia = [
+    'screenshots/desktop.png',
+    'screenshots/mobile.png',
+    'video/ui-flow.webm',
+  ]
+
+  for (const path of missingMedia) {
+    await unlink(join(proofDir, path))
+  }
+  manifest.artifacts = manifest.artifacts.filter(
+    (artifact) => !missingMedia.includes(artifact.path),
+  )
+  manifest.checks = [
+    {
+      id: 'targeted-tests',
+      title: 'Targeted regression tests',
+      layer: 'targeted',
+      status: 'pass',
+      command: 'npm test',
+      exitCode: 0,
+      durationMs: 1200,
+      outputPath: 'logs/test.txt',
+      evidencePaths: [],
+    },
+    {
+      id: 'browser-proof',
+      title: 'Browser proof',
+      layer: 'browser',
+      status: 'blocked',
+      evidencePaths: [],
+    },
+  ]
+  manifest.overall = 'partial'
+  manifest.limitations = ['Browser recording tool was unavailable.']
+  await writeFile(
+    join(proofDir, 'manifest.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  )
+
+  const proof = await loadProofPack({
+    repoDir,
+    runId: RUN_ID,
+    allowedCommitShas: [TESTED_SHA],
+  })
+
+  assert.equal(proof.state, 'partial')
   assert.deepEqual(proof.errors, [])
 })
 

@@ -3,12 +3,13 @@ FROM mcr.microsoft.com/playwright/python:v1.50.0-noble
 WORKDIR /workspace
 
 # This image already bundles Python 3.12, Chromium, and Playwright browser deps.
-# Install git, curl, and gnupg for the GitHub CLI.
+# Install the command-line tools that agent verification can use.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ffmpeg \
     gnupg \
+    time \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
@@ -43,6 +44,15 @@ RUN uv pip install --system --no-cache-dir \
     openhands-agent-server==1.32.0 \
     'mcp<2' \
     playwright==1.50.0
+
+# OpenHands 1.32.0 omits these browser recording assets from its wheel.
+# The files are vendored from the matching software-agent-sdk v1.32.0 tag.
+COPY openhands-browser-js/ /tmp/openhands-browser-js/
+RUN browser_use_dir="$(python -c 'import openhands.tools.browser_use as module; from pathlib import Path; print(Path(module.__file__).parent)')" \
+    && mkdir -p "$browser_use_dir/js" \
+    && cp /tmp/openhands-browser-js/*.js "$browser_use_dir/js/" \
+    && test -f "$browser_use_dir/js/wait-for-rrweb.js" \
+    && rm -rf /tmp/openhands-browser-js
 
 # browser-use 0.11.x calls this MCP 1.x API while it starts. Fail the image
 # build if dependency resolution selects the incompatible MCP 2.x API.

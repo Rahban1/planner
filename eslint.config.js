@@ -29,6 +29,7 @@ export default [
     ignores: [
       '.wrangler/**',
       'eslint.config.js',
+      'agent-runner/openhands-browser-js/**',
       'prettier.config.js',
       'public/sw.js',
     ],
