@@ -23,13 +23,9 @@
   },
   "main": "src/worker.ts",
   "durable_objects": {
-    "bindings": [
-      { "name": "TASK_CHAT_ROOMS", "class_name": "TaskChatRoom" }
-    ]
+    "bindings": [{ "name": "TASK_CHAT_ROOMS", "class_name": "TaskChatRoom" }],
   },
-  "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["TaskChatRoom"] }
-  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TaskChatRoom"] }],
   "d1_databases": [
     {
       "binding": "DB",
@@ -42,11 +38,6 @@
     {
       "binding": "ATTACHMENTS",
       "bucket_name": "planner-attachments",
-    },
-    {
-      "bucket_name": "planner-attachments",
-      "binding": "planner_attachments",
-      "remote": true,
     },
   ],
 }

@@ -13,7 +13,12 @@ export interface TaskContext {
     path: string
     url: string
   }[]
-  messages?: { authorType: string; kind: string; body: string; createdAt: number }[]
+  messages?: {
+    authorType: string
+    kind: string
+    body: string
+    createdAt: number
+  }[]
 }
 
 export interface BuildPromptOptions {
@@ -146,7 +151,7 @@ Set \`overall\` to \`fail\` if any check fails. Otherwise, set it to \`partial\`
 
 For a BLOCKED or NOT RUN check, omit \`command\`, \`exitCode\`, and \`durationMs\` when no command ran. Do not invent a zero duration or exit code. A completed PASS or FAIL check must include its real \`durationMs\`.
 
-For a UI change, start the application and test the primary flow in Chromium. Capture the final desktop state, the final mobile state, browser console health, and a short WebM of the main flow. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.
+For a UI change, start the current branch locally and test the primary flow in Chromium. Do not use a deployed production application as proof of an unmerged branch. If the repository provides a dedicated UI proof command such as \`pnpm proof:ui\`, use it and follow its local proof documentation. Capture the final desktop state, the final mobile state, browser console health, and a short WebM of the main flow. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.
 
 ## Required Pull Request body format
 
@@ -193,7 +198,10 @@ Begin by cloning every repository, then explore their codebases and decide which
 }
 
 export function buildAnswerPrompt(task: TaskContext): string {
-  const conversation = task.messages?.map((message) => `${message.authorType}: ${message.body}`).join('\n') ?? ''
+  const conversation =
+    task.messages
+      ?.map((message) => `${message.authorType}: ${message.body}`)
+      .join('\n') ?? ''
   return `You are the Planner agent. Answer the user's question using only the task context below.
 
 Task: ${task.title}

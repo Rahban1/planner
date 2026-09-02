@@ -24,6 +24,7 @@ import { Route as ApiChatTaskIdRouteImport } from './routes/api/chat/$taskId'
 import { Route as ApiAuthStartRouteImport } from './routes/api/auth/start'
 import { Route as ApiAuthProvidersRouteImport } from './routes/api/auth/providers'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
+import { Route as ApiAuthLocalProofRouteImport } from './routes/api/auth/local-proof'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
 import { Route as ProjectsIdTasksTaskIdRouteImport } from './routes/projects.$id.tasks.$taskId'
 import { Route as ApiAuthCloudflareCallbackRouteImport } from './routes/api/auth/cloudflare/callback'
@@ -104,6 +105,11 @@ const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
   path: '/api/auth/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthLocalProofRoute = ApiAuthLocalProofRouteImport.update({
+  id: '/api/auth/local-proof',
+  path: '/api/auth/local-proof',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
   id: '/api/attachments/$id',
   path: '/api/attachments/$id',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/docs/': typeof DocsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/auth/start': typeof ApiAuthStartRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/docs': typeof DocsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/auth/start': typeof ApiAuthStartRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/docs/': typeof DocsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/providers': typeof ApiAuthProvidersRoute
   '/api/auth/start': typeof ApiAuthStartRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/docs/'
     | '/api/attachments/$id'
+    | '/api/auth/local-proof'
     | '/api/auth/logout'
     | '/api/auth/providers'
     | '/api/auth/start'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/docs'
     | '/api/attachments/$id'
+    | '/api/auth/local-proof'
     | '/api/auth/logout'
     | '/api/auth/providers'
     | '/api/auth/start'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/docs/'
     | '/api/attachments/$id'
+    | '/api/auth/local-proof'
     | '/api/auth/logout'
     | '/api/auth/providers'
     | '/api/auth/start'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   ProjectsIdRoute: typeof ProjectsIdRouteWithChildren
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
+  ApiAuthLocalProofRoute: typeof ApiAuthLocalProofRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiAuthProvidersRoute: typeof ApiAuthProvidersRoute
   ApiAuthStartRoute: typeof ApiAuthStartRoute
@@ -380,6 +393,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthLogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/local-proof': {
+      id: '/api/auth/local-proof'
+      path: '/api/auth/local-proof'
+      fullPath: '/api/auth/local-proof'
+      preLoaderRoute: typeof ApiAuthLocalProofRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/attachments/$id': {
       id: '/api/attachments/$id'
       path: '/api/attachments/$id'
@@ -445,6 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   ProjectsIdRoute: ProjectsIdRouteWithChildren,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
+  ApiAuthLocalProofRoute: ApiAuthLocalProofRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiAuthProvidersRoute: ApiAuthProvidersRoute,
   ApiAuthStartRoute: ApiAuthStartRoute,
