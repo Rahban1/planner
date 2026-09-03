@@ -4,7 +4,11 @@ import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
 import { getPullRequestState } from './github.js'
 import type { TerminalExecutionStatus } from './polling.js'
-import { getTerminalExecutionStatus, shouldStopPolling } from './polling.js'
+import {
+  getTerminalExecutionStatus,
+  hasExceededIdleLimit,
+  shouldStopPolling,
+} from './polling.js'
 import {
   buildPrompt,
   buildAnswerPrompt,
@@ -57,7 +61,12 @@ interface TaskContext {
   priority: string
   approvedPlanMd: string | null
   attachments: { id: string; name: string; mimeType: string; path: string }[]
-  messages?: { authorType: string; kind: string; body: string; createdAt: number }[]
+  messages?: {
+    authorType: string
+    kind: string
+    body: string
+    createdAt: number
+  }[]
 }
 
 const POLL_INTERVAL_MS = 3000
@@ -76,6 +85,7 @@ const RUNNER_JOB_ID = process.env.RUNNER_JOB_ID?.trim() ?? ''
 const RUNNER_JOB_URL = process.env.RUNNER_JOB_URL?.trim() ?? ''
 const RUNNER_MERGE_CHECK_ONLY = process.env.RUNNER_MERGE_CHECK_ONLY === '1'
 const MAX_RUNTIME_MS = 15 * 60 * 1000 // 15 minutes
+const MAX_IDLE_MS = 5 * 60 * 1000 // 5 minutes without an agent event
 const MERGE_CHECK_INTERVAL_MS = 15_000
 const plannerFetch = createPlannerFetch({
   baseUrl: PLANNER_BASE_URL,
@@ -208,13 +218,15 @@ async function driveConversation(
   isTimedOut: () => boolean,
   extraShouldStop?: () => boolean,
   onMessage?: (text: string) => void,
-): Promise<void> {
+): Promise<boolean> {
   const seenEventKeys = new Set<string>()
-  let idleCount = 0
+  let lastEventAt = Date.now()
+  let idleTimedOut = false
   let terminalStatus: TerminalExecutionStatus | null = null
 
   await openhands.pollEvents(conversationId, {
     onEvent: (event) => {
+      lastEventAt = Date.now()
       const text = eventMessage(event)
       if (text) {
         if (event.kind === 'MessageEvent') onMessage?.(text)
@@ -228,20 +240,24 @@ async function driveConversation(
       }
     },
     onPoll: async (newEventCount) => {
-      if (newEventCount > 0) {
-        idleCount = 0
-        return
-      }
-      idleCount += 1
+      if (newEventCount > 0) return
       try {
         const convo = await openhands.getConversation(conversationId)
         terminalStatus = getTerminalExecutionStatus(convo.execution_status)
       } catch {
         // ignore
       }
+      idleTimedOut =
+        terminalStatus === null &&
+        hasExceededIdleLimit({
+          lastEventAt,
+          now: Date.now(),
+          maxIdleMs: MAX_IDLE_MS,
+        })
     },
     shouldStop: () => {
       if (extraShouldStop?.()) return true
+      if (idleTimedOut) return true
       return shouldStopPolling({
         timedOut: isTimedOut(),
         startedAt,
@@ -256,6 +272,7 @@ async function driveConversation(
   if (terminalStatus === 'error' || terminalStatus === 'stuck') {
     await append(`Agent session ended with status: ${terminalStatus}`, 'warn')
   }
+  return idleTimedOut
 }
 
 async function postTaskMessage(taskId: string, body: string, kind: string) {
@@ -266,16 +283,36 @@ async function postTaskMessage(taskId: string, body: string, kind: string) {
 }
 
 async function processAnswerRun(run: AgentRun, openhands: OpenHandsClient) {
-  const logs: LogEntry[] = [{ t: Date.now(), level: 'info', message: 'Agent runner picked up question.' }]
+  const logs: LogEntry[] = [
+    {
+      t: Date.now(),
+      level: 'info',
+      message: 'Agent runner picked up question.',
+    },
+  ]
   const append = makeAppend(run, logs)
   let answer = ''
   try {
     await updateRun(run.id, { status: 'running', logs })
     const task = await fetchTaskContext(run)
     const workspace = await prepareWorkspace(run.id)
-    const conversation = await openhands.startConversation(buildAnswerPrompt(withAttachmentUrls(task)), workspace)
+    const conversation = await openhands.startConversation(
+      buildAnswerPrompt(withAttachmentUrls(task)),
+      workspace,
+    )
     await openhands.runConversation(conversation.id)
-    await driveConversation(openhands, conversation.id, append, Date.now(), () => false, undefined, (text) => { answer = text })
+    const idleTimedOut = await driveConversation(
+      openhands,
+      conversation.id,
+      append,
+      Date.now(),
+      () => false,
+      undefined,
+      (text) => {
+        answer = text
+      },
+    )
+    if (idleTimedOut) throw new Error('Agent produced no events for 5 minutes')
     if (!answer) answer = 'The agent finished without an answer.'
     await postTaskMessage(run.taskId, answer, 'answer')
     await updateRun(run.id, { status: 'success' })
@@ -283,7 +320,11 @@ async function processAnswerRun(run: AgentRun, openhands: OpenHandsClient) {
     const message = error instanceof Error ? error.message : String(error)
     await append(`Error: ${message}`, 'error')
     await updateRun(run.id, { status: 'error', errorMessage: message })
-    await postTaskMessage(run.taskId, `The agent could not answer: ${message}`, 'error').catch(() => undefined)
+    await postTaskMessage(
+      run.taskId,
+      `The agent could not answer: ${message}`,
+      'error',
+    ).catch(() => undefined)
   }
 }
 
@@ -392,7 +433,7 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
     await append(`Conversation started: ${conversation.id}`)
 
     await openhands.runConversation(conversation.id)
-    await driveConversation(
+    const idleTimedOut = await driveConversation(
       openhands,
       conversation.id,
       append,
@@ -406,6 +447,15 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
 
     if (userStopped) {
       await append('Stopped by user.', 'warn')
+      return
+    }
+
+    if (idleTimedOut) {
+      await append('Stopped: no agent activity for 5 minutes.', 'warn')
+      await updateRun(run.id, {
+        status: 'error',
+        errorMessage: 'Agent produced no events for 5 minutes',
+      })
       return
     }
 
@@ -470,7 +520,7 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
     await append(`Conversation started: ${conversation.id}`)
 
     await openhands.runConversation(conversation.id)
-    await driveConversation(
+    const idleTimedOut = await driveConversation(
       openhands,
       conversation.id,
       append,
@@ -485,6 +535,13 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
     if (userStopped) {
       await append('Stopped by user.', 'warn')
       return
+    }
+
+    if (idleTimedOut) {
+      await append(
+        'No agent activity for 5 minutes. Checking every repository for a pushed branch or PR.',
+        'warn',
+      )
     }
 
     if (timedOut) {
