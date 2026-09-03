@@ -975,17 +975,15 @@ body {
 .modal-body {
   flex: 1;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 22px 26px;
   display: flex;
   flex-direction: column;
   gap: 22px;
 }
 .modal-body::-webkit-scrollbar {
-  width: 6px;
-}
-.modal-body::-webkit-scrollbar-thumb {
-  background: var(--line-2);
-  border-radius: 9999px;
+  display: none;
 }
 .field-group {
   display: flex;
