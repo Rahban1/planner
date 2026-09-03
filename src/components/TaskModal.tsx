@@ -319,7 +319,7 @@ export function TaskModal(props: TaskModalProps) {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal task-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <input
             ref={titleRef}

@@ -56,6 +56,7 @@ describe('TaskModal', () => {
       expect.any(Object),
     )
     expect(screen.getByLabelText('Task due date')).not.toBeNull()
+    expect(screen.getByLabelText('Task due date').closest('.task-modal')).not.toBeNull()
   })
 
   it('clears the previous draft when opening another new task', async () => {
