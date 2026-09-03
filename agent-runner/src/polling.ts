@@ -9,6 +9,18 @@ export function getTerminalExecutionStatus(
   return null
 }
 
+export function hasExceededIdleLimit({
+  lastEventAt,
+  now,
+  maxIdleMs,
+}: {
+  lastEventAt: number
+  now: number
+  maxIdleMs: number
+}): boolean {
+  return now - lastEventAt > maxIdleMs
+}
+
 export function shouldStopPolling({
   timedOut,
   startedAt,
