@@ -282,6 +282,25 @@ test('accepts a plain-text command exit-code artifact', async () => {
   assert.deepEqual(proof.errors, [])
 })
 
+test('normalizes a missing evidencePaths field to an empty array', async () => {
+  const { repoDir, manifest, proofDir } = await makeProofPack()
+  delete manifest.checks[0].evidencePaths
+  await writeFile(
+    join(proofDir, 'manifest.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  )
+
+  const proof = await loadProofPack({
+    repoDir,
+    runId: RUN_ID,
+    allowedCommitShas: [TESTED_SHA],
+  })
+
+  assert.equal(proof.state, 'pass')
+  assert.deepEqual(proof.manifest?.checks[0].evidencePaths, [])
+  assert.deepEqual(proof.errors, [])
+})
+
 test('renders an honest proof section with permanent media links', async () => {
   const { repoDir } = await makeProofPack()
   const proof = await loadProofPack({

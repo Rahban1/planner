@@ -83,6 +83,7 @@ jobs:
         run: |
           docker exec planner-openhands node --version
           docker exec planner-openhands npm --version
+          docker exec planner-openhands corepack --version
           docker exec planner-openhands pnpm --version
           docker exec planner-openhands git --version
           docker exec planner-openhands /usr/bin/time --version
