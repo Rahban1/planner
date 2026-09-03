@@ -2,7 +2,7 @@
   "version": 1,
   "runId": "d0dae08a-6982-4b4b-accf-25ec2e9eb8b3",
   "testedCommitSha": "a5ec925dadc12cd09f647e3153fe239aac270904",
-  "generatedAt": "2026-09-03T05:15:02.081402+00:00",
+  "generatedAt": "2026-09-03T05:18:41.412265+00:00",
   "environment": {
     "os": "Linux aarch64",
     "runtime": "Node.js 22.20.0"
@@ -40,16 +40,18 @@
       "id": "taskmodal-browser",
       "title": "Task creation modal scrollbar browser proof",
       "layer": "browser",
-      "status": "not_run",
-      "evidencePaths": []
+      "status": "blocked",
+      "evidencePaths": [
+        "logs/ui-proof-server.log"
+      ]
     }
   ],
   "artifacts": [
     {
       "path": "report.md",
       "type": "report",
-      "bytes": 1174,
-      "sha256": "dbad1ea766337327d7c28a160fe058a0dfa5618f8f7dcea03effe316b5c31c3a"
+      "bytes": 1378,
+      "sha256": "d5965ece2b3f3333e361ddd6346dfcaf585049afeacfc960a862056c5a71ac8d"
     },
     {
       "path": "logs/taskmodal-test.log",
@@ -62,10 +64,16 @@
       "type": "log",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/ui-proof-server.log",
+      "type": "log",
+      "bytes": 37702,
+      "sha256": "b926aaf12fd06b86eeffdd26241aef554a5419b03ddb22823b2ec3cd9d6e014d"
     }
   ],
   "limitations": [
-    "Browser proof is pending; no screenshots, video, or console evidence has been captured yet.",
+    "Chromium navigation remained on about:blank after two attempts, so screenshots, video, and console evidence are unavailable.",
     "Typecheck, build, and full suite were not run for this focused CSS/UI change."
   ],
   "reproduce": [
