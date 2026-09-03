@@ -1,0 +1,446 @@
+
+> planner@ proof:ui /workspace/runs/d0dae08a-6982-4b4b-accf-25ec2e9eb8b3/repo
+> node scripts/start-ui-proof.mjs
+
+
+ ⛅️ wrangler 4.107.0
+────────────────────
+Resource location: local 
+
+Use --remote if you want to access the remote instance.
+
+Migrations to be applied:
+┌─────────────────────────────────┐
+│ name                            │
+├─────────────────────────────────┤
+│ 0000_init.sql                   │
+├─────────────────────────────────┤
+│ 0001_add_agent_runs.sql         │
+├─────────────────────────────────┤
+│ 0002_attachments.sql            │
+├─────────────────────────────────┤
+│ 0003_plan_runs.sql              │
+├─────────────────────────────────┤
+│ 0004_collaboration_feature.sql  │
+├─────────────────────────────────┤
+│ 0005_auth.sql                   │
+├─────────────────────────────────┤
+│ 0005_multiple_repositories.sql  │
+├─────────────────────────────────┤
+│ 0006_oauth_pkce.sql             │
+├─────────────────────────────────┤
+│ 0007_project_repositories.sql   │
+├─────────────────────────────────┤
+│ 0008_agent_run_repositories.sql │
+├─────────────────────────────────┤
+│ 0009_task_chat.sql              │
+├─────────────────────────────────┤
+│ 0010_github_actions_runner.sql  │
+└─────────────────────────────────┘
+? About to apply 12 migration(s)
+Your database may not be available to serve requests during the migration, continue?
+🤖 Using fallback value in non-interactive context: yes
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 3 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 5 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 4 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 6 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 4 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 3 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ 🕒️    │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 16 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ 🕒️    │
+└─────────────────────────────────┴────────┘
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 6 commands executed successfully.
+┌─────────────────────────────────┬────────┐
+│ name                            │ status │
+├─────────────────────────────────┼────────┤
+│ 0000_init.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0001_add_agent_runs.sql         │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0002_attachments.sql            │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0003_plan_runs.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0004_collaboration_feature.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_auth.sql                   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0005_multiple_repositories.sql  │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0006_oauth_pkce.sql             │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0007_project_repositories.sql   │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0008_agent_run_repositories.sql │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0009_task_chat.sql              │ ✅     │
+├─────────────────────────────────┼────────┤
+│ 0010_github_actions_runner.sql  │ ✅     │
+└─────────────────────────────────┴────────┘
+
+ ⛅️ wrangler 4.107.0 (update available 4.128.0)
+───────────────────────────────────────────────
+Resource location: local 
+
+Use --remote if you want to access the remote instance.
+
+🌀 Executing on local database planner (cb5ce300-f9ce-4b44-9bb2-5f856fd05927) from ../../../../tmp/planner-ui-proof-ssKgvA/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 2 commands executed successfully.
+[
+  {
+    "results": [],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  },
+  {
+    "results": [],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  }
+]
+
+Local UI proof environment is ready.
+Open http://127.0.0.1:3000/api/auth/local-proof
+Select "Open proof dashboard" to use local test data.
+
+Using secrets defined in process.env
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mMissing required secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, RUNNER_API_TOKEN, GITHUB_ACTIONS_DISPATCH_TOKEN. Add them to .dev.vars, .env, or set as environment variables.[0m
+
+
+
+  VITE v8.1.3  ready in 5209 ms
+
+  ➜  Local:   http://127.0.0.1:3000/
+  ➜  Debug:   http://127.0.0.1:3000/__debug
+  ➜  press b + enter to list configured Cloudflare bindings
+  ➜  press e + enter to open local explorer
+  ➜  press t + enter to start tunnel
+  ➜  press h + enter to show help

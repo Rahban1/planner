@@ -987,6 +987,13 @@ body {
   background: var(--line-2);
   border-radius: 9999px;
 }
+.task-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.task-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}
 .field-group {
   display: flex;
   flex-direction: column;
