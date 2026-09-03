@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "runId": "d0dae08a-6982-4b4b-accf-25ec2e9eb8b3",
+  "testedCommitSha": "a5ec925dadc12cd09f647e3153fe239aac270904",
+  "generatedAt": "2026-09-03T05:15:02.081402+00:00",
+  "environment": {
+    "os": "Linux aarch64",
+    "runtime": "Node.js 22.20.0"
+  },
+  "changeType": "ui",
+  "overall": "partial",
+  "checks": [
+    {
+      "id": "taskmodal-regression",
+      "title": "TaskModal scrollbar scope regression",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "timeout 120s pnpm exec vitest run --config vitest.config.ts src/components/TaskModal.test.tsx",
+      "exitCode": 0,
+      "durationMs": 1745,
+      "outputPath": "logs/taskmodal-test.log",
+      "evidencePaths": [
+        "logs/taskmodal-test.log"
+      ]
+    },
+    {
+      "id": "taskmodal-eslint",
+      "title": "TaskModal focused lint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "timeout 120s pnpm exec eslint src/components/TaskModal.tsx src/components/TaskModal.test.tsx",
+      "exitCode": 0,
+      "durationMs": 4308,
+      "outputPath": "logs/eslint-taskmodal.log",
+      "evidencePaths": [
+        "logs/eslint-taskmodal.log"
+      ]
+    },
+    {
+      "id": "taskmodal-browser",
+      "title": "Task creation modal scrollbar browser proof",
+      "layer": "browser",
+      "status": "not_run",
+      "evidencePaths": []
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 1174,
+      "sha256": "dbad1ea766337327d7c28a160fe058a0dfa5618f8f7dcea03effe316b5c31c3a"
+    },
+    {
+      "path": "logs/taskmodal-test.log",
+      "type": "log",
+      "bytes": 506,
+      "sha256": "e476226b98f2524ae2839f3a6808457b1aeb1d5efb72e554596322520c9feb64"
+    },
+    {
+      "path": "logs/eslint-taskmodal.log",
+      "type": "log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limitations": [
+    "Browser proof is pending; no screenshots, video, or console evidence has been captured yet.",
+    "Typecheck, build, and full suite were not run for this focused CSS/UI change."
+  ],
+  "reproduce": [
+    "pnpm install --frozen-lockfile",
+    "pnpm exec vitest run --config vitest.config.ts src/components/TaskModal.test.tsx",
+    "pnpm exec eslint src/components/TaskModal.tsx src/components/TaskModal.test.tsx",
+    "pnpm proof:ui, then open /api/auth/local-proof and open the proof dashboard in Chromium."
+  ]
+}
