@@ -2,7 +2,7 @@
   "version": 1,
   "runId": "2fe62b27-00fd-4e39-a226-67d990114c70",
   "testedCommitSha": "89464e5607c93ca8e2195c5fbff760f81b76af87",
-  "generatedAt": "2026-09-03T04:56:13.166357+00:00",
+  "generatedAt": "2026-09-03T05:04:09.780111+00:00",
   "environment": {
     "os": "Linux aarch64",
     "runtime": "Node.js 22.20.0"
@@ -36,7 +36,7 @@
       "id": "browser-ui",
       "title": "Task creation modal scrollbar browser proof",
       "layer": "browser",
-      "status": "not_run",
+      "status": "blocked",
       "evidencePaths": []
     }
   ],
@@ -44,8 +44,8 @@
     {
       "path": "report.md",
       "type": "report",
-      "bytes": 1253,
-      "sha256": "f0b2c201dbf8c8a4185a8c95fda536ff3d3e1ac2ea47f43a89a4764010cc0f21"
+      "bytes": 1364,
+      "sha256": "5b4e4c6667c1e2ef42f4cf30fbac550ed693f75f688b0c9f2db97fb5653e126b"
     },
     {
       "path": "logs/taskmodal-test.log",
@@ -62,7 +62,7 @@
   ],
   "limitations": [
     "The targeted stylesheet formatting check failed because the pre-existing stylesheet is not Prettier-clean.",
-    "Browser proof and required screenshots/video have not yet been captured."
+    "Local Chromium navigation timed out after the proof server became stopped/unresponsive; screenshots and video are unavailable."
   ],
   "reproduce": [
     "pnpm install --frozen-lockfile",

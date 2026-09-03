@@ -10,7 +10,7 @@ Validated the task creation modal scrollbar styling on committed code SHA `89464
   - Both existing TaskModal tests passed.
 - **FAIL — Targeted stylesheet formatting:** `pnpm exec prettier --check src/styles.css`
   - Prettier reports that `src/styles.css` is not formatted. The stylesheet was otherwise left untouched beyond the focused scrollbar rules to avoid unrelated formatting churn.
-- **NOT RUN — Browser proof:** pending local Chromium verification and media capture.
+- **BLOCKED — Browser proof:** local Chromium navigation did not complete; the proof server became stopped/unresponsive before the flow could be exercised. No screenshots or video were fabricated.
 - **NOT RUN — Full test suite, build, type-check, and broad lint:** not run because the focused UI regression and targeted formatting gate are sufficient for this CSS-only change.
 
 ## Reproduction
