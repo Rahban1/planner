@@ -180,7 +180,13 @@ function parseManifest(raw: unknown, errors: string[]): ProofManifestV1 | null {
   if (!isStringArray(raw.reproduce)) errors.push('Manifest reproduce must be a string array.')
 
   if (errors.length > 0) return null
-  return raw as unknown as ProofManifestV1
+  return {
+    ...raw,
+    checks: checks.map((check) => ({
+      ...(check as Record<string, unknown>),
+      evidencePaths: (check as Record<string, unknown>).evidencePaths ?? [],
+    })),
+  } as unknown as ProofManifestV1
 }
 
 function validateCheck(raw: unknown, index: number, errors: string[]) {
@@ -208,7 +214,7 @@ function validateCheck(raw: unknown, index: number, errors: string[]) {
   if (raw.outputPath !== undefined && !isNonEmptyString(raw.outputPath)) {
     errors.push(`Check ${index + 1} outputPath must be a non-empty string.`)
   }
-  if (!isStringArray(raw.evidencePaths)) {
+  if (raw.evidencePaths !== undefined && !isStringArray(raw.evidencePaths)) {
     errors.push(`Check ${index + 1} evidencePaths must be a string array.`)
   }
 }
