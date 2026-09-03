@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "runId": "2fe62b27-00fd-4e39-a226-67d990114c70",
+  "testedCommitSha": "89464e5607c93ca8e2195c5fbff760f81b76af87",
+  "generatedAt": "2026-09-03T04:56:13.166357+00:00",
+  "environment": {
+    "os": "Linux aarch64",
+    "runtime": "Node.js 22.20.0"
+  },
+  "changeType": "ui",
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "taskmodal-targeted",
+      "title": "TaskModal regression tests",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "pnpm exec vitest run src/components/TaskModal.test.tsx --config vitest.config.ts",
+      "exitCode": 0,
+      "durationMs": 2002,
+      "outputPath": "logs/taskmodal-test.log",
+      "evidencePaths": []
+    },
+    {
+      "id": "styles-prettier",
+      "title": "Changed stylesheet formatting",
+      "layer": "lint",
+      "status": "fail",
+      "command": "pnpm exec prettier --check src/styles.css",
+      "exitCode": 1,
+      "durationMs": 929,
+      "outputPath": "logs/prettier-styles.log",
+      "evidencePaths": []
+    },
+    {
+      "id": "browser-ui",
+      "title": "Task creation modal scrollbar browser proof",
+      "layer": "browser",
+      "status": "not_run",
+      "evidencePaths": []
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 1253,
+      "sha256": "f0b2c201dbf8c8a4185a8c95fda536ff3d3e1ac2ea47f43a89a4764010cc0f21"
+    },
+    {
+      "path": "logs/taskmodal-test.log",
+      "type": "log",
+      "bytes": 532,
+      "sha256": "7bd97c26d3e9aa696c9347022f2875b554037db91b33b911f50a3b5117f809cf"
+    },
+    {
+      "path": "logs/prettier-styles.log",
+      "type": "log",
+      "bytes": 154,
+      "sha256": "c43e5f276e91fbbf8221c0616ed9ee2906a10d498edf664af1e4af4442040145"
+    }
+  ],
+  "limitations": [
+    "The targeted stylesheet formatting check failed because the pre-existing stylesheet is not Prettier-clean.",
+    "Browser proof and required screenshots/video have not yet been captured."
+  ],
+  "reproduce": [
+    "pnpm install --frozen-lockfile",
+    "pnpm exec vitest run src/components/TaskModal.test.tsx --config vitest.config.ts",
+    "pnpm exec prettier --check src/styles.css",
+    "pnpm proof:ui"
+  ]
+}
