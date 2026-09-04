@@ -16,7 +16,7 @@ This reference describes the current working source. Types and constraints come 
 | Agent coordinator         | Node.js 22 container                                  |
 | Agent service             | OpenHands Agent Server 1.32.0                         |
 | Model endpoint default    | OpenCode Go                                           |
-| Pull request service      | GitHub REST API and GitHub CLI                        |
+| Pull request service      | GitHub or Bitbucket Data Center REST API              |
 
 ## Package commands
 
@@ -213,16 +213,22 @@ All time fields are integer millisecond values unless a different interface conv
 
 ### Agent-runner settings
 
-| Name                 | Default                              | Purpose                                                           |
-| -------------------- | ------------------------------------ | ----------------------------------------------------------------- |
-| `PLANNER_BASE_URL`   | `http://host.docker.internal:3000`   | Planner bridge origin.                                            |
-| `OPENHANDS_BASE_URL` | `http://openhands-agent-server:8000` | OpenHands service origin.                                         |
-| `LLM_MODEL`          | `openai/kimi-k2.6`                   | Model identifier.                                                 |
-| `LLM_API_KEY`        | Empty                                | Model endpoint secret. An empty value causes model calls to fail. |
-| `LLM_API_BASE`       | `https://opencode.ai/zen/go/v1`      | OpenAI-compatible model endpoint.                                 |
-| `GITHUB_TOKEN`       | Empty                                | Repository, pull request, proof, and merge-watch access.          |
-| `RUNNER_API_TOKEN`   | Empty                                | Shared Planner bridge secret.                                     |
-| `RUNNER_WORKSPACE`   | `/workspace/runs` in Docker          | Per-run workspace root.                                           |
+| Name                         | Default                              | Purpose                                                           |
+| ---------------------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| `PLANNER_BASE_URL`           | `http://host.docker.internal:3000`   | Planner bridge origin.                                            |
+| `PLANNER_CONTAINER_BASE_URL` | `PLANNER_BASE_URL`                   | Optional Planner origin used inside on-premises job containers.   |
+| `OPENHANDS_BASE_URL`         | `http://openhands-agent-server:8000` | OpenHands service origin.                                         |
+| `LLM_MODEL`                  | `openai/kimi-k2.6`                   | Model identifier.                                                 |
+| `LLM_API_KEY`                | Empty                                | Model endpoint secret. An empty value causes model calls to fail. |
+| `LLM_API_BASE`               | `https://opencode.ai/zen/go/v1`      | OpenAI-compatible model endpoint.                                 |
+| `SCM_PROVIDER`               | `github`                             | `github` or `bitbucket_data_center`.                              |
+| `SCM_TOKEN`                  | `GITHUB_TOKEN` fallback              | Repository, pull request, proof, and merge-watch access.          |
+| `BITBUCKET_BASE_URL`         | Empty                                | Bitbucket Data Center base URL.                                   |
+| `GITHUB_TOKEN`               | Empty                                | GitHub compatibility token.                                       |
+| `RUNNER_API_TOKEN`           | Empty                                | Shared Planner bridge secret.                                     |
+| `RUNNER_WORKSPACE`           | `/workspace/runs` in Docker          | Per-run workspace root.                                           |
+| `RUNNER_MANAGED_GIT`         | `0`                                  | Prepare repositories in the trusted runner when set to `1`.       |
+| `RUNNER_REPOSITORY_CACHE`    | `/var/lib/planner-runner/mirrors`    | Persistent bare repository mirrors.                               |
 
 ## Poll and time values
 
@@ -242,24 +248,27 @@ All time fields are integer millisecond values unless a different interface conv
 
 ## Source map
 
-| Path                            | Responsibility                                                                    |
-| ------------------------------- | --------------------------------------------------------------------------------- |
-| `src/routes/`                   | Browser pages and HTTP API routes.                                                |
-| `src/server/`                   | Validated server functions and authentication middleware.                         |
-| `src/db/schema.ts`              | Drizzle tables, types, and priority rank.                                         |
-| `src/db/index.ts`               | D1 database connection and schema export.                                         |
-| `src/lib/queries.ts`            | Query keys, query options, hooks, mutations, and cache updates.                   |
-| `src/components/`               | Product interface components and dialogs.                                         |
-| `src/styles.css`                | Tailwind import, design tokens, layout, themes, and motion.                       |
-| `drizzle/migrations/`           | Ordered D1 schema changes.                                                        |
-| `agent-runner/src/index.ts`     | Queue loop, plan flow, implementation flow, logs, stop checks, and merge watcher. |
-| `agent-runner/src/openhands.ts` | OpenHands HTTP client.                                                            |
-| `agent-runner/src/prompt.ts`    | Plan and implementation prompt contracts.                                         |
-| `agent-runner/src/proof.ts`     | Proof manifest validation and pull request proof rendering.                       |
-| `agent-runner/src/handoff.ts`   | Pull request fallback and proof publication.                                      |
-| `agent-runner/src/github.ts`    | GitHub REST operations.                                                           |
-| `docker-compose.local.yml`      | Local runner and OpenHands service definitions.                                   |
-| `wrangler.jsonc`                | Worker, D1, R2, public variables, and required secrets.                           |
+| Path                                        | Responsibility                                                                    |
+| ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `src/routes/`                               | Browser pages and HTTP API routes.                                                |
+| `src/server/`                               | Validated server functions and authentication middleware.                         |
+| `src/db/schema.ts`                          | Drizzle tables, types, and priority rank.                                         |
+| `src/db/index.ts`                           | D1 database connection and schema export.                                         |
+| `src/lib/queries.ts`                        | Query keys, query options, hooks, mutations, and cache updates.                   |
+| `src/components/`                           | Product interface components and dialogs.                                         |
+| `src/styles.css`                            | Tailwind import, design tokens, layout, themes, and motion.                       |
+| `drizzle/migrations/`                       | Ordered D1 schema changes.                                                        |
+| `agent-runner/src/index.ts`                 | Queue loop, plan flow, implementation flow, logs, stop checks, and merge watcher. |
+| `agent-runner/src/openhands.ts`             | OpenHands HTTP client.                                                            |
+| `agent-runner/src/prompt.ts`                | Plan and implementation prompt contracts.                                         |
+| `agent-runner/src/proof.ts`                 | Proof manifest validation and pull request proof rendering.                       |
+| `agent-runner/src/handoff.ts`               | Pull request fallback and proof publication.                                      |
+| `agent-runner/src/github.ts`                | GitHub REST operations.                                                           |
+| `agent-runner/src/bitbucket-data-center.ts` | Bitbucket Data Center Git and pull-request operations.                            |
+| `agent-runner/src/managed-workspace.ts`     | Cached mirrors and isolated per-run repository copies.                            |
+| `agent-runner/src/onprem-supervisor.ts`     | Bounded on-premises container job supervisor.                                     |
+| `docker-compose.local.yml`                  | Local runner and OpenHands service definitions.                                   |
+| `wrangler.jsonc`                            | Worker, D1, R2, public variables, and required secrets.                           |
 
 ## Related documents
 

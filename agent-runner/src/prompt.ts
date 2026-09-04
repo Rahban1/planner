@@ -23,6 +23,12 @@ export interface TaskContext {
 
 export interface BuildPromptOptions {
   runId: string
+  managedWorkspace?: boolean
+  branchName?: string
+}
+
+export interface BuildPlanPromptOptions {
+  managedWorkspace?: boolean
 }
 
 function getRepoUrls(task: TaskContext): string[] {
@@ -52,12 +58,25 @@ ${contextCloneCommands || '   - There are no additional context repositories.'}
 3. Inspect all cloned repositories, their conventions, and any AGENTS.md or CONTRIBUTING.md files. Every listed repository is writable. Change any repository needed to complete the task, including several repositories when the work crosses frontend and backend. Do not make unrelated changes.`
 }
 
+function buildPreparedRepositoryInstructions(task: TaskContext): string {
+  const paths = getRepoUrls(task).map((url, position) =>
+    position === 0
+      ? `- Repository 1 is ready at \`repo\`: ${url}`
+      : `- Repository ${position + 1} is ready at \`context-repos/repo-${position + 1}\`: ${url}`,
+  )
+  return `2. The trusted runner prepared the repositories. Do not clone them and do not change their remotes.
+${paths.join('\n')}
+3. Inspect all prepared repositories, their conventions, and any AGENTS.md or CONTRIBUTING.md files. Every listed repository is writable. Change any repository needed to complete the task. Do not make unrelated changes.`
+}
+
 export function buildPrompt(
   task: TaskContext,
   options: BuildPromptOptions = { runId: 'unknown-run' },
 ): string {
-  const branchName = `agent/${slug(task.title)}-${Date.now()}`
+  const branchName =
+    options.branchName ?? `agent/${slug(task.title)}-${Date.now()}`
   const proofRoot = `.planner/proof/${options.runId}`
+  const managedWorkspace = options.managedWorkspace === true
 
   const attachmentLines =
     task.attachments && task.attachments.length > 0
@@ -65,6 +84,24 @@ export function buildPrompt(
           .map((a) => `- ${a.name} (${a.mimeType}) — ${a.url}`)
           .join('\n')
       : 'None'
+  const gitAuthInstruction = managedWorkspace
+    ? '   - The trusted runner owns source-control credentials. Do not request, inspect, or store credentials.'
+    : '   - If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS pushes by running: git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"'
+  const repositoryInstructions = managedWorkspace
+    ? buildPreparedRepositoryInstructions(task)
+    : buildCloneInstructions(task)
+  const reviewInstructions = managedWorkspace
+    ? `10. Do not push branches and do not create pull requests. The trusted runner will push each marked branch and create a ready pull request after it validates the proof pack.
+11. In every changed repository, record the branch for the runner by running this exact command from inside that repository:
+   \`echo "${branchName}" > .git/planner-agent-branch\`
+   Do not write this marker in repositories that you did not change.`
+    : `10. Create one ready Pull Request in each changed repository against that repository's default branch, even when a check fails or could not run. Do NOT create draft PRs. Do NOT merge them. Show failed and incomplete checks prominently.
+   - Authenticate the GitHub CLI first if needed: \`echo "\${GITHUB_TOKEN}" | gh auth login --with-token\`
+   - Create each PR from inside its repository directory, e.g. \`gh pr create --title "..." --body-file pr-body.md\`.
+   - Immediately capture the PR URL by running: \`gh pr view --json url -q .url\` and save it to a shell variable or capture the printed URL.
+11. After each PR is created, capture its PR URL and branch name by running this exact command from inside that repository:
+   \`gh pr view --json url -q .url > .git/planner-agent-pr-url && echo "${branchName}" > .git/planner-agent-branch\`
+   The runner reads these private Git marker files from every repository. Do not skip this step for any changed repository.`
 
   return `You are an expert software engineer. Your job is to implement a task from a project planner and open a Pull Request for human review.
 
@@ -88,21 +125,15 @@ ${attachmentLines}
 1. Configure git for this session:
    - git config --global user.name "Planner Agent"
    - git config --global user.email "agent@planner.local"
-   - If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS pushes by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-${buildCloneInstructions(task)}
+${gitAuthInstruction}
+${repositoryInstructions}
 4. In every repository that needs changes, create a new branch named \`${branchName}\` from that repository's default branch. Immediately record it inside that repository by running \`echo "${branchName}" > .git/planner-agent-branch\`. Do not create a branch in a repository that needs no changes.
 5. Inspect the repository's test commands and define a minimum sufficient matrix before you change code. Prefer one focused regression command that covers the main behavior and an edge case, plus at most one cheap repository-native gate that gives different evidence. Use only relevant layers: lint, types, targeted tests, full tests, build, API, CLI, data, and browser.
 6. Implement the task. Make focused, minimal changes. Add a focused regression test when the repository has a suitable test framework. Do not refactor unrelated code.
 7. Use at most 8 minutes for inspection and implementation. Reserve the remaining time for testing, evidence, commit, push, and the ready pull request. Stop adding features when the verification window begins.
 8. Commit the code that you will test. Record its full Git SHA. Run the minimum sufficient matrix against that commit. Run one verification command at a time so one slow process cannot hide the result of another process. Use direct commands such as \`pnpm\`, \`npm\`, or \`npx\`; do not wrap them with \`corepack\`. Limit each verification command with \`timeout 120s\`. Do not use \`/usr/bin/time\`; use shell timestamps when you need a duration. Never run the shell built-in \`exit\`, because it closes the persistent agent terminal. Print the command status and let the terminal remain open. Do not repeat equivalent checks, and do not run a full suite after a focused suite unless the changed surface or repository guidance makes the full suite necessary. Skip unrelated lint, type, build, API, CLI, data, and browser checks. Record each skipped layer as NOT RUN with a short reason. Record every result honestly as PASS, FAIL, BLOCKED, or NOT RUN.
 9. In each changed repository, write a valid partial manifest, report, and available command logs before browser work. Record the browser check as NOT RUN while it is pending. Commit and push this proof checkpoint. Then run browser proof and update the proof pack. If browser capture is blocked, keep the browser check BLOCKED, keep the proof result partial, and do not invent missing media. Follow good commit guidelines and push each later proof update to the same branch.
-10. Create one ready Pull Request in each changed repository against that repository's default branch, even when a check fails or could not run. Do NOT create draft PRs. Do NOT merge them. Show failed and incomplete checks prominently.
-   - Authenticate the GitHub CLI first if needed: \`echo "\${GITHUB_TOKEN}" | gh auth login --with-token\`
-   - Create each PR from inside its repository directory, e.g. \`gh pr create --title "..." --body-file pr-body.md\`.
-   - Immediately capture the PR URL by running: \`gh pr view --json url -q .url\` and save it to a shell variable or capture the printed URL.
-11. After each PR is created, capture its PR URL and branch name by running this exact command from inside that repository:
-   \`gh pr view --json url -q .url > .git/planner-agent-pr-url && echo "${branchName}" > .git/planner-agent-branch\`
-   The runner reads these private Git marker files from every repository. Do not skip this step for any changed repository.
+${reviewInstructions}
 
 ## Required proof pack
 
@@ -194,7 +225,7 @@ ${task.approvedPlanMd}`
     : ''
 }
 
-Begin by cloning every repository, then explore their codebases and decide which repositories the task requires you to change.`
+${managedWorkspace ? 'Begin by inspecting the prepared repositories and decide which repositories the task requires you to change.' : 'Begin by cloning every repository, then explore their codebases and decide which repositories the task requires you to change.'}`
 }
 
 export function buildAnswerPrompt(task: TaskContext): string {
@@ -256,7 +287,10 @@ const PLAN_CONSTRAINTS = `## Constraints
 - If the clone fails because the repository does not exist or you do not have access, STOP immediately and report the exact error.
 - If the repository has an AGENTS.md file, follow its conventions in your plan.`
 
-export function buildPlanPrompt(task: TaskContext): string {
+export function buildPlanPrompt(
+  task: TaskContext,
+  options: BuildPlanPromptOptions = {},
+): string {
   const repoUrls = getRepoUrls(task)
   const contextCloneCommands = repoUrls
     .slice(1)
@@ -265,6 +299,12 @@ export function buildPlanPrompt(task: TaskContext): string {
         `   - Clone ${url} into \`context-repos/repo-${index + 2}\`.`,
     )
     .join('\n')
+  const setupInstructions = options.managedWorkspace
+    ? `1. The trusted runner prepared all repositories. Do not clone repositories and do not request credentials.
+${buildPreparedPlanPaths(repoUrls)}`
+    : `1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+2. Clone the primary repository ${repoUrls[0]} into a subdirectory named \`repo\` (e.g. \`git clone ${repoUrls[0]} repo\`).
+${contextCloneCommands || '   - There are no additional context repositories.'}`
 
   return `You are an expert software engineer. Your job is to produce a detailed implementation PLAN for a task from a project planner. A human will review your plan and approve it or request changes before any code is written.
 
@@ -274,9 +314,7 @@ ${buildPlanPreamble(task)}
 
 ## Instructions
 
-1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-2. Clone the primary repository ${repoUrls[0]} into a subdirectory named \`repo\` (e.g. \`git clone ${repoUrls[0]} repo\`).
-${contextCloneCommands || '   - There are no additional context repositories.'}
+${setupInstructions}
 3. Explore every cloned repository: structure, conventions, relevant modules, existing tests. Read any AGENTS.md or CONTRIBUTING.md files. Treat every repository as read-only in plan mode.
 4. Write your plan as markdown to \`.agent-plan-md\` in the workspace root, for example with a heredoc: \`cat > .agent-plan-md << 'PLAN_EOF' ... PLAN_EOF\`. Do not skip this step — the file is how your plan reaches the human reviewer.
 
@@ -284,13 +322,14 @@ ${PLAN_FORMAT}
 
 ${PLAN_CONSTRAINTS}
 
-Begin by cloning the primary repository and every context repository, then explore their codebases.`
+${options.managedWorkspace ? 'Begin by exploring the prepared repositories.' : 'Begin by cloning the primary repository and every context repository, then explore their codebases.'}`
 }
 
 export function buildPlanRevisionPrompt(
   task: TaskContext,
   previousPlan: string,
   feedback: string,
+  options: BuildPlanPromptOptions = {},
 ): string {
   const repoUrls = getRepoUrls(task)
   const contextCloneCommands = repoUrls
@@ -300,6 +339,12 @@ export function buildPlanRevisionPrompt(
         `   - Clone ${url} into \`context-repos/repo-${index + 2}\` or reuse the existing clone.`,
     )
     .join('\n')
+  const setupInstructions = options.managedWorkspace
+    ? `1. The trusted runner prepared all repositories. Do not clone repositories and do not request credentials.
+${buildPreparedPlanPaths(repoUrls)}`
+    : `1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+2. Clone the primary repository ${repoUrls[0]} into a subdirectory named \`repo\`, or reuse the existing clone.
+${contextCloneCommands || '   - There are no additional context repositories.'}`
 
   return `You are an expert software engineer. You previously wrote an implementation plan for a task from a project planner. The human reviewer requested changes. Revise the plan to address their feedback.
 
@@ -317,9 +362,7 @@ ${feedback}
 
 ## Instructions
 
-1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-2. Clone the primary repository ${repoUrls[0]} into a subdirectory named \`repo\`, or reuse the existing clone.
-${contextCloneCommands || '   - There are no additional context repositories.'}
+${setupInstructions}
 3. Re-examine all cloned repositories as needed to address the feedback. Treat every repository as read-only in plan mode.
 4. Write the REVISED plan as markdown to \`.agent-plan-md\` in the workspace root, overwriting the previous version.
 5. Address every point of the reviewer feedback. Where you disagree with a suggestion, explain why in the plan.
@@ -327,6 +370,16 @@ ${contextCloneCommands || '   - There are no additional context repositories.'}
 ${PLAN_FORMAT}
 
 ${PLAN_CONSTRAINTS}`
+}
+
+function buildPreparedPlanPaths(repoUrls: string[]): string {
+  return repoUrls
+    .map((url, position) =>
+      position === 0
+        ? `2. Repository 1 is ready at \`repo\`: ${url}`
+        : `   - Repository ${position + 1} is ready at \`context-repos/repo-${position + 1}\`: ${url}`,
+    )
+    .join('\n')
 }
 
 function slug(text: string): string {

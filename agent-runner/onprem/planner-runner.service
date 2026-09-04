@@ -1,0 +1,21 @@
+[Unit]
+Description=Planner on-premises agent supervisor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=planner-runner
+Group=planner-runner
+WorkingDirectory=/opt/planner
+EnvironmentFile=/etc/planner-runner/runner.env
+ExecStart=/usr/bin/npm --prefix /opt/planner/agent-runner run supervisor
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/planner-runner
+
+[Install]
+WantedBy=multi-user.target
