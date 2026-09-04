@@ -9,14 +9,14 @@ Create a GitHub environment named `planner-runner` in `Rahban1/planner`. Do not 
 Add these environment secrets:
 
 - `RUNNER_API_TOKEN`: Use the same value as the Cloudflare Worker secret.
-- `LLM_API_KEY`: Use the OpenCode Go API key.
+- `LLM_API_KEY`: Use an Anthropic API key.
 - `AGENT_GITHUB_TOKEN`: Use a fine-grained token that can write repository contents and pull requests in each target repository.
 
 Add these environment variables:
 
 - `PLANNER_BASE_URL`: Set it to `https://planner.rahban-ghani2001.workers.dev`.
-- `LLM_MODEL`: Optional. The default is `openai/kimi-k2.6`.
-- `LLM_API_BASE`: Optional. The default is `https://opencode.ai/zen/go/v1`.
+- `LLM_MODEL`: Optional. The default is `anthropic/claude-sonnet-5`.
+- `LLM_API_BASE`: Optional. Leave it empty for the direct Anthropic API. Set it only for an approved enterprise model gateway.
 
 Create a separate fine-grained token for the Worker. Give it only Actions write access to `Rahban1/planner`. Store it as a Worker secret:
 

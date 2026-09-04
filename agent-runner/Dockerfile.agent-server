@@ -13,6 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# Add approved enterprise certificate authorities before the image build.
+# The certs directory is empty by default except for its documentation.
+COPY certs/ /usr/local/share/ca-certificates/planner/
+RUN if find /usr/local/share/ca-certificates/planner -type f -name '*.crt' \
+    | grep -q .; then update-ca-certificates; fi
+
 # Agent tasks must not spend their execution window downloading a JavaScript
 # toolchain. Copy the pinned Node runtime and install the repository's pnpm
 # version while the image is built.
@@ -67,6 +73,8 @@ RUN mkdir -p /root/.cache \
     && ln -s /ms-playwright /root/.cache/ms-playwright
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 # The workspace directory is where repositories will be cloned
 RUN mkdir -p /workspace/runs

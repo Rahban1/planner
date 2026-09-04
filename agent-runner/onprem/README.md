@@ -22,6 +22,14 @@ This is the recommended first deployment for Bitbucket Data Center. It changes o
 
 Do not run the agent on the main application server. Use a dedicated runner host or a dedicated virtual machine.
 
+For Rocky Linux 9, use the focused installation guide in [`rocky-linux/README.md`](rocky-linux/README.md). It includes an installer, SELinux settings, internal CA setup, and an offline Git bundle path.
+
+## Claude access
+
+This branch uses `anthropic/claude-sonnet-5` by default. OpenHands uses the `provider/model` form for model names. Leave `LLM_API_BASE` empty to use the direct Anthropic API. Set it only when the company supplies an approved model gateway.
+
+A Claude web or enterprise seat does not supply an API key to this service. Obtain an Anthropic API key or gateway credential through the company approval process. Store it only in `llm_api_key`.
+
 ## 1. Create a Bitbucket token
 
 Create one Bitbucket Data Center project or repository HTTP access token for this integration. Give it repository write permission. This permission permits clone, push, and pull-request actions. Set an expiry date and record the owner and rotation date.
@@ -70,6 +78,8 @@ sudo chmod 0600 /etc/planner-runner/secrets/*
 ```
 
 Copy `.env.onprem.example` to `/etc/planner-runner/runner.env`. Set the real non-secret URLs and image tags. Do not put tokens in this environment file.
+
+On Rocky Linux with SELinux enabled, set `CONTAINER_SELINUX_LABEL=z`. The shared label is required because parallel job containers use the same trusted cache and secret directories. Do not disable SELinux.
 
 `PLANNER_BASE_URL` is the URL that the host uses. If containers need a different route, set `PLANNER_CONTAINER_BASE_URL`. For example, a local Docker Desktop test can use `http://host.docker.internal:3000` for the container URL.
 

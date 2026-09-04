@@ -79,4 +79,4 @@ docs/                   Product, architecture, operations, and reference documen
 
 Read [Architecture](docs/ARCHITECTURE.md) before you change authentication, data flow, or agent-run state. Read [Operations](docs/OPERATIONS.md) before you change a deployment, a migration, or the Docker services.
 
-For a secure Linux runner with Bitbucket Data Center, use the [on-premises runner guide](agent-runner/onprem/README.md).
+For a Rocky Linux 9 runner with Bitbucket Data Center and Claude, use the [Rocky Linux deployment guide](agent-runner/onprem/rocky-linux/README.md). The broader security design is in the [on-premises runner guide](agent-runner/onprem/README.md).

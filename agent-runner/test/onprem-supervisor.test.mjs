@@ -16,6 +16,7 @@ const config = loadSupervisorConfig({
   OPENHANDS_IMAGE: 'openhands:test',
   RUNNER_REPOSITORY_CACHE: '/srv/planner/cache',
   ONPREM_SECRET_DIR: '/srv/planner/secrets',
+  CONTAINER_SELINUX_LABEL: 'z',
   MAX_PARALLEL: '3',
 })
 const names = {
@@ -49,15 +50,28 @@ test('mounts credentials only in the trusted runner container', () => {
     SCM_PROVIDER: 'bitbucket_data_center',
     BITBUCKET_BASE_URL: 'https://bitbucket.example.com',
   })
-  assert.ok(args.includes('/srv/planner/secrets:/run/secrets/planner:ro'))
+  assert.ok(args.includes('/srv/planner/secrets:/run/secrets/planner:ro,z'))
   assert.ok(args.includes('SCM_TOKEN_FILE=/run/secrets/planner/scm_token'))
-  assert.ok(args.includes('/srv/planner/cache:/var/lib/planner-runner/mirrors'))
+  assert.ok(
+    args.includes('/srv/planner/cache:/var/lib/planner-runner/mirrors:z'),
+  )
   assert.ok(
     args.includes('PLANNER_BASE_URL=https://planner.internal.example.com'),
   )
   assert.equal(
     args.some((value) => value.includes('runner-secret')),
     false,
+  )
+})
+
+test('rejects an invalid SELinux volume label', () => {
+  assert.throws(
+    () =>
+      loadSupervisorConfig({
+        PLANNER_BASE_URL: 'https://planner.example.com',
+        CONTAINER_SELINUX_LABEL: 'disable',
+      }),
+    /must be empty, z, or Z/,
   )
 })
 

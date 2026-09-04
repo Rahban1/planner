@@ -15,7 +15,7 @@ This reference describes the current working source. Types and constraints come 
 | Styling                   | Tailwind CSS 4 and `src/styles.css`                   |
 | Agent coordinator         | Node.js 22 container                                  |
 | Agent service             | OpenHands Agent Server 1.32.0                         |
-| Model endpoint default    | OpenCode Go                                           |
+| Model endpoint default    | Anthropic Claude                                      |
 | Pull request service      | GitHub or Bitbucket Data Center REST API              |
 
 ## Package commands
@@ -218,9 +218,9 @@ All time fields are integer millisecond values unless a different interface conv
 | `PLANNER_BASE_URL`           | `http://host.docker.internal:3000`   | Planner bridge origin.                                            |
 | `PLANNER_CONTAINER_BASE_URL` | `PLANNER_BASE_URL`                   | Optional Planner origin used inside on-premises job containers.   |
 | `OPENHANDS_BASE_URL`         | `http://openhands-agent-server:8000` | OpenHands service origin.                                         |
-| `LLM_MODEL`                  | `openai/kimi-k2.6`                   | Model identifier.                                                 |
+| `LLM_MODEL`                  | `anthropic/claude-sonnet-5`          | OpenHands provider and model identifier.                          |
 | `LLM_API_KEY`                | Empty                                | Model endpoint secret. An empty value causes model calls to fail. |
-| `LLM_API_BASE`               | `https://opencode.ai/zen/go/v1`      | OpenAI-compatible model endpoint.                                 |
+| `LLM_API_BASE`               | Empty                                | Optional approved enterprise model gateway.                       |
 | `SCM_PROVIDER`               | `github`                             | `github` or `bitbucket_data_center`.                              |
 | `SCM_TOKEN`                  | `GITHUB_TOKEN` fallback              | Repository, pull request, proof, and merge-watch access.          |
 | `BITBUCKET_BASE_URL`         | Empty                                | Bitbucket Data Center base URL.                                   |
@@ -229,6 +229,7 @@ All time fields are integer millisecond values unless a different interface conv
 | `RUNNER_WORKSPACE`           | `/workspace/runs` in Docker          | Per-run workspace root.                                           |
 | `RUNNER_MANAGED_GIT`         | `0`                                  | Prepare repositories in the trusted runner when set to `1`.       |
 | `RUNNER_REPOSITORY_CACHE`    | `/var/lib/planner-runner/mirrors`    | Persistent bare repository mirrors.                               |
+| `CONTAINER_SELINUX_LABEL`    | Empty                                | Use `z` for shared bind mounts on SELinux hosts.                  |
 
 ## Poll and time values
 

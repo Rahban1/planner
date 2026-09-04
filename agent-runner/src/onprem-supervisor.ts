@@ -24,6 +24,7 @@ export interface SupervisorConfig {
   mergeCheckIntervalMs: number
   cacheDir: string
   secretDir: string | null
+  containerSelinuxLabel: '' | 'z' | 'Z'
   agentMemory: string
   agentCpus: string
 }
@@ -51,6 +52,7 @@ export function loadSupervisorConfig(
     cacheDir:
       env.RUNNER_REPOSITORY_CACHE?.trim() || '/var/lib/planner-runner/mirrors',
     secretDir: env.ONPREM_SECRET_DIR?.trim() || null,
+    containerSelinuxLabel: selinuxLabel(env.CONTAINER_SELINUX_LABEL),
     agentMemory: env.AGENT_MEMORY?.trim() || '6g',
     agentCpus: env.AGENT_CPUS?.trim() || '2',
   }
@@ -105,7 +107,12 @@ export function buildRunnerContainerArgs(
     '--volume',
     `${names.volume}:/workspace/runs`,
     '--volume',
-    `${config.cacheDir}:/var/lib/planner-runner/mirrors`,
+    bindMount(
+      config.cacheDir,
+      '/var/lib/planner-runner/mirrors',
+      false,
+      config.containerSelinuxLabel,
+    ),
     '--security-opt',
     'no-new-privileges',
     '--cap-drop',
@@ -180,7 +187,12 @@ function appendRunnerConfiguration(
   if (config.secretDir) {
     args.push(
       '--volume',
-      `${config.secretDir}:/run/secrets/planner:ro`,
+      bindMount(
+        config.secretDir,
+        '/run/secrets/planner',
+        true,
+        config.containerSelinuxLabel,
+      ),
       '--env',
       'SCM_TOKEN_FILE=/run/secrets/planner/scm_token',
       '--env',
@@ -388,6 +400,22 @@ function spawnAndWait(
 function positiveInteger(value: string | undefined, fallback: number): number {
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function selinuxLabel(value: string | undefined): '' | 'z' | 'Z' {
+  const label = value?.trim() ?? ''
+  if (label === '' || label === 'z' || label === 'Z') return label
+  throw new Error('CONTAINER_SELINUX_LABEL must be empty, z, or Z.')
+}
+
+function bindMount(
+  source: string,
+  target: string,
+  readOnly: boolean,
+  selinux: '' | 'z' | 'Z',
+): string {
+  const options = [readOnly ? 'ro' : '', selinux].filter(Boolean)
+  return `${source}:${target}${options.length ? `:${options.join(',')}` : ''}`
 }
 
 function readSecret(env: NodeJS.ProcessEnv, name: string): string {

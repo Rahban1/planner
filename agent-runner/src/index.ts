@@ -79,9 +79,9 @@ const PLANNER_BASE_URL =
   process.env.PLANNER_BASE_URL ?? 'http://host.docker.internal:3000'
 const OPENHANDS_BASE_URL =
   process.env.OPENHANDS_BASE_URL ?? 'http://openhands-agent-server:8000'
-const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
+const LLM_MODEL = process.env.LLM_MODEL?.trim() || 'anthropic/claude-sonnet-5'
 const LLM_API_KEY = readSecret('LLM_API_KEY')
-const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
+const LLM_API_BASE = process.env.LLM_API_BASE?.trim() ?? ''
 const SCM_PROVIDER = process.env.SCM_PROVIDER?.trim() || 'github'
 const SCM_TOKEN = readSecret('SCM_TOKEN') || readSecret('GITHUB_TOKEN')
 const BITBUCKET_BASE_URL = process.env.BITBUCKET_BASE_URL ?? ''

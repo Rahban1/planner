@@ -35,7 +35,7 @@ Node.js agent runner
 OpenHands Agent Server
   |-- repository workspace
   |-- terminal, file editor, browser, task tracker
-  |-- OpenCode Go model endpoint
+  |-- Anthropic Claude model endpoint
   |
   v
 GitHub or Bitbucket Data Center repositories and pull requests

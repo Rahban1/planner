@@ -270,9 +270,9 @@ Runs have `kind` (`implement` | `plan`). Plan runs explore the repo read-only an
 
 Copy `.env.example` to `.env` and fill in:
 
-- `LLM_API_KEY` — OpenCode Go API key
+- `LLM_API_KEY` — Anthropic API key or approved enterprise gateway key
 - `GITHUB_TOKEN` — GitHub PAT for the bot account (push branches + create PRs)
-- `LLM_MODEL` / `LLM_API_BASE` — defaults target OpenCode Go. Note: `openai/kimi-k2.7-code` currently returns "Upstream request failed" from OpenCode Go, so the default is `openai/kimi-k2.6` until that model is restored.
+- `LLM_MODEL` defaults to `anthropic/claude-sonnet-5`. Keep `LLM_API_BASE` empty for the direct Anthropic API. Set it only for an approved enterprise model gateway.
 - `PLANNER_BASE_URL` — URL the runner uses to reach the planner dev server. Docker Desktop Mac users often need to set this to the host's LAN IP (e.g. `http://192.168.1.22:3000`) instead of `http://host.docker.internal:3000`.
 
 Run:
