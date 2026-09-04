@@ -57,3 +57,24 @@ test('implementation prompt requires the proof contract and reserves verificatio
   assert.match(prompt, /one ready Pull Request in each changed repository/i)
   assert.match(prompt, /\.git\/planner-agent-pr-url/)
 })
+
+test('managed workspace keeps source-control credentials and publication with the runner', () => {
+  const prompt = buildPrompt(task, {
+    runId: 'run-123',
+    managedWorkspace: true,
+    branchName: 'agent/reset-run123',
+  })
+
+  assert.match(prompt, /prepared.*repositories/i)
+  assert.match(prompt, /Repository 1 is ready at `repo`/)
+  assert.match(prompt, /context-repos\/repo-2/)
+  assert.match(prompt, /trusted runner owns source-control credentials/i)
+  assert.match(prompt, /do not push branches/i)
+  assert.match(prompt, /trusted runner will push/i)
+  assert.match(
+    prompt,
+    /echo "agent\/reset-run123" > \.git\/planner-agent-branch/,
+  )
+  assert.doesNotMatch(prompt, /gh auth login/)
+  assert.doesNotMatch(prompt, /git clone/)
+})

@@ -1,8 +1,7 @@
 import { mkdir, rm, readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
-import { getPullRequestState } from './github.js'
 import type { TerminalExecutionStatus } from './polling.js'
 import {
   getTerminalExecutionStatus,
@@ -25,6 +24,11 @@ import {
 } from './repository-workspaces.js'
 import { aggregateRepositoryStatus } from './repository-status.js'
 import type { RepositoryRunStatus } from './repository-status.js'
+import { createSourceControlAdapter } from './source-control-factory.js'
+import {
+  managedBranchName,
+  prepareManagedWorkspace,
+} from './managed-workspace.js'
 
 interface AgentRunRepository {
   repoUrl: string
@@ -76,14 +80,19 @@ const PLANNER_BASE_URL =
 const OPENHANDS_BASE_URL =
   process.env.OPENHANDS_BASE_URL ?? 'http://openhands-agent-server:8000'
 const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
-const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
+const LLM_API_KEY = readSecret('LLM_API_KEY')
 const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? ''
-const RUNNER_API_TOKEN = process.env.RUNNER_API_TOKEN ?? ''
+const SCM_PROVIDER = process.env.SCM_PROVIDER?.trim() || 'github'
+const SCM_TOKEN = readSecret('SCM_TOKEN') || readSecret('GITHUB_TOKEN')
+const BITBUCKET_BASE_URL = process.env.BITBUCKET_BASE_URL ?? ''
+const RUNNER_API_TOKEN = readSecret('RUNNER_API_TOKEN')
 const RUNNER_RUN_ID = process.env.RUNNER_RUN_ID?.trim() ?? ''
 const RUNNER_JOB_ID = process.env.RUNNER_JOB_ID?.trim() ?? ''
 const RUNNER_JOB_URL = process.env.RUNNER_JOB_URL?.trim() ?? ''
 const RUNNER_MERGE_CHECK_ONLY = process.env.RUNNER_MERGE_CHECK_ONLY === '1'
+const RUNNER_MANAGED_GIT = process.env.RUNNER_MANAGED_GIT === '1'
+const RUNNER_REPOSITORY_CACHE =
+  process.env.RUNNER_REPOSITORY_CACHE ?? '/var/lib/planner-runner/mirrors'
 const MAX_RUNTIME_MS = 15 * 60 * 1000 // 15 minutes
 const MAX_IDLE_MS = 5 * 60 * 1000 // 5 minutes without an agent event
 const MERGE_CHECK_INTERVAL_MS = 15_000
@@ -91,10 +100,22 @@ const plannerFetch = createPlannerFetch({
   baseUrl: PLANNER_BASE_URL,
   token: RUNNER_API_TOKEN,
 })
+const sourceControl = createSourceControlAdapter({
+  provider: SCM_PROVIDER,
+  token: SCM_TOKEN,
+  bitbucketBaseUrl: BITBUCKET_BASE_URL,
+})
+
+function readSecret(name: string): string {
+  const path = process.env[`${name}_FILE`]?.trim()
+  if (path) return readFileSync(path, 'utf8').trim()
+  return process.env[name]?.trim() ?? ''
+}
 
 async function main() {
   console.log('[runner] starting')
   console.log('[runner] planner:', PLANNER_BASE_URL)
+  console.log('[runner] source control:', sourceControl.provider)
 
   if (RUNNER_MERGE_CHECK_ONLY) {
     const expired = await plannerFetch<{ expired: number }>(
@@ -337,6 +358,25 @@ async function prepareWorkspace(runId: string): Promise<string> {
   return workspace
 }
 
+async function prepareRepositoriesIfManaged(
+  workspace: string,
+  task: TaskContext,
+  append: AppendFn,
+): Promise<void> {
+  if (!RUNNER_MANAGED_GIT) return
+  const repoUrls = uniqueRepoUrls(task.repoUrl, task.repoUrls)
+  await append('Preparing isolated repositories from the runner cache...')
+  await prepareManagedWorkspace({
+    workspace,
+    repoUrls,
+    cacheRoot: RUNNER_REPOSITORY_CACHE,
+    sourceControl,
+  })
+  await append(
+    `Prepared ${repoUrls.length} isolated repository workspace${repoUrls.length === 1 ? '' : 's'}.`,
+  )
+}
+
 async function fetchTaskContext(run: AgentRun): Promise<TaskContext> {
   const task = await plannerFetch<TaskContext>(
     `/api/runner/task-context/${run.taskId}`,
@@ -414,14 +454,18 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
     await appendRepositoryContext(task, append)
 
     const workspace = await prepareWorkspace(run.id)
+    await prepareRepositoriesIfManaged(workspace, task, append)
     const isRevision = !!(run.planMd && run.planFeedback)
     const prompt = isRevision
       ? buildPlanRevisionPrompt(
           withAttachmentUrls(task),
           run.planMd!,
           run.planFeedback!,
+          { managedWorkspace: RUNNER_MANAGED_GIT },
         )
-      : buildPlanPrompt(withAttachmentUrls(task))
+      : buildPlanPrompt(withAttachmentUrls(task), {
+          managedWorkspace: RUNNER_MANAGED_GIT,
+        })
 
     await append(
       isRevision
@@ -513,7 +557,14 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
     await appendRepositoryContext(task, append)
 
     const workspace = await prepareWorkspace(run.id)
-    const prompt = buildPrompt(withAttachmentUrls(task), { runId: run.id })
+    await prepareRepositoriesIfManaged(workspace, task, append)
+    const prompt = buildPrompt(withAttachmentUrls(task), {
+      runId: run.id,
+      managedWorkspace: RUNNER_MANAGED_GIT,
+      branchName: RUNNER_MANAGED_GIT
+        ? managedBranchName(task.title, run.id)
+        : undefined,
+    })
     await append('Starting OpenHands agent session...')
 
     const conversation = await openhands.startConversation(prompt, workspace)
@@ -577,7 +628,7 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
           repoDir: repository.repoDir,
           runId: run.id,
           taskTitle: task.title,
-          token: GITHUB_TOKEN,
+          sourceControl,
         })
 
         if (handoff.createdFallback) {
@@ -662,10 +713,10 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
   }
 }
 
-// Poll GitHub for PRs of successful runs: flip to 'merged' (planner then
+// Poll source control for reviews of successful runs: flip to 'merged' (planner then
 // auto-completes the task) or 'closed' when the PR is closed without merging.
 async function checkMerges() {
-  if (!GITHUB_TOKEN) return
+  if (!SCM_TOKEN) return
   try {
     const runs = await plannerFetch<AgentRun[]>('/api/runner/awaiting-merge')
     for (const run of runs) {
@@ -689,7 +740,7 @@ async function checkMerges() {
         for (const repository of repositories) {
           if (repository.status !== 'success' || !repository.prUrl) continue
           try {
-            const pr = await getPullRequestState(repository.prUrl, GITHUB_TOKEN)
+            const pr = await sourceControl.getReviewState(repository.prUrl)
             if (!pr) continue
             if (pr.merged) {
               repository.status = 'merged'
@@ -732,7 +783,7 @@ async function checkMerges() {
 
       if (!run.prUrl) continue
       try {
-        const pr = await getPullRequestState(run.prUrl, GITHUB_TOKEN)
+        const pr = await sourceControl.getReviewState(run.prUrl)
         if (!pr) continue
         if (pr.merged) {
           await updateRun(run.id, {
@@ -914,19 +965,21 @@ const ERROR_PATTERNS = [
   },
   {
     pattern: /fatal:\s*Authentication failed/i,
-    message: 'Git authentication failed. Check GITHUB_TOKEN permissions.',
+    message:
+      'Git authentication failed. Check the source-control token permissions.',
   },
   {
     pattern: /HTTP 403/i,
-    message: 'Received HTTP 403 from GitHub. Check GITHUB_TOKEN permissions.',
+    message: 'Source control returned HTTP 403. Check the token permissions.',
   },
   {
     pattern: /HTTP 404/i,
-    message: 'Received HTTP 404 from GitHub. Repository may not exist.',
+    message: 'Source control returned HTTP 404. The repository may not exist.',
   },
   {
     pattern: /gh:\s*Not logged into/i,
-    message: 'GitHub CLI (gh) is not authenticated. Check GITHUB_TOKEN.',
+    message:
+      'GitHub CLI (gh) is not authenticated. Check the source-control token.',
   },
   {
     pattern: /LLMBadRequestError/i,
@@ -950,8 +1003,9 @@ function inferErrorMessage(logs: LogEntry[]): string | null {
 }
 
 function extractPrUrlFromLogs(logs: LogEntry[]): string | null {
-  // Match GitHub pull request URLs in log messages, preferring the last one.
-  const prUrlRegex = /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/\d+/g
+  // Match supported review URLs in log messages, preferring the last one.
+  const prUrlRegex =
+    /https?:\/\/[^\s]+(?:\/pull\/\d+|\/projects\/[^/\s]+\/repos\/[^/\s]+\/pull-requests\/\d+)/g
   for (let i = logs.length - 1; i >= 0; i--) {
     const matches = logs[i].message.match(prUrlRegex)
     if (matches && matches.length > 0) return matches[matches.length - 1]

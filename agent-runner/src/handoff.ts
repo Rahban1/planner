@@ -1,42 +1,11 @@
 import { join } from 'node:path'
 import {
-  createPullRequestForBranch,
-  getPullRequestDetails,
-  listPullRequestCommitShas,
-  listPullRequestFilePaths,
-  pushBranchToRemote,
-  updatePullRequestBody,
-} from './github.js'
-import type {
-  CreatePullRequestInput,
-  CreatedPullRequest,
-  PullRequestDetails,
-} from './github.js'
-import {
   loadProofPack,
   renderProofSection,
   upsertProofSection,
 } from './proof.js'
 import type { ProofPack } from './proof.js'
-
-export interface ProofGithubApi {
-  getPullRequestDetails: (
-    prUrl: string,
-    token: string,
-  ) => Promise<PullRequestDetails>
-  listPullRequestCommitShas: (prUrl: string, token: string) => Promise<string[]>
-  listPullRequestFilePaths: (prUrl: string, token: string) => Promise<string[]>
-  updatePullRequestBody: (
-    prUrl: string,
-    token: string,
-    body: string,
-  ) => Promise<void>
-  createPullRequestForBranch: (
-    repoUrl: string,
-    token: string,
-    input: CreatePullRequestInput,
-  ) => Promise<CreatedPullRequest>
-}
+import type { SourceControlAdapter } from './source-control.js'
 
 export interface PublishProofOptions {
   repoUrl: string
@@ -46,9 +15,7 @@ export interface PublishProofOptions {
   repoDir?: string
   runId: string
   taskTitle: string
-  token: string
-  github?: ProofGithubApi
-  pushBranch?: typeof pushBranchToRemote
+  sourceControl: SourceControlAdapter
 }
 
 export interface PublishProofResult {
@@ -59,14 +26,6 @@ export interface PublishProofResult {
   createdFallback: boolean
 }
 
-const defaultGithub: ProofGithubApi = {
-  getPullRequestDetails,
-  listPullRequestCommitShas,
-  listPullRequestFilePaths,
-  updatePullRequestBody,
-  createPullRequestForBranch,
-}
-
 export async function publishProofToPullRequest({
   repoUrl,
   prUrl,
@@ -75,15 +34,13 @@ export async function publishProofToPullRequest({
   repoDir = join(workspace, 'repo'),
   runId,
   taskTitle,
-  token,
-  github = defaultGithub,
-  pushBranch = pushBranchToRemote,
+  sourceControl,
 }: PublishProofOptions): Promise<PublishProofResult> {
   let resolvedPrUrl = prUrl
   let createdFallback = false
 
-  if (!resolvedPrUrl && branchName && token) {
-    await pushBranch(repoDir, branchName, token)
+  if (!resolvedPrUrl && branchName) {
+    await sourceControl.pushBranch(repoDir, branchName)
     const incomplete = renderProofSection({
       state: 'incomplete',
       manifest: null,
@@ -92,7 +49,7 @@ export async function publishProofToPullRequest({
         'The runner created this ready pull request because the agent did not finish PR creation.',
       ],
     })
-    const created = await github.createPullRequestForBranch(repoUrl, token, {
+    const created = await sourceControl.createReviewForBranch(repoUrl, {
       head: branchName,
       title: taskTitle,
       body: `## Problem\n${taskTitle}\n\n## Approach\nThe agent reached its handoff window after pushing the branch. The proof report below states what completed.\n\n${incomplete}`,
@@ -117,19 +74,9 @@ export async function publishProofToPullRequest({
     }
   }
 
-  if (!token) {
-    throw new Error('GITHUB_TOKEN is required to publish the proof section.')
-  }
-
-  const details = await github.getPullRequestDetails(resolvedPrUrl, token)
-  const commitShas = await github.listPullRequestCommitShas(
-    resolvedPrUrl,
-    token,
-  )
-  const committedPaths = await github.listPullRequestFilePaths(
-    resolvedPrUrl,
-    token,
-  )
+  const details = await sourceControl.getReviewDetails(resolvedPrUrl)
+  const commitShas = await sourceControl.listReviewCommitShas(resolvedPrUrl)
+  const committedPaths = await sourceControl.listReviewFilePaths(resolvedPrUrl)
   if (!commitShas.includes(details.headSha)) commitShas.push(details.headSha)
 
   const proof = await loadProofPack({
@@ -139,10 +86,12 @@ export async function publishProofToPullRequest({
     committedPaths,
     artifactCommitSha: details.headSha,
   })
-  const section = renderProofSection(proof)
+  const section = renderProofSection(proof, (commitSha, path, raw) =>
+    sourceControl.reviewFileUrl(resolvedPrUrl, commitSha, path, raw),
+  )
   const nextBody = upsertProofSection(details.body, section)
   if (nextBody !== details.body.trim()) {
-    await github.updatePullRequestBody(resolvedPrUrl, token, nextBody)
+    await sourceControl.updateReviewBody(resolvedPrUrl, nextBody)
   }
 
   return {
