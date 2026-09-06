@@ -34,7 +34,11 @@
       "id": "browser-ui",
       "title": "Logout button local Chromium flow",
       "layer": "browser",
-      "status": "not_run"
+      "status": "blocked",
+      "command": "pnpm proof:ui",
+      "exitCode": 254,
+      "durationMs": 574,
+      "outputPath": "logs/browser-proof.log"
     },
     {
       "id": "repository-gates",
@@ -47,28 +51,35 @@
     {
       "path": "report.md",
       "type": "report",
-      "bytes": 1143,
-      "sha256": "b361cb4da621db6248148eea546389ec5735767fb52bd9a1c977fbed6ef4cd23"
+      "bytes": 1204,
+      "sha256": "fd07d26ebcd73f5976f7c7734edce1131780a2ea6792dc9d12b622a689df02a0"
     },
     {
       "path": "logs/diff-check.log",
       "type": "log",
       "bytes": 50,
-      "sha256": "0d9677d1f88457baa32e68a1e70e15e67f18635ca2b84902f6b196abd67fa107"
+      "sha256": "0d9677d1f88457baa32e68a1e70e15d67f18635ca2b84902f6b196abd67fa107"
     },
     {
       "path": "logs/topbar-test.log",
       "type": "log",
       "bytes": 273,
       "sha256": "24e3324954d939d9396d0d4f16d766f2a56b0868764146e5d0daf6d4b65809a7"
+    },
+    {
+      "path": "logs/browser-proof.log",
+      "type": "log",
+      "bytes": 363,
+      "sha256": "367c14ebfdbb79870d3d573c47623673794b760868e90f7ce2cfcbd4cc0e849a"
     }
   ],
   "limitations": [
     "Dependencies could not be installed within the verification window, so automated and browser checks remain incomplete.",
-    "No screenshots or video were created because browser proof was not started."
+    "Browser proof was attempted but could not launch Wrangler; no screenshots or video were available."
   ],
   "reproduce": [
     "pnpm install --frozen-lockfile",
-    "pnpm exec vitest run src/components/TopBar.test.tsx --config vitest.config.ts"
+    "pnpm exec vitest run src/components/TopBar.test.tsx --config vitest.config.ts",
+    "pnpm proof:ui"
   ]
 }
