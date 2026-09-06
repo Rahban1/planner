@@ -30,3 +30,5 @@ Proof bundle: [`.planner/proof/311f0c32-5618-49e0-b976-e20feda123e4/report.md`](
 - **NOT RUN:** lint, TypeScript, full tests, and build because dependency setup was blocked.
 
 The PR is ready for human review, but the proof pack is intentionally partial and does not claim complete verification.
+
+This pull request was created by an AI agent (OpenHands) on behalf of the user.
