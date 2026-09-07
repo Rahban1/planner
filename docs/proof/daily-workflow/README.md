@@ -29,3 +29,15 @@ GitHub comment polling is not part of this release. Use the question and change-
 Migration `0011_daily_workflow.sql` adds source-run links, project rules, and plan feedback. It accepts the older `plan_revisions.markdown` table and index found in production. Before the membership checks went live, the two existing projects were assigned to the only registered user after the account was verified. No seed data was added to production.
 
 Production uses the `planner-runner` GitHub Actions environment and the `master` branch. OpenCode Go remains the provider. The local Docker daemon was stopped at release time; production jobs use the updated source from GitHub Actions.
+
+## Live deployment
+
+- App commit: `04109f2`, pushed to `origin/master`.
+- Worker version: `230e2ba0-9963-49bb-b42c-5e717f86e975`.
+- PASS: `/dashboard`, `/projects`, and `/new-task` redirect unauthenticated users to sign-in.
+- PASS: `/docs` returns 200; `/api/auth/local-proof` returns 404.
+- PASS: runner queue returns 401 without a token and 200 with its existing token. The queue was empty at the check.
+- PASS: production retains two projects, two owner memberships, and nine plan versions, including the older history.
+- PASS: GitHub Actions has the required environment secrets and remains set to OpenCode Go with `gpt-5.6-luna`. The next job uses the updated `master` source. A new paid job was not dispatched for this release check.
+
+The approved design is recorded at https://plan.ref.tools/AT5x0ebYd9Ht49tN. The Ref tool was unavailable during final deployment, so release evidence is recorded here.
