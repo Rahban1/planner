@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import { env } from 'cloudflare:workers'
 import { getUserFromCookie } from '#/server/auth'
+import { requireTaskAccess } from '#/server/access.server'
 
 export const Route = createFileRoute('/api/attachments/$id')({
   server: {
@@ -17,21 +18,34 @@ export const Route = createFileRoute('/api/attachments/$id')({
           .where(eq(schema.attachments.id, params.id))
         if (!row) return new Response('Attachment not found', { status: 404 })
 
+        try {
+          await requireTaskAccess(row.taskId, user)
+        } catch {
+          return new Response('Not found', { status: 404 })
+        }
+
         const object = await env.ATTACHMENTS.get(row.r2Key)
         if (!object) return new Response('File not found', { status: 404 })
 
-        const headers = new Headers()
+        const headers = new Headers({
+          'X-Content-Type-Options': 'nosniff',
+          'Cache-Control': 'private, no-store',
+        })
         headers.set(
           'Content-Type',
-          object.httpMetadata?.contentType ?? row.mimeType ?? 'application/octet-stream',
+          object.httpMetadata?.contentType ??
+            row.mimeType ??
+            'application/octet-stream',
         )
         headers.set(
           'Content-Disposition',
-          `inline; filename="${encodeURIComponent(row.name).replace(/%20/g, ' ')}"`,
+          `attachment; filename="${encodeURIComponent(row.name).replace(/%20/g, ' ')}"`,
         )
         if (object.size) headers.set('Content-Length', object.size.toString())
 
-        return new Response(object.body as ReadableStream<Uint8Array>, { headers })
+        return new Response(object.body as ReadableStream<Uint8Array>, {
+          headers,
+        })
       },
     },
   },

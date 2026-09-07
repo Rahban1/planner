@@ -26,6 +26,10 @@ export interface PullRequestDetails extends ParsedPrUrl {
   headSha: string
   headRef: string
   baseRef: string
+  state: string
+  merged: boolean
+  headRepo: string | null
+  baseRepo: string | null
 }
 
 export interface CreatePullRequestInput {
@@ -55,43 +59,41 @@ export async function pushBranchToRemote(
     code: number | null
     stderr: string
     timedOut: boolean
-  }>(
-    (resolve, reject) => {
-      const child = spawn(
-        'git',
-        ['push', '--set-upstream', 'origin', `HEAD:refs/heads/${branchName}`],
-        {
-          cwd: repoDir,
-          env: {
-            ...process.env,
-            GIT_TERMINAL_PROMPT: '0',
-            GIT_CONFIG_COUNT: '1',
-            GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
-            GIT_CONFIG_VALUE_0: authHeader,
-          },
-          stdio: ['ignore', 'ignore', 'pipe'],
+  }>((resolve, reject) => {
+    const child = spawn(
+      'git',
+      ['push', '--set-upstream', 'origin', `HEAD:refs/heads/${branchName}`],
+      {
+        cwd: repoDir,
+        env: {
+          ...process.env,
+          GIT_TERMINAL_PROMPT: '0',
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+          GIT_CONFIG_VALUE_0: authHeader,
         },
-      )
-      let stderr = ''
-      let timedOut = false
-      const timeout = setTimeout(() => {
-        timedOut = true
-        child.kill('SIGTERM')
-      }, 60_000)
-      child.stderr.setEncoding('utf8')
-      child.stderr.on('data', (chunk: string) => {
-        if (stderr.length < 8_000) stderr += chunk
-      })
-      child.once('error', (error) => {
-        clearTimeout(timeout)
-        reject(error)
-      })
-      child.once('close', (code) => {
-        clearTimeout(timeout)
-        resolve({ code, stderr, timedOut })
-      })
-    },
-  )
+        stdio: ['ignore', 'ignore', 'pipe'],
+      },
+    )
+    let stderr = ''
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      child.kill('SIGTERM')
+    }, 60_000)
+    child.stderr.setEncoding('utf8')
+    child.stderr.on('data', (chunk: string) => {
+      if (stderr.length < 8_000) stderr += chunk
+    })
+    child.once('error', (error) => {
+      clearTimeout(timeout)
+      reject(error)
+    })
+    child.once('close', (code) => {
+      clearTimeout(timeout)
+      resolve({ code, stderr, timedOut })
+    })
+  })
 
   if (output.code !== 0) {
     const safeError = output.stderr
@@ -107,13 +109,17 @@ export async function pushBranchToRemote(
 }
 
 export function parsePrUrl(prUrl: string): ParsedPrUrl | null {
-  const match = prUrl.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/)
+  const match = prUrl.match(
+    /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/,
+  )
   if (!match) return null
   return { owner: match[1], repo: match[2], number: Number(match[3]) }
 }
 
 export function parseRepoUrl(repoUrl: string): ParsedRepoUrl | null {
-  const https = repoUrl.match(/^https?:\/\/github\.com\/([^/]+)\/([^/#]+?)(?:\.git)?\/?$/i)
+  const https = repoUrl.match(
+    /^https?:\/\/github\.com\/([^/]+)\/([^/#]+?)(?:\.git)?\/?$/i,
+  )
   if (https) return { owner: https[1], repo: https[2] }
 
   const ssh = repoUrl.match(/^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/i)
@@ -143,7 +149,9 @@ export async function getPullRequestState(
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`GitHub API ${res.status} for PR ${parsed.owner}/${parsed.repo}#${parsed.number}: ${text.slice(0, 200)}`)
+    throw new Error(
+      `GitHub API ${res.status} for PR ${parsed.owner}/${parsed.repo}#${parsed.number}: ${text.slice(0, 200)}`,
+    )
   }
 
   const body = (await res.json()) as {
@@ -158,7 +166,6 @@ export async function getPullRequestState(
   }
 }
 
-
 export async function getPullRequestDetails(
   prUrl: string,
   token: string,
@@ -170,8 +177,10 @@ export async function getPullRequestDetails(
     html_url?: string
     body?: string | null
     draft?: boolean
-    head?: { sha?: string; ref?: string }
-    base?: { ref?: string }
+    state?: string
+    merged?: boolean
+    head?: { sha?: string; ref?: string; repo?: { full_name?: string } | null }
+    base?: { ref?: string; repo?: { full_name?: string } | null }
   }>(
     `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/pulls/${parsed.number}`,
     token,
@@ -180,7 +189,9 @@ export async function getPullRequestDetails(
   )
 
   if (!body.head?.sha || !body.head.ref || !body.base?.ref) {
-    throw new Error(`GitHub PR response is missing head or base details for ${prUrl}`)
+    throw new Error(
+      `GitHub PR response is missing head or base details for ${prUrl}`,
+    )
   }
 
   return {
@@ -192,6 +203,10 @@ export async function getPullRequestDetails(
     headSha: body.head.sha,
     headRef: body.head.ref,
     baseRef: body.base.ref,
+    state: body.state ?? 'unknown',
+    merged: body.merged === true,
+    headRepo: body.head.repo?.full_name ?? null,
+    baseRepo: body.base.repo?.full_name ?? null,
   }
 }
 
@@ -212,7 +227,11 @@ export async function listPullRequestCommitShas(
       undefined,
       fetchImpl,
     )
-    shas.push(...commits.map((commit) => commit.sha).filter((sha): sha is string => !!sha))
+    shas.push(
+      ...commits
+        .map((commit) => commit.sha)
+        .filter((sha): sha is string => !!sha),
+    )
     if (commits.length < 100) break
     page += 1
   }
@@ -237,7 +256,11 @@ export async function listPullRequestFilePaths(
       undefined,
       fetchImpl,
     )
-    paths.push(...files.map((file) => file.filename).filter((path): path is string => !!path))
+    paths.push(
+      ...files
+        .map((file) => file.filename)
+        .filter((path): path is string => !!path),
+    )
     if (files.length < 100) break
     page += 1
   }
@@ -276,7 +299,9 @@ export async function createPullRequestForBranch(
     fetchImpl,
   )
   if (!metadata.default_branch) {
-    throw new Error(`GitHub repository response has no default branch for ${repo.owner}/${repo.repo}`)
+    throw new Error(
+      `GitHub repository response has no default branch for ${repo.owner}/${repo.repo}`,
+    )
   }
 
   const created = await githubJson<{ number?: number; html_url?: string }>(
@@ -295,7 +320,9 @@ export async function createPullRequestForBranch(
     fetchImpl,
   )
   if (!created.number || !created.html_url) {
-    throw new Error(`GitHub did not return the created pull request for ${repo.owner}/${repo.repo}`)
+    throw new Error(
+      `GitHub did not return the created pull request for ${repo.owner}/${repo.repo}`,
+    )
   }
   return { number: created.number, url: created.html_url }
 }
@@ -306,7 +333,7 @@ function requirePrUrl(prUrl: string): ParsedPrUrl {
   return parsed
 }
 
-async function githubJson<T>(
+export async function githubJson<T>(
   url: string,
   token: string,
   init: RequestInit | undefined,
@@ -314,6 +341,7 @@ async function githubJson<T>(
 ): Promise<T> {
   const res = await fetchImpl(url, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',

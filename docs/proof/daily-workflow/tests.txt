@@ -1,0 +1,88 @@
+
+> planner@ test /Users/rahbanghani/Documents/projects/planner
+> vitest run --config vitest.config.ts && npm --prefix agent-runner test
+
+
+ RUN  v4.1.9 /Users/rahbanghani/Documents/projects/planner
+
+(node:32584) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  8 passed (8)
+      Tests  57 passed (57)
+   Start at  22:06:54
+   Duration  18.95s (transform 3.59s, setup 0ms, import 16.86s, tests 3.21s, environment 71.84s)
+
+npm warn Unknown env config "npm-globalconfig". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> planner-agent-runner@1.0.0 test
+> npm run build && node --test test/*.test.mjs
+
+npm warn Unknown env config "npm-globalconfig". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> planner-agent-runner@1.0.0 build
+> tsc
+
+✔ agent image supplies every browser recording asset omitted by OpenHands 1.32.0 (71.583417ms)
+✔ hosted runner validates the browser recording assets before a task starts (5.793459ms)
+✔ parses HTTPS and SSH GitHub repository URLs (12.312791ms)
+✔ reads pull request details and commit SHAs through GitHub public APIs (55.137292ms)
+✔ creates a ready pull request against the repository default branch (58.407291ms)
+✔ updates only the pull request body (0.472166ms)
+✔ publishes a validated PASS proof section to an existing pull request (37.81425ms)
+✔ publishes INCOMPLETE when the agent did not write a manifest (2.595291ms)
+✔ creates a ready fallback PR when a branch exists but the agent did not create the PR (40.0815ms)
+✔ pushes a local branch before creating a fallback pull request (173.188375ms)
+✔ surfaces GitHub proof update failures (32.151083ms)
+✔ retries transient network failures with exponential backoff (93.585875ms)
+✔ retries transient HTTP responses (12.429292ms)
+✔ retries request timeouts (0.367208ms)
+✔ does not retry permanent HTTP failures (0.552041ms)
+✔ reports the network cause after retries are exhausted (1.035292ms)
+✔ does not stop polling while conversation is still running (0.96025ms)
+✔ stops polling once a terminal status is reached (0.125667ms)
+✔ stops polling when the runtime limit is exceeded (0.117041ms)
+✔ detects a conversation that has produced no events for five minutes (0.242917ms)
+✔ implementation prompt requires the proof contract and reserves verification time (11.377708ms)
+✔ loads a complete UI proof pack through the manifest contract (140.776083ms)
+✔ reports FAIL, BLOCKED, and NOT RUN checks without rejecting honest proof (21.838209ms)
+✔ accepts partial UI proof when browser capture is blocked (15.761333ms)
+✔ rejects a tested commit that is not part of the pull request (12.838375ms)
+✔ rejects proof files that are not committed in the pull request (12.832333ms)
+✔ rejects artifact path traversal (37.814834ms)
+✔ rejects symlink artifacts (54.415666ms)
+✔ rejects files above 10 MB from declared size before reading them (27.517208ms)
+✔ accepts a plain-text command exit-code artifact (38.640042ms)
+✔ normalizes a missing evidencePaths field to an empty array (39.737958ms)
+✔ renders an honest proof section with permanent media links (25.0415ms)
+✔ replaces the managed proof section without changing the rest of the PR body (0.4705ms)
+✔ renders missing proof as INCOMPLETE instead of claiming success (0.16575ms)
+✔ waits until every changed repository PR is merged (1.7645ms)
+✔ keeps the task incomplete when one repository PR closes (0.330458ms)
+✔ maps every repository to the runner clone layout (2.077667ms)
+✔ deduplicates repository URLs while keeping the primary repository first (0.449291ms)
+✔ reads an independent branch and pull request marker for every repository (18.135333ms)
+✔ revision rejects changed identity, forks, closed PRs, and stale heads (9.024625ms)
+✔ revision pushes a descendant to the saved branch with an exact head lease and preserves PR (3.741334ms)
+✔ concurrent PR changes, branch switches, dirty files, and rewritten history prevent a push (0.826041ms)
+✔ unchanged repository preserves the PR without pushing (0.829917ms)
+✔ real Git push preserves a concurrent remote commit even when it changes after the API check (2208.511959ms)
+✔ preparation preserves repository positions, resumes one open branch, and skips merged and unchanged repositories (10.3985ms)
+✔ review answers use the actual PR diff and file contents at its immutable head (253.6575ms)
+✔ revision prompt uses existing identities, local commits, and the full proof contract (1.94725ms)
+✔ every run receives project working rules within its existing permissions (24.410083ms)
+✔ read-only OpenHands sessions have no tools (3.595042ms)
+✔ OpenHands emits messages in time order so the final answer is retained (34.663833ms)
+✔ keeps runner log delivery failures from terminating an active run (1.438292ms)
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3220.623916

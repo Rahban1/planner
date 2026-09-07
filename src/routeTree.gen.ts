@@ -9,12 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as NewTaskRouteImport } from './routes/new-task'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LandingRouteImport } from './routes/landing'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AgentRunsRouteImport } from './routes/agent-runs'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -26,9 +29,20 @@ import { Route as ApiAuthProvidersRouteImport } from './routes/api/auth/provider
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiAuthLocalProofRouteImport } from './routes/api/auth/local-proof'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
+import { Route as ProjectsIdTasksTaskIdRouteImport } from './routes/projects.$id.tasks.$taskId'
 import { Route as ApiAuthCloudflareCallbackRouteImport } from './routes/api/auth/cloudflare/callback'
 import { Route as ApiAuthCallbackProviderRouteImport } from './routes/api/auth/callback.$provider'
 
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewTaskRoute = NewTaskRouteImport.update({
+  id: '/new-task',
+  path: '/new-task',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -59,15 +73,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjectsRoute,
+} as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DocsRoute,
 } as any)
 const ProjectsIdRoute = ProjectsIdRouteImport.update({
-  id: '/projects/$id',
-  path: '/projects/$id',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ProjectsRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -114,6 +133,11 @@ const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
   path: '/api/attachments/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIdTasksTaskIdRoute = ProjectsIdTasksTaskIdRouteImport.update({
+  id: '/tasks/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => ProjectsIdRoute,
+} as any)
 const ApiAuthCloudflareCallbackRoute =
   ApiAuthCloudflareCallbackRouteImport.update({
     id: '/api/auth/cloudflare/callback',
@@ -133,10 +157,13 @@ export interface FileRoutesByFullPath {
   '/docs': typeof DocsRouteWithChildren
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/new-task': typeof NewTaskRoute
+  '/projects': typeof ProjectsRouteWithChildren
   '/docs/$slug': typeof DocsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/docs/': typeof DocsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -146,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/api/runner/$': typeof ApiRunnerSplatRoute
   '/api/auth/callback/$provider': typeof ApiAuthCallbackProviderRoute
   '/api/auth/cloudflare/callback': typeof ApiAuthCloudflareCallbackRoute
+  '/projects/$id/tasks/$taskId': typeof ProjectsIdTasksTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -153,10 +181,12 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/new-task': typeof NewTaskRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/docs': typeof DocsIndexRoute
+  '/projects': typeof ProjectsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -166,6 +196,7 @@ export interface FileRoutesByTo {
   '/api/runner/$': typeof ApiRunnerSplatRoute
   '/api/auth/callback/$provider': typeof ApiAuthCallbackProviderRoute
   '/api/auth/cloudflare/callback': typeof ApiAuthCloudflareCallbackRoute
+  '/projects/$id/tasks/$taskId': typeof ProjectsIdTasksTaskIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -175,10 +206,13 @@ export interface FileRoutesById {
   '/docs': typeof DocsRouteWithChildren
   '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
+  '/new-task': typeof NewTaskRoute
+  '/projects': typeof ProjectsRouteWithChildren
   '/docs/$slug': typeof DocsSlugRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/docs/': typeof DocsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -188,6 +222,7 @@ export interface FileRoutesById {
   '/api/runner/$': typeof ApiRunnerSplatRoute
   '/api/auth/callback/$provider': typeof ApiAuthCallbackProviderRoute
   '/api/auth/cloudflare/callback': typeof ApiAuthCloudflareCallbackRoute
+  '/projects/$id/tasks/$taskId': typeof ProjectsIdTasksTaskIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -198,10 +233,13 @@ export interface FileRouteTypes {
     | '/docs'
     | '/landing'
     | '/login'
+    | '/new-task'
+    | '/projects'
     | '/docs/$slug'
     | '/invite/$token'
     | '/projects/$id'
     | '/docs/'
+    | '/projects/'
     | '/api/attachments/$id'
     | '/api/auth/local-proof'
     | '/api/auth/logout'
@@ -211,6 +249,7 @@ export interface FileRouteTypes {
     | '/api/runner/$'
     | '/api/auth/callback/$provider'
     | '/api/auth/cloudflare/callback'
+    | '/projects/$id/tasks/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -218,10 +257,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/landing'
     | '/login'
+    | '/new-task'
     | '/docs/$slug'
     | '/invite/$token'
     | '/projects/$id'
     | '/docs'
+    | '/projects'
     | '/api/attachments/$id'
     | '/api/auth/local-proof'
     | '/api/auth/logout'
@@ -231,6 +272,7 @@ export interface FileRouteTypes {
     | '/api/runner/$'
     | '/api/auth/callback/$provider'
     | '/api/auth/cloudflare/callback'
+    | '/projects/$id/tasks/$taskId'
   id:
     | '__root__'
     | '/'
@@ -239,10 +281,13 @@ export interface FileRouteTypes {
     | '/docs'
     | '/landing'
     | '/login'
+    | '/new-task'
+    | '/projects'
     | '/docs/$slug'
     | '/invite/$token'
     | '/projects/$id'
     | '/docs/'
+    | '/projects/'
     | '/api/attachments/$id'
     | '/api/auth/local-proof'
     | '/api/auth/logout'
@@ -252,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/runner/$'
     | '/api/auth/callback/$provider'
     | '/api/auth/cloudflare/callback'
+    | '/projects/$id/tasks/$taskId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -261,8 +307,9 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRouteWithChildren
   LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
+  NewTaskRoute: typeof NewTaskRoute
+  ProjectsRoute: typeof ProjectsRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
-  ProjectsIdRoute: typeof ProjectsIdRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiAuthLocalProofRoute: typeof ApiAuthLocalProofRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
@@ -276,6 +323,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/new-task': {
+      id: '/new-task'
+      path: '/new-task'
+      fullPath: '/new-task'
+      preLoaderRoute: typeof NewTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -318,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/': {
+      id: '/projects/'
+      path: '/'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof ProjectsRoute
+    }
     '/docs/': {
       id: '/docs/'
       path: '/'
@@ -327,10 +395,10 @@ declare module '@tanstack/react-router' {
     }
     '/projects/$id': {
       id: '/projects/$id'
-      path: '/projects/$id'
+      path: '/$id'
       fullPath: '/projects/$id'
       preLoaderRoute: typeof ProjectsIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ProjectsRoute
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -395,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAttachmentsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$id/tasks/$taskId': {
+      id: '/projects/$id/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/projects/$id/tasks/$taskId'
+      preLoaderRoute: typeof ProjectsIdTasksTaskIdRouteImport
+      parentRoute: typeof ProjectsIdRoute
+    }
     '/api/auth/cloudflare/callback': {
       id: '/api/auth/cloudflare/callback'
       path: '/api/auth/cloudflare/callback'
@@ -424,6 +499,32 @@ const DocsRouteChildren: DocsRouteChildren = {
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 
+interface ProjectsIdRouteChildren {
+  ProjectsIdTasksTaskIdRoute: typeof ProjectsIdTasksTaskIdRoute
+}
+
+const ProjectsIdRouteChildren: ProjectsIdRouteChildren = {
+  ProjectsIdTasksTaskIdRoute: ProjectsIdTasksTaskIdRoute,
+}
+
+const ProjectsIdRouteWithChildren = ProjectsIdRoute._addFileChildren(
+  ProjectsIdRouteChildren,
+)
+
+interface ProjectsRouteChildren {
+  ProjectsIdRoute: typeof ProjectsIdRouteWithChildren
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
+}
+
+const ProjectsRouteChildren: ProjectsRouteChildren = {
+  ProjectsIdRoute: ProjectsIdRouteWithChildren,
+  ProjectsIndexRoute: ProjectsIndexRoute,
+}
+
+const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
+  ProjectsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentRunsRoute: AgentRunsRoute,
@@ -431,8 +532,9 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRouteWithChildren,
   LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
+  NewTaskRoute: NewTaskRoute,
+  ProjectsRoute: ProjectsRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
-  ProjectsIdRoute: ProjectsIdRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiAuthLocalProofRoute: ApiAuthLocalProofRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,

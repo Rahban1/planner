@@ -1,18 +1,58 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { and, eq, desc } from 'drizzle-orm'
+import { and, eq, desc, sql } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import type { ProjectMember, PlanApproval, PlanSuggestion } from '#/db/schema'
 import { getRequestHeader } from '@tanstack/react-start/server'
 import { getUserFromCookie } from './auth'
 import { requireUser } from './auth-middleware'
+import {
+  requireProjectAccess,
+  requireRunAccess,
+  requireCurrentUser,
+} from './access.server'
 
 const id = () => crypto.randomUUID()
 const now = () => Date.now()
 
 async function hashInviteToken(token: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(token),
+  )
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function requireProjectOwner(projectId: string) {
+  const user = await requireCurrentUser()
+  await requireProjectAccess(projectId, user)
+  const [owner] = await db
+    .select()
+    .from(schema.projectMembers)
+    .where(
+      and(
+        eq(schema.projectMembers.projectId, projectId),
+        sql`lower(${schema.projectMembers.email}) = ${user.email.toLowerCase()}`,
+        eq(schema.projectMembers.role, 'owner'),
+      ),
+    )
+  if (!owner) throw new Error('Project owner access required')
+}
+
+async function requireEditableMember(memberId: string) {
+  const [member] = await db
+    .select()
+    .from(schema.projectMembers)
+    .where(eq(schema.projectMembers.id, memberId))
+  if (!member) throw new Error('Member not found')
+  await requireProjectOwner(member.projectId)
+  if (member.role === 'owner')
+    throw new Error(
+      'Keep the project owner. Add another owner before changing project ownership.',
+    )
+  return member
 }
 
 // ----- Project Members -----
@@ -21,9 +61,12 @@ export const createProjectInvite = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ projectId: z.string(), email: z.string().email() }))
   .handler(async ({ data }) => {
+    await requireProjectOwner(data.projectId)
     const user = await getUserFromCookie(getRequestHeader('cookie') ?? null)
     if (!user) throw new Error('Unauthorized')
-    const token = crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', '')
+    const token =
+      crypto.randomUUID().replaceAll('-', '') +
+      crypto.randomUUID().replaceAll('-', '')
     const t = now()
     await db.insert(schema.projectInvites).values({
       id: id(),
@@ -35,7 +78,11 @@ export const createProjectInvite = createServerFn({ method: 'POST' })
       acceptedAt: null,
       createdAt: t,
     })
-    return { token, invitePath: `/invite/${token}`, expiresAt: t + 7 * 24 * 60 * 60 * 1000 }
+    return {
+      token,
+      invitePath: `/invite/${token}`,
+      expiresAt: t + 7 * 24 * 60 * 60 * 1000,
+    }
   })
 
 export const acceptProjectInvite = createServerFn({ method: 'POST' })
@@ -45,14 +92,39 @@ export const acceptProjectInvite = createServerFn({ method: 'POST' })
     const user = await getUserFromCookie(getRequestHeader('cookie') ?? null)
     if (!user) throw new Error('Unauthorized')
     const tokenHash = await hashInviteToken(data.token)
-    const [invite] = await db.select().from(schema.projectInvites).where(eq(schema.projectInvites.tokenHash, tokenHash))
-    if (!invite || invite.acceptedAt || invite.expiresAt < now()) throw new Error('Invite is invalid or expired')
-    if (invite.email !== user.email.toLowerCase()) throw new Error('Sign in with the invited email address')
-    const existing = await db.select().from(schema.projectMembers).where(and(eq(schema.projectMembers.projectId, invite.projectId), eq(schema.projectMembers.email, user.email)))
+    const [invite] = await db
+      .select()
+      .from(schema.projectInvites)
+      .where(eq(schema.projectInvites.tokenHash, tokenHash))
+    if (!invite || invite.acceptedAt || invite.expiresAt < now())
+      throw new Error('Invite is invalid or expired')
+    if (invite.email !== user.email.toLowerCase())
+      throw new Error('Sign in with the invited email address')
+    const existing = await db
+      .select()
+      .from(schema.projectMembers)
+      .where(
+        and(
+          eq(schema.projectMembers.projectId, invite.projectId),
+          eq(schema.projectMembers.email, user.email),
+        ),
+      )
     if (existing.length === 0) {
-      await db.insert(schema.projectMembers).values({ id: id(), projectId: invite.projectId, email: user.email, name: user.name, role: 'member', createdAt: now() })
+      await db
+        .insert(schema.projectMembers)
+        .values({
+          id: id(),
+          projectId: invite.projectId,
+          email: user.email,
+          name: user.name,
+          role: 'member',
+          createdAt: now(),
+        })
     }
-    await db.update(schema.projectInvites).set({ acceptedAt: now() }).where(eq(schema.projectInvites.id, invite.id))
+    await db
+      .update(schema.projectInvites)
+      .set({ acceptedAt: now() })
+      .where(eq(schema.projectInvites.id, invite.id))
     return { projectId: invite.projectId }
   })
 
@@ -60,6 +132,7 @@ export const listProjectMembers = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ projectId: z.string() }))
   .handler(async ({ data }) => {
+    await requireProjectAccess(data.projectId)
     const rows = await db
       .select()
       .from(schema.projectMembers)
@@ -79,6 +152,7 @@ export const addProjectMember = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    await requireProjectOwner(data.projectId)
     const t = now()
     const id_ = id()
     await db.insert(schema.projectMembers).values({
@@ -100,7 +174,10 @@ export const removeProjectMember = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await db.delete(schema.projectMembers).where(eq(schema.projectMembers.id, data.id))
+    await requireEditableMember(data.id)
+    await db
+      .delete(schema.projectMembers)
+      .where(eq(schema.projectMembers.id, data.id))
     return { ok: true }
   })
 
@@ -113,6 +190,7 @@ export const updateMemberRole = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    await requireEditableMember(data.id)
     const t = now()
     await db
       .update(schema.projectMembers)
@@ -138,6 +216,9 @@ export const requestPlanApproval = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }) => {
     if (!context.user) throw new Error('Unauthorized')
+    const run = await requireRunAccess(data.agentRunId)
+    if (run.projectId !== data.projectId)
+      throw new Error('Run does not belong to this project')
     const t = now()
     const id_ = id()
 
@@ -177,6 +258,7 @@ export const listPlanApprovals = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ agentRunId: z.string() }))
   .handler(async ({ data }) => {
+    await requireRunAccess(data.agentRunId)
     const rows = await db
       .select()
       .from(schema.planApprovals)
@@ -212,6 +294,16 @@ export const respondToApproval = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }) => {
     if (!context.user) throw new Error('Unauthorized')
+    const [approval] = await db
+      .select()
+      .from(schema.planApprovals)
+      .where(eq(schema.planApprovals.id, data.id))
+    if (
+      !approval ||
+      approval.requestedFrom.toLowerCase() !== context.user.email.toLowerCase()
+    )
+      throw new Error('Approval request not found')
+    await requireRunAccess(approval.agentRunId)
     const t = now()
     await db
       .update(schema.planApprovals)
@@ -248,6 +340,9 @@ export const addPlanSuggestion = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }) => {
     if (!context.user) throw new Error('Unauthorized')
+    const run = await requireRunAccess(data.agentRunId)
+    if (run.projectId !== data.projectId)
+      throw new Error('Run does not belong to this project')
     const t = now()
     const id_ = id()
     await db.insert(schema.planSuggestions).values({
@@ -269,6 +364,7 @@ export const listPlanSuggestions = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ agentRunId: z.string() }))
   .handler(async ({ data }) => {
+    await requireRunAccess(data.agentRunId)
     const rows = await db
       .select()
       .from(schema.planSuggestions)

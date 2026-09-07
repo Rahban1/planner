@@ -86,7 +86,7 @@ export function PlanModal() {
     const trimmed = feedback.trim()
     if (!trimmed || !run) return
     changesMut.mutate(
-      { data: { runId: run.id, feedback: trimmed } },
+      { data: { runId: run.id, expectedVersion: run.planVersion, feedback: trimmed } },
       { onSuccess: () => setFeedback('') },
     )
   }
@@ -221,7 +221,7 @@ export function PlanModal() {
                   </button>
                   <button
                     className="btn btn-primary"
-                    onClick={() => run && approveMut.mutate({ data: { runId: run.id } })}
+                    onClick={() => run && approveMut.mutate({ data: { runId: run.id, expectedVersion: run.planVersion } })}
                     disabled={busy}
                   >
                     <Check size={14} />

@@ -36,6 +36,8 @@ export function useKeyboardShortcuts(onToggleTheme: () => void) {
         return
       }
 
+      if (e.target instanceof HTMLElement && e.target.closest('button, a, summary, [role=button]') && ['Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return
+
       const key = e.key
       const lower = key.toLowerCase()
       const hasMeta = e.metaKey || e.ctrlKey
@@ -167,8 +169,8 @@ export function useKeyboardShortcuts(onToggleTheme: () => void) {
       }
 
       // === New task (n) ===
-      if (lower === 'n') {
-        ui.openNewTask('')
+      if (key === 'n') {
+        navigate({ to: '/new-task', search: { project: undefined } })
         return
       }
 

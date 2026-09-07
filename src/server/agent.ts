@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
-import { env } from 'cloudflare:workers'
 import { z } from 'zod'
-import { eq, desc, and, isNotNull, asc, lt } from 'drizzle-orm'
+import { eq, desc, and, isNotNull, lt, inArray } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import type {
   AgentRun,
@@ -10,7 +9,22 @@ import type {
 } from '#/db/schema'
 import { requireUser } from './auth-middleware'
 import {
-  dispatchGitHubActionsRun,
+  accessibleProjectIds,
+  isRunnerRequest,
+  requireCurrentUser,
+  requireRunAccess,
+  requireRunnerAccess,
+  requireTaskAccess,
+} from './access.server'
+import {
+  dispatchQueuedRun,
+  queueWorkflowRun,
+  withRunRepositories as addRunRepositories,
+} from './agent-queue.server'
+import { latestMeaningfulRun, mergeTrackedRun } from '#/lib/workflow-state'
+import { revisePlanSql } from '#/lib/workflow-queue'
+import { validateReviewAction } from './review.server'
+import {
   shouldFailIncompleteWorkflow,
   shouldIgnoreWorkflowCompletion,
 } from './github-actions-client'
@@ -22,116 +36,6 @@ function now() {
 }
 
 const GITHUB_ACTIONS_STALE_AFTER_MS = 40 * 60 * 1000
-
-async function dispatchQueuedRun(runId: string): Promise<void> {
-  const token = env.GITHUB_ACTIONS_DISPATCH_TOKEN
-  if (!token) return
-
-  const [existing] = await db
-    .select()
-    .from(schema.agentRuns)
-    .where(eq(schema.agentRuns.id, runId))
-  if (!existing || existing.status !== 'queued') return
-
-  const dispatchedAt = now()
-  try {
-    const result = await dispatchGitHubActionsRun(
-      {
-        owner: env.GITHUB_ACTIONS_OWNER,
-        repository: env.GITHUB_ACTIONS_REPOSITORY,
-        workflow: env.GITHUB_ACTIONS_WORKFLOW,
-        ref: env.GITHUB_ACTIONS_REF,
-        token,
-      },
-      runId,
-    )
-    const logs = [
-      ...parseLogs(existing.logs),
-      {
-        t: dispatchedAt,
-        level: 'info' as const,
-        message: `GitHub Actions runner dispatched: ${result.jobUrl}`,
-      },
-    ]
-    await db
-      .update(schema.agentRuns)
-      .set({
-        runnerBackend: 'github_actions',
-        runnerJobId: result.jobId,
-        runnerJobUrl: result.jobUrl,
-        dispatchAttempts: existing.dispatchAttempts + 1,
-        dispatchedAt,
-        logs: JSON.stringify(logs),
-        updatedAt: dispatchedAt,
-      })
-      .where(
-        and(
-          eq(schema.agentRuns.id, runId),
-          eq(schema.agentRuns.status, 'queued'),
-        ),
-      )
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const logs = [
-      ...parseLogs(existing.logs),
-      {
-        t: dispatchedAt,
-        level: 'error' as const,
-        message: `Runner dispatch failed: ${message}`,
-      },
-    ]
-    const failed = await db
-      .update(schema.agentRuns)
-      .set({
-        status: 'error',
-        runnerBackend: 'github_actions',
-        dispatchAttempts: existing.dispatchAttempts + 1,
-        errorMessage: `Could not start GitHub Actions runner: ${message}`,
-        logs: JSON.stringify(logs),
-        updatedAt: dispatchedAt,
-      })
-      .where(
-        and(
-          eq(schema.agentRuns.id, runId),
-          eq(schema.agentRuns.status, 'queued'),
-        ),
-      )
-      .returning({ id: schema.agentRuns.id })
-    if (failed.length > 0) {
-      await db
-        .update(schema.tasks)
-        .set({ lifecycleState: 'failed', updatedAt: dispatchedAt })
-        .where(eq(schema.tasks.id, existing.taskId))
-      throw error
-    }
-  }
-}
-
-async function addRunRepositories<T extends { id: string }>(
-  runs: T[],
-): Promise<Array<T & { repositories: AgentRunRepository[] }>> {
-  if (runs.length === 0) return []
-
-  const runIds = new Set(runs.map((run) => run.id))
-  const repositoryRows = (
-    await db
-      .select()
-      .from(schema.agentRunRepositories)
-      .orderBy(asc(schema.agentRunRepositories.position))
-  ).filter((repository) => runIds.has(repository.agentRunId))
-  const repositoriesByRun = new Map<string, AgentRunRepository[]>()
-
-  for (const repository of repositoryRows) {
-    const repositories = repositoriesByRun.get(repository.agentRunId) ?? []
-    repositories.push(repository)
-    repositoriesByRun.set(repository.agentRunId, repositories)
-  }
-
-  return runs.map((run) => ({
-    ...run,
-    repositories: repositoriesByRun.get(run.id) ?? [],
-  }))
-}
 
 async function replaceRunRepositories(
   agentRunId: string,
@@ -173,7 +77,12 @@ async function replaceRunRepositories(
   await db.batch([removeExisting, insertRepositories])
 }
 
-async function appendTaskMessage(taskId: string, kind: 'progress' | 'plan' | 'pr' | 'error', body: string, metadata?: Record<string, unknown>) {
+async function appendTaskMessage(
+  taskId: string,
+  kind: 'progress' | 'plan' | 'pr' | 'error',
+  body: string,
+  metadata?: Record<string, unknown>,
+) {
   const t = now()
   await db.insert(schema.taskMessages).values({
     id: id(),
@@ -187,198 +96,284 @@ async function appendTaskMessage(taskId: string, kind: 'progress' | 'plan' | 'pr
     createdAt: t,
     updatedAt: t,
   })
-  await db.update(schema.tasks).set({ lastMessageAt: t, updatedAt: t }).where(eq(schema.tasks.id, taskId))
-}
-
-async function queueRun(taskId: string, kind: 'answer' | 'implement' | 'plan') {
-  const task = await db
-    .select()
-    .from(schema.tasks)
+  await db
+    .update(schema.tasks)
+    .set({ lastMessageAt: t, updatedAt: t })
     .where(eq(schema.tasks.id, taskId))
-    .then((rows) => rows[0])
-  if (!task) throw new Error('Task not found')
-
-  const project = await db
-    .select()
-    .from(schema.projects)
-    .where(eq(schema.projects.id, task.projectId))
-    .then((rows) => rows[0])
-  if (!project) throw new Error('Project not found')
-
-  const repositoryRows = await db
-    .select()
-    .from(schema.projectRepositories)
-    .where(eq(schema.projectRepositories.projectId, project.id))
-    .orderBy(asc(schema.projectRepositories.position))
-  const repoUrls =
-    repositoryRows.length > 0
-      ? repositoryRows.map((repository) => repository.url)
-      : project.repoUrl
-        ? [project.repoUrl]
-        : []
-  if (repoUrls.length === 0 && kind !== 'answer') throw new Error('Project has no repositories')
-
-  // Idempotency: if there's already a queued or running run of this kind
-  // for the task, return it.
-  const existing = await db
-    .select()
-    .from(schema.agentRuns)
-    .where(eq(schema.agentRuns.taskId, taskId))
-    .then((rows) =>
-      rows.find(
-        (r) =>
-          r.kind === kind && (r.status === 'queued' || r.status === 'running'),
-      ),
-    )
-  if (existing) return (await addRunRepositories([existing as AgentRun]))[0]
-
-  const runId = id()
-  const t = now()
-  await db.insert(schema.agentRuns).values({
-    id: runId,
-    taskId,
-    projectId: project.id,
-    status: 'queued',
-    kind,
-    repoUrl: project.repoUrl,
-    logs: JSON.stringify([
-      {
-        t,
-        level: 'info',
-        message:
-          kind === 'plan'
-            ? 'Plan run queued. Waiting for agent runner.'
-            : kind === 'answer'
-              ? 'Question queued. Waiting for agent runner.'
-              : 'Run queued. Waiting for agent runner.',
-      },
-    ]),
-    createdAt: t,
-    updatedAt: t,
-  })
-  await db.insert(schema.agentRunRepositories).values(
-    repoUrls.map((repoUrl, position) => ({
-      id: id(),
-      agentRunId: runId,
-      repoUrl,
-      position,
-      status: 'pending' as const,
-      createdAt: t,
-      updatedAt: t,
-    })),
-  )
-
-  await dispatchQueuedRun(runId)
-
-  const [run] = await db
-    .select()
-    .from(schema.agentRuns)
-    .where(eq(schema.agentRuns.id, runId))
-  return (await addRunRepositories([run as AgentRun]))[0]
 }
 
 export const giveTaskToAgent = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ taskId: z.string() }))
-  .handler(async ({ data }) => queueRun(data.taskId, 'implement'))
+  .handler(async ({ data }) => {
+    await requireTaskAccess(data.taskId)
+    const [plan] = await db
+      .select()
+      .from(schema.agentRuns)
+      .where(
+        and(
+          eq(schema.agentRuns.taskId, data.taskId),
+          eq(schema.agentRuns.kind, 'plan'),
+          eq(schema.agentRuns.status, 'approved'),
+        ),
+      )
+      .orderBy(desc(schema.agentRuns.createdAt))
+      .limit(1)
+    if (!plan) throw new Error('Approve a plan before implementation')
+    return queueWorkflowRun(data.taskId, 'implement', { sourceRunId: plan.id })
+  })
 
 export const planTask = createServerFn({ method: 'POST' })
   .middleware([requireUser])
-  .validator(z.object({ taskId: z.string() }))
-  .handler(async ({ data }) => queueRun(data.taskId, 'plan'))
+  .validator(
+    z.object({ taskId: z.string(), triggerMessageId: z.string().optional() }),
+  )
+  .handler(async ({ data }) =>
+    queueWorkflowRun(data.taskId, 'plan', {
+      triggerMessageId: data.triggerMessageId,
+    }),
+  )
 
 export const askAgentQuestion = createServerFn({ method: 'POST' })
   .middleware([requireUser])
-  .validator(z.object({ taskId: z.string() }))
-  .handler(async ({ data }) => queueRun(data.taskId, 'answer'))
+  .validator(
+    z.object({
+      taskId: z.string(),
+      triggerMessageId: z.string().optional(),
+      sourceRunId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => queueWorkflowRun(data.taskId, 'answer', data))
 
 export const approvePlan = createServerFn({ method: 'POST' })
   .middleware([requireUser])
-  .validator(z.object({ runId: z.string() }))
+  .validator(
+    z.object({
+      runId: z.string(),
+      expectedVersion: z.number().int().positive(),
+    }),
+  )
   .handler(async ({ data }) => {
-    const [run] = await db
+    const run = await requireRunAccess(data.runId)
+    if (run.kind !== 'plan' || !run.planMd)
+      throw new Error('Plan is not ready for review')
+    const [latest] = await db
       .select()
       .from(schema.agentRuns)
-      .where(eq(schema.agentRuns.id, data.runId))
-    if (!run) throw new Error('Agent run not found')
-    if (run.kind !== 'plan') throw new Error('Not a plan run')
-    if (run.status !== 'plan_ready')
-      throw new Error('Plan is not ready for review')
-
-    await db
-      .update(schema.agentRuns)
-      .set({ status: 'approved', updatedAt: now() })
-      .where(eq(schema.agentRuns.id, data.runId))
-
-    // Auto-start implementation; the runner picks up the approved plan
-    // through the task-context endpoint.
-    return queueRun(run.taskId, 'implement')
+      .where(
+        and(
+          eq(schema.agentRuns.taskId, run.taskId),
+          eq(schema.agentRuns.kind, 'plan'),
+        ),
+      )
+      .orderBy(desc(schema.agentRuns.createdAt))
+      .limit(1)
+    if (
+      latest?.id !== run.id ||
+      (data.expectedVersion !== undefined &&
+        data.expectedVersion !== run.planVersion)
+    )
+      throw new Error(
+        'The plan changed. Reload the current version before approval.',
+      )
+    const user = isRunnerRequest() ? null : await requireCurrentUser()
+    return queueWorkflowRun(run.taskId, 'implement', {
+      sourceRunId: run.id,
+      approveVersion: data.expectedVersion ?? run.planVersion,
+      approvedByUserId: user?.id,
+    })
   })
 
 export const requestPlanChanges = createServerFn({ method: 'POST' })
   .middleware([requireUser])
-  .validator(z.object({ runId: z.string(), feedback: z.string().min(1) }))
+  .validator(
+    z.object({
+      runId: z.string(),
+      feedback: z.string().trim().min(1).max(20_000),
+      expectedVersion: z.number().int().positive(),
+    }),
+  )
   .handler(async ({ data }) => {
-    const [run] = await db
-      .select()
-      .from(schema.agentRuns)
-      .where(eq(schema.agentRuns.id, data.runId))
-    if (!run) throw new Error('Agent run not found')
-    if (run.kind !== 'plan') throw new Error('Not a plan run')
-    if (run.status !== 'plan_ready')
+    const run = await requireRunAccess(data.runId)
+    if (run.kind !== 'plan' || run.status !== 'plan_ready')
       throw new Error('Plan is not ready for review')
-
+    if (
+      data.expectedVersion !== undefined &&
+      data.expectedVersion !== run.planVersion
+    )
+      throw new Error('The plan changed. Reload it before sending feedback.')
+    const { runtimeEnv } = await import('#/db/index')
+    const t = now()
+    // This predicate and approval use the same D1 transaction boundary.
+    const result = await runtimeEnv.DB.prepare(revisePlanSql)
+      .bind(data.feedback, t, run.id, data.expectedVersion ?? run.planVersion)
+      .run()
+    if (!result.meta.changes)
+      throw new Error(
+        'The plan changed or another run started. Reload the task.',
+      )
+    await appendTaskMessage(
+      run.taskId,
+      'progress',
+      `Plan changes requested: ${data.feedback}`,
+      { runId: run.id, version: run.planVersion },
+    )
     await db
-      .update(schema.agentRuns)
+      .update(schema.tasks)
       .set({
-        status: 'queued',
-        planFeedback: data.feedback,
-        planVersion: run.planVersion + 1,
-        updatedAt: now(),
+        lifecycleState: 'planning',
+        nextAction: 'The agent is updating the plan',
+        updatedAt: t,
       })
-      .where(eq(schema.agentRuns.id, data.runId))
-
-    await dispatchQueuedRun(data.runId)
-
+      .where(eq(schema.tasks.id, run.taskId))
+    const dispatchError = await dispatchQueuedRun(run.id)
     const [updated] = await db
       .select()
       .from(schema.agentRuns)
-      .where(eq(schema.agentRuns.id, data.runId))
-    return updated as AgentRun
+      .where(eq(schema.agentRuns.id, run.id))
+    return { ...(await addRunRepositories([updated]))[0], dispatchError }
+  })
+
+export const retryAgentRun = createServerFn({ method: 'POST' })
+  .middleware([requireUser])
+  .validator(z.object({ runId: z.string() }))
+  .handler(async ({ data }) => {
+    const run = await requireRunAccess(data.runId)
+    if (run.status !== 'error' && run.status !== 'stopped')
+      throw new Error('Only failed or stopped runs can be retried')
+    const runs = await db
+      .select()
+      .from(schema.agentRuns)
+      .where(eq(schema.agentRuns.taskId, run.taskId))
+      .orderBy(desc(schema.agentRuns.createdAt))
+    if (runs[0]?.id !== run.id)
+      throw new Error('A newer run exists. Open the current task state.')
+    let sourceRunId = run.sourceRunId
+    let triggerMessageId = run.triggerMessageId
+    if (
+      (run.kind === 'revise' || run.kind === 'answer') &&
+      run.sourceRunId &&
+      run.triggerMessageId
+    ) {
+      const [trigger] = await db
+        .select()
+        .from(schema.taskMessages)
+        .where(eq(schema.taskMessages.id, run.triggerMessageId))
+      if (!trigger) throw new Error('The original request is missing')
+      const metadata = trigger.metadata
+        ? (JSON.parse(trigger.metadata) as {
+            review?: {
+              context?: {
+                repoUrl?: string
+                path?: string
+                line?: number
+                side?: 'LEFT' | 'RIGHT'
+              }
+            }
+          })
+        : null
+      const oldContext = metadata?.review?.context
+      const context = oldContext
+        ? {
+            repoUrl: oldContext.repoUrl,
+            path: oldContext.path,
+            line: oldContext.line,
+            side: oldContext.side,
+          }
+        : undefined
+      const review = await validateReviewAction(
+        run.taskId,
+        undefined,
+        run.kind === 'revise' ? 'change' : 'question',
+        context,
+      )
+      const user = await requireCurrentUser()
+      const retryMessageId = id()
+      const clientMessageId = `retry:${run.id}`
+      await db
+        .insert(schema.taskMessages)
+        .values({
+          id: retryMessageId,
+          taskId: run.taskId,
+          authorType: 'user',
+          authorUserId: user.id,
+          kind: 'text',
+          body: trigger.body,
+          metadata: JSON.stringify({
+            mode: run.kind === 'revise' ? 'change' : 'question',
+            review,
+            retryOf: run.id,
+          }),
+          clientMessageId,
+          createdAt: now(),
+          updatedAt: now(),
+        })
+        .onConflictDoNothing()
+      const [message] = await db
+        .select()
+        .from(schema.taskMessages)
+        .where(
+          and(
+            eq(schema.taskMessages.taskId, run.taskId),
+            eq(schema.taskMessages.clientMessageId, clientMessageId),
+          ),
+        )
+      sourceRunId = review.sourceRunId
+      triggerMessageId = message.id
+    }
+    return queueWorkflowRun(run.taskId, run.kind, {
+      sourceRunId,
+      triggerMessageId,
+      approvedByUserId: run.approvedByUserId,
+      retry: true,
+      planSnapshot:
+        run.kind === 'plan'
+          ? {
+              planMd: run.planMd,
+              feedback: run.planFeedback,
+              version: run.planVersion,
+            }
+          : undefined,
+    })
   })
 
 export const getLatestApprovedPlan = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ taskId: z.string() }))
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.taskId)
     const runs = await db
       .select()
       .from(schema.agentRuns)
       .where(eq(schema.agentRuns.taskId, data.taskId))
       .orderBy(schema.agentRuns.createdAt)
     return (
-      runs
+      (runs
         .filter((r) => r.kind === 'plan' && r.status === 'approved')
-        .pop() as AgentRun | null
-    ) ?? null
+        .pop() as AgentRun | null) ?? null
+    )
   })
 
 export const getLatestPlanRun = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ taskId: z.string() }))
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.taskId)
     const runs = await db
       .select()
       .from(schema.agentRuns)
       .where(eq(schema.agentRuns.taskId, data.taskId))
       .orderBy(schema.agentRuns.createdAt)
-    return (runs.filter((r) => r.kind === 'plan').pop() as AgentRun | null) ?? null
+    return (
+      (runs.filter((r) => r.kind === 'plan').pop() as AgentRun | null) ?? null
+    )
   })
 
 export const getAgentRunForTask = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ taskId: z.string() }))
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.taskId)
     const runs = await db
       .select()
       .from(schema.agentRuns)
@@ -392,6 +387,7 @@ export const getAgentRun = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    await requireRunAccess(data.id)
     const [run] = await db
       .select()
       .from(schema.agentRuns)
@@ -402,6 +398,7 @@ export const getAgentRun = createServerFn({ method: 'GET' })
 export const listQueuedAgentRuns = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .handler(async () => {
+    requireRunnerAccess()
     const runs = await db
       .select()
       .from(schema.agentRuns)
@@ -420,6 +417,7 @@ export const claimAgentRun = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    requireRunnerAccess()
     const claimedAt = now()
     const claimed = await db
       .update(schema.agentRuns)
@@ -454,6 +452,7 @@ export const completeAgentWorkflow = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    requireRunnerAccess()
     const [existing] = await db
       .select()
       .from(schema.agentRuns)
@@ -506,6 +505,7 @@ export const completeAgentWorkflow = createServerFn({ method: 'POST' })
 export const expireStaleAgentRuns = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .handler(async () => {
+    requireRunnerAccess()
     const expiredAt = now()
     const cutoff = expiredAt - GITHUB_ACTIONS_STALE_AFTER_MS
     const staleRuns = await db
@@ -558,6 +558,7 @@ export const expireStaleAgentRuns = createServerFn({ method: 'POST' })
 export const listAwaitingMergeRuns = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .handler(async () => {
+    requireRunnerAccess()
     const runs = await db
       .select()
       .from(schema.agentRuns)
@@ -568,12 +569,20 @@ export const listAwaitingMergeRuns = createServerFn({ method: 'GET' })
         ),
       )
       .orderBy(schema.agentRuns.createdAt)
-    return addRunRepositories(runs as AgentRun[])
+    const allRuns = await db.select().from(schema.agentRuns)
+    const current = runs.filter(
+      (run) =>
+        mergeTrackedRun(allRuns.filter((row) => row.taskId === run.taskId))
+          ?.id === run.id,
+    )
+    return addRunRepositories(current as AgentRun[])
   })
 
 export const listAgentRuns = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .handler(async () => {
+    const projectIds = await accessibleProjectIds()
+    if (!projectIds.length) return []
     const runs = await db
       .select({
         id: schema.agentRuns.id,
@@ -604,6 +613,7 @@ export const listAgentRuns = createServerFn({ method: 'GET' })
         schema.projects,
         eq(schema.agentRuns.projectId, schema.projects.id),
       )
+      .where(inArray(schema.agentRuns.projectId, projectIds))
       .orderBy(desc(schema.agentRuns.createdAt))
     return addRunRepositories(runs)
   })
@@ -659,11 +669,29 @@ export const updateAgentRun = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    requireRunnerAccess()
     const [existing] = await db
       .select()
       .from(schema.agentRuns)
       .where(eq(schema.agentRuns.id, data.id))
     if (!existing) throw new Error('Agent run not found')
+    if (
+      existing.status === 'stopped' ||
+      ((existing.status === 'error' ||
+        existing.status === 'merged' ||
+        existing.status === 'closed') &&
+        data.status &&
+        data.status !== existing.status)
+    )
+      return (await addRunRepositories([existing]))[0]
+    const taskRuns = await db
+      .select()
+      .from(schema.agentRuns)
+      .where(eq(schema.agentRuns.taskId, existing.taskId))
+    const isCurrent =
+      latestMeaningfulRun(taskRuns)?.id === existing.id ||
+      (['merged', 'closed'].includes(data.status ?? '') &&
+        mergeTrackedRun(taskRuns)?.id === existing.id)
 
     let logs = existing.logs
     if (data.logs !== undefined) {
@@ -692,31 +720,81 @@ export const updateAgentRun = createServerFn({ method: 'POST' })
       await replaceRunRepositories(data.id, data.repositories, updatedAt)
     }
 
-    const lifecycleState = data.status === 'plan_ready'
-      ? 'plan_ready'
-      : data.status === 'running'
-        ? 'running'
-        : data.status === 'success'
-          ? 'pr_open'
-          : data.status === 'error'
-            ? 'failed'
-            : data.status === 'merged'
-              ? 'done'
-              : data.status === 'approved'
-                ? 'approved'
-                : undefined
-    if (lifecycleState) {
-      await db.update(schema.tasks).set({ lifecycleState, nextAction: lifecycleState === 'plan_ready' ? 'Review the agent plan' : lifecycleState === 'pr_open' ? 'Review the pull request' : null, updatedAt }).where(eq(schema.tasks.id, existing.taskId))
+    const lifecycleState =
+      data.status === 'plan_ready'
+        ? 'plan_ready'
+        : data.status === 'running'
+          ? 'running'
+          : data.status === 'success'
+            ? 'pr_open'
+            : data.status === 'error'
+              ? 'failed'
+              : data.status === 'merged'
+                ? 'done'
+                : data.status === 'approved'
+                  ? 'approved'
+                  : undefined
+    if (lifecycleState && isCurrent && existing.kind !== 'answer') {
+      await db
+        .update(schema.tasks)
+        .set({
+          lifecycleState,
+          nextAction:
+            lifecycleState === 'plan_ready'
+              ? 'Review the agent plan'
+              : lifecycleState === 'pr_open'
+                ? 'Review the pull request'
+                : null,
+          updatedAt,
+        })
+        .where(eq(schema.tasks.id, existing.taskId))
     }
-    const importantLogs = (data.appendLogs ?? []).filter((entry) => entry.level !== 'info' || /pull request|plan|error|merged|proof/i.test(entry.message))
+    const importantLogs = (data.appendLogs ?? []).filter(
+      (entry) =>
+        entry.level !== 'info' ||
+        /pull request|plan|error|merged|proof/i.test(entry.message),
+    )
     for (const entry of importantLogs) {
-      const kind = entry.level === 'error' ? 'error' : /pull request/i.test(entry.message) ? 'pr' : 'progress'
-      await appendTaskMessage(existing.taskId, kind, entry.message, { runId: existing.id })
+      const kind =
+        entry.level === 'error'
+          ? 'error'
+          : /pull request/i.test(entry.message)
+            ? 'pr'
+            : 'progress'
+      await appendTaskMessage(existing.taskId, kind, entry.message, {
+        runId: existing.id,
+      })
     }
-    if (data.planMd) await appendTaskMessage(existing.taskId, 'plan', data.planMd, { runId: existing.id, version: existing.planVersion })
+    if (data.planMd && existing.kind === 'plan') {
+      await db
+        .insert(schema.planRevisions)
+        .values({
+          id: id(),
+          agentRunId: existing.id,
+          version: existing.planVersion,
+          planMd: data.planMd,
+          feedback: existing.planFeedback,
+          createdAt: updatedAt,
+        })
+        .onConflictDoNothing()
+      if (data.planMd !== existing.planMd)
+        await appendTaskMessage(existing.taskId, 'plan', data.planMd, {
+          runId: existing.id,
+          version: existing.planVersion,
+        })
+    }
 
     // When a run's PR is merged, automatically complete the task.
-    if (data.status === 'merged' && existing.status !== 'merged') {
+    if (
+      data.status === 'merged' &&
+      existing.status !== 'merged' &&
+      isCurrent &&
+      existing.kind !== 'answer' &&
+      (data.repositories
+        ?.filter((repo) => repo.prUrl)
+        .every((repo) => repo.status === 'merged') ??
+        true)
+    ) {
       const t = now()
       await db
         .update(schema.tasks)
@@ -737,6 +815,7 @@ export const stopAgentRun = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ runId: z.string() }))
   .handler(async ({ data }) => {
+    await requireRunAccess(data.runId)
     const [existing] = await db
       .select()
       .from(schema.agentRuns)

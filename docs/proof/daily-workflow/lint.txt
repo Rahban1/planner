@@ -1,0 +1,12 @@
+
+> planner@ lint /Users/rahbanghani/Documents/projects/planner
+> eslint
+
+
+/Users/rahbanghani/Documents/projects/planner/worker-configuration.d.ts
+  11350:41  warning  Unused eslint-disable directive (no problems were reported)
+  11368:67  warning  Unused eslint-disable directive (no problems were reported)
+
+✖ 2 problems (0 errors, 2 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

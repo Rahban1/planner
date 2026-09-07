@@ -430,6 +430,14 @@ export async function createLocalProofSession(request: Request) {
     name: 'Planner Proof',
     avatarUrl: null,
   })
+  // The local proof route is available only on loopback in development.
+  // Grant its fixed user access only to the three isolated seed projects.
+  for (const projectId of ['p_app_a', 'p_app_b', 'p_app_c']) {
+    await db.insert(schema.projectMembers).values({
+      id: `proof-member-${projectId}`, projectId, email: 'proof@planner.local',
+      role: 'owner', createdAt: Date.now(),
+    }).onConflictDoNothing()
+  }
   return createSessionResponse(request, userId, '/dashboard')
 }
 

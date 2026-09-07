@@ -57,6 +57,13 @@
       "when": 1788185793763,
       "tag": "0010_github_actions_runner",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788693610650,
+      "tag": "0011_daily_workflow",
+      "breakpoints": true
     }
   ]
 }

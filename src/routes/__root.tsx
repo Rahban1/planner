@@ -3,11 +3,14 @@ import {
   Scripts,
   createRootRoute,
   useNavigate,
+  useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../styles.css?url'
+import workflowCss from '../workflow.css?url'
+import { WorkflowShell } from '../components/workflow/WorkflowShell'
 import { useTheme } from '../lib/theme'
 import { TopBar } from '../components/TopBar'
 import { TaskModal } from '../components/TaskModal'
@@ -46,6 +49,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
+      { rel: 'stylesheet', href: workflowCss },
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
         rel: 'preconnect',
@@ -111,24 +115,35 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const ui = useUI()
 
   useKeyboardShortcuts(toggle)
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const privatePage = /^\/(dashboard|projects|new-task|agent-runs)(\/|$)/.test(
+    pathname,
+  )
+  const logout = () => {
+    fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+      window.location.assign('/landing')
+    })
+  }
 
   return (
     <>
-      <TopBar
-        theme={theme}
-        onToggleTheme={toggle}
-        onWordmarkClick={() => navigate({ to: '/dashboard' })}
-        onLogout={() => {
-          fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
-            const frame = document.createElement('iframe')
-            frame.style.display = 'none'
-            frame.src = '/cdn-cgi/access/logout'
-            document.body.appendChild(frame)
-            window.setTimeout(() => window.location.assign('/landing'), 400)
-          })
-        }}
-      />
-      {children}
+      {privatePage ? (
+        <WorkflowShell theme={theme} onToggleTheme={toggle} onLogout={logout}>
+          {children}
+        </WorkflowShell>
+      ) : (
+        <>
+          <TopBar
+            theme={theme}
+            onToggleTheme={toggle}
+            onWordmarkClick={() => navigate({ to: '/dashboard' })}
+            onLogout={logout}
+          />
+          {children}
+        </>
+      )}
       <TaskModal
         taskId={ui.taskModal?.taskId ?? null}
         projectId={ui.taskModal?.projectIdForNew ?? null}

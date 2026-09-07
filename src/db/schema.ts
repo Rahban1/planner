@@ -11,6 +11,7 @@ export const projects = sqliteTable('projects', {
   name: text('name').notNull(),
   position: integer('position').notNull().default(0),
   repoUrl: text('repo_url'),
+  instructions: text('instructions'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
   archived: integer('archived').notNull().default(0),
@@ -60,8 +61,19 @@ export const tasks = sqliteTable('tasks', {
   updatedAt: integer('updated_at').notNull(),
   ownerUserId: text('owner_user_id'),
   lifecycleState: text('lifecycle_state', {
-    enum: ['discussion', 'planning', 'plan_ready', 'approved', 'running', 'pr_open', 'done', 'failed'],
-  }).notNull().default('discussion'),
+    enum: [
+      'discussion',
+      'planning',
+      'plan_ready',
+      'approved',
+      'running',
+      'pr_open',
+      'done',
+      'failed',
+    ],
+  })
+    .notNull()
+    .default('discussion'),
   lastMessageAt: integer('last_message_at'),
   nextAction: text('next_action'),
 })
@@ -110,7 +122,7 @@ export const agentRuns = sqliteTable('agent_runs', {
   })
     .notNull()
     .default('queued'),
-  kind: text('kind', { enum: ['answer', 'implement', 'plan'] })
+  kind: text('kind', { enum: ['answer', 'implement', 'plan', 'revise'] })
     .notNull()
     .default('implement'),
   repoUrl: text('repo_url'),
@@ -132,6 +144,7 @@ export const agentRuns = sqliteTable('agent_runs', {
   dispatchAttempts: integer('dispatch_attempts').notNull().default(0),
   dispatchedAt: integer('dispatched_at'),
   triggerMessageId: text('trigger_message_id'),
+  sourceRunId: text('source_run_id'),
   confirmationMessageId: text('confirmation_message_id'),
   approvedByUserId: text('approved_by_user_id'),
   createdAt: integer('created_at').notNull(),
@@ -139,6 +152,26 @@ export const agentRuns = sqliteTable('agent_runs', {
 })
 
 export type AgentRun = typeof agentRuns.$inferSelect
+
+export const planRevisions = sqliteTable(
+  'plan_revisions',
+  {
+    id: text('id').primaryKey(),
+    agentRunId: text('agent_run_id')
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    planMd: text('markdown').notNull(),
+    feedback: text('feedback'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (table) => ({
+    runVersionIdx: uniqueIndex('plan_revisions_run_version_idx').on(
+      table.agentRunId,
+      table.version,
+    ),
+  }),
+)
 
 export const agentRunRepositories = sqliteTable(
   'agent_run_repositories',
@@ -230,12 +263,25 @@ export const taskMessages = sqliteTable(
     taskId: text('task_id')
       .notNull()
       .references(() => tasks.id, { onDelete: 'cascade' }),
-    authorType: text('author_type', { enum: ['user', 'agent', 'system'] })
-      .notNull(),
+    authorType: text('author_type', {
+      enum: ['user', 'agent', 'system'],
+    }).notNull(),
     authorUserId: text('author_user_id'),
     kind: text('kind', {
-      enum: ['text', 'answer', 'plan', 'action_request', 'progress', 'pr', 'error', 'attachment', 'legacy_context'],
-    }).notNull().default('text'),
+      enum: [
+        'text',
+        'answer',
+        'plan',
+        'action_request',
+        'progress',
+        'pr',
+        'error',
+        'attachment',
+        'legacy_context',
+      ],
+    })
+      .notNull()
+      .default('text'),
     body: text('body').notNull(),
     metadata: text('metadata'),
     clientMessageId: text('client_message_id'),

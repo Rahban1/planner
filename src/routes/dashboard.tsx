@@ -1,40 +1,16 @@
-import {
-  createFileRoute,
-  redirect,
-  useLoaderData,
-  useNavigate,
-} from '@tanstack/react-router'
-import { useQueries } from '@tanstack/react-query'
-import { useEffect, useMemo } from 'react'
-import { PriorityPanel } from '#/components/PriorityPanel'
-import { ProjectColumn } from '#/components/ProjectColumn'
-import {
-  usePriority,
-  useProjects,
-  projectSummaryQueryOptions,
-  useCompleteTaskMutation,
-  useUncompleteTaskMutation,
-  useDeleteTaskMutation,
-  useDeleteProjectMutation,
-} from '#/lib/queries'
-import type {
-  Project,
-  PriorityCard,
-  Task,
-  TaskWithSubtasks,
-} from '#/lib/queries'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { useState } from 'react'
+import { ArrowRight, Check, Plus, Search } from 'lucide-react'
+import { TaskList } from '#/components/workflow/TaskList'
+import { useWorkflowTasks } from '#/lib/workflow-queries'
+import { useProjects } from '#/lib/queries'
 import { useUI } from '#/lib/ui-context'
-import { useFocus } from '#/lib/focus-context'
-import type { TaskActions } from '#/lib/focus-context'
-import { listPriority } from '#/server/priority'
 import { getCurrentUser, listProjects } from '#/server/projects'
-import { listProjectSummary } from '#/server/tasks'
-
-type ProjectSummary = { active: TaskWithSubtasks[]; completed: Task[] }
+import { listWorkflowTasks } from '#/server/workflow'
 
 export const Route = createFileRoute('/dashboard')({
   loader: async ({ location }) => {
-    if (!(await getCurrentUser())) {
+    if (!(await getCurrentUser()))
       throw redirect({
         to: '/login',
         search: {
@@ -43,165 +19,143 @@ export const Route = createFileRoute('/dashboard')({
           detail: undefined,
         },
       })
-    }
-    const [priority, projects] = await Promise.all([
-      listPriority(),
+    const [tasks, projects] = await Promise.all([
+      listWorkflowTasks(),
       listProjects(),
     ])
-    const summaryResults = await Promise.all(
-      projects.map((p) => listProjectSummary({ data: { projectId: p.id } })),
-    )
-    const summaries: Record<string, ProjectSummary> = {}
-    projects.forEach((p, i) => {
-      summaries[p.id] = summaryResults[i] as ProjectSummary
-    })
-    return { priority, projects, summaries }
+    return { tasks, projects }
   },
   component: Dashboard,
 })
-
 function Dashboard() {
-  const priorityRes = usePriority()
-  const projectsRes = useProjects()
-  const completeMut = useCompleteTaskMutation()
-  const uncompleteMut = useUncompleteTaskMutation()
-  const deleteMut = useDeleteTaskMutation()
-  const deleteProjectMut = useDeleteProjectMutation()
+  const initial = Route.useLoaderData()
+  const query = useWorkflowTasks()
+  const projectsQuery = useProjects()
+  const tasks = query.data ?? initial.tasks
+  const projects = projectsQuery.data ?? initial.projects
   const ui = useUI()
-  const navigate = useNavigate()
-  const focus = useFocus()
-  const loaderData = useLoaderData({ from: '/dashboard' })
-
-  const priorities: PriorityCard[] =
-    priorityRes.data ?? loaderData.priority ?? []
-  const projects: Project[] = projectsRes.data ?? loaderData.projects ?? []
-  const loaderSummaries = loaderData.summaries ?? {}
-
-  const summaryResults = useQueries({
-    queries: projects.map((p) => projectSummaryQueryOptions(p.id)),
-  })
-
-  const summaries = useMemo(() => {
-    return projects.map((p, i) => ({
-      project: p,
-      summary: summaryResults[i]?.data ??
-        loaderSummaries[p.id] ?? { active: [], completed: [] },
-    }))
-  }, [projects, summaryResults, loaderSummaries])
-
-  // Register flat task list + handlers for keyboard navigation
-  useEffect(() => {
-    const taskIds: string[] = []
-    const handlers: Record<string, TaskActions> = {}
-
-    // --- Priority tasks (first in navigation order) ---
-    for (const t of priorities) {
-      taskIds.push(t.id)
-      handlers[t.id] = {
-        open: () => ui.openTask(t.id, t.project.name, t.project.repoUrl),
-        complete: () => completeMut.mutate({ data: { id: t.id } }),
-        delete: () => deleteMut.mutate({ data: { id: t.id } }),
-      }
-    }
-
-    // --- Column tasks (left to right, top to bottom) ---
-    for (const { project, summary } of summaries) {
-      for (const t of summary.active) {
-        taskIds.push(t.id)
-        handlers[t.id] = {
-          open: () => ui.openTask(t.id, project.name, project.repoUrl),
-          complete: () => completeMut.mutate({ data: { id: t.id } }),
-          delete: () => deleteMut.mutate({ data: { id: t.id } }),
-        }
-      }
-    }
-
-    focus.register(taskIds, handlers)
-  }, [priorities, summaries, ui, completeMut, deleteMut, focus])
-
+  const [view, setView] = useState<'attention' | 'working' | 'all'>('attention')
+  const [search, setSearch] = useState('')
+  const attention = tasks.filter((t) => t.needsYou && t.state !== 'done')
+  const working = tasks.filter(
+    (t) => t.state === 'planning' || t.state === 'building',
+  )
+  const visible = (
+    view === 'attention' ? attention : view === 'working' ? working : tasks
+  ).filter((t) =>
+    `${t.title} ${t.projectName}`.toLowerCase().includes(search.toLowerCase()),
+  )
   return (
-    <main className="dashboard">
-      <PriorityPanel
-        items={priorities}
-        onTaskClick={(id) => {
-          const project = priorities.find((t) => t.id === id)?.project
-          ui.openTask(id, project?.name, project?.repoUrl)
-        }}
-      />
-
-      <div className="columns-wrap">
-        <div className="columns-head">
-          <span className="label">Projects</span>
-          <span
-            className="add-proj"
-            onClick={() => ui.openProjectModal()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') ui.openProjectModal()
-            }}
-          >
-            + new project
-          </span>
+    <main className="wf-page">
+      <header className="wf-page-head">
+        <div>
+          <p className="wf-eyebrow">Your workspace</p>
+          <h1>Needs you</h1>
+          <p>Plan the work. Review the result.</p>
         </div>
-
-        <div className="columns">
-          {summaries.map(({ project, summary }) => (
-            <ProjectColumn
-              key={project.id}
-              project={project}
-              active={summary.active}
-              completed={summary.completed}
-              onTaskClick={(tid) => ui.openTask(tid, project.name, project.repoUrl)}
-              onProjectClick={() =>
-                navigate({ to: '/projects/$id', params: { id: project.id } })
-              }
-              onTaskComplete={(tid) =>
-                completeMut.mutate({ data: { id: tid } })
-              }
-              onUncomplete={(tid) =>
-                uncompleteMut.mutate({ data: { id: tid } })
-              }
-              onAddTask={() =>
-                ui.openNewTask(project.id, project.name, project.repoUrl)
-              }
-              onProjectDelete={async () => {
-                const confirmed = await ui.requestConfirm({
-                  title: `Delete "${project.name}"?`,
-                  message:
-                    'All of its tasks will be removed. This cannot be undone.',
-                  confirmText: 'Delete',
-                  cancelText: 'Cancel',
-                  destructive: true,
-                })
-                if (!confirmed) return
-                deleteProjectMut.mutate(
-                  { data: { id: project.id } },
-                  {
-                    onSuccess: () => {
-                      const focusedInProject = summary.active.some(
-                        (t) => t.id === focus.focusedTaskId,
-                      )
-                      if (focusedInProject) focus.clearFocus()
-                    },
-                  },
-                )
-              }}
-            />
-          ))}
-          <div
-            className="add-card"
-            onClick={() => ui.openProjectModal()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') ui.openProjectModal()
-            }}
+        <Link
+          to="/new-task"
+          search={{ project: undefined }}
+          className="wf-button wf-primary"
+        >
+          <Plus size={18} />
+          New task
+        </Link>
+      </header>
+      <div className="wf-list-toolbar">
+        <div className="wf-segments" aria-label="Task filter">
+          <button
+            aria-pressed={view === 'attention'}
+            onClick={() => setView('attention')}
           >
-            + new project
-          </div>
+            Needs you <span>{attention.length}</span>
+          </button>
+          <button
+            aria-pressed={view === 'working'}
+            onClick={() => setView('working')}
+          >
+            Working <span>{working.length}</span>
+          </button>
+          <button aria-pressed={view === 'all'} onClick={() => setView('all')}>
+            All tasks
+          </button>
         </div>
+        <label className="wf-filter">
+          <Search size={16} />
+          <input
+            aria-label="Filter tasks"
+            placeholder="Find a task…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
       </div>
+      {query.isError && (
+        <div role="alert" className="wf-notice wf-error">
+          Could not refresh tasks.{' '}
+          <button onClick={() => query.refetch()}>Try again</button>
+        </div>
+      )}
+      {visible.length ? (
+        <TaskList tasks={visible} />
+      ) : (
+        <section className="wf-empty">
+          <span className="wf-empty-icon">
+            <Check size={26} />
+          </span>
+          <h2>
+            {search
+              ? 'No matching tasks'
+              : !projects.length
+                ? 'Start with a project'
+                : !tasks.length
+                  ? 'What would you like to build?'
+                  : view === 'working'
+                    ? 'No work is running'
+                    : 'You are up to date'}
+          </h2>
+          <p>
+            {search
+              ? 'Try another task or project name.'
+              : !projects.length
+                ? 'Connect the repositories for your first project. Then describe a task.'
+                : !tasks.length
+                  ? 'Describe the outcome. The agent will prepare a plan for you to review.'
+                  : view === 'working'
+                    ? 'Approve a plan to start implementation.'
+                    : 'Your next plan or code review will appear here.'}
+          </p>
+          {!projects.length ? (
+            <button
+              className="wf-button wf-primary"
+              onClick={() => ui.openProjectModal()}
+            >
+              Create project
+            </button>
+          ) : !tasks.length ? (
+            <Link
+              className="wf-button wf-primary"
+              to="/new-task"
+              search={{ project: undefined }}
+            >
+              Start a task
+              <ArrowRight size={16} />
+            </Link>
+          ) : (
+            <Link className="wf-button" to="/projects">
+              Open projects
+              <ArrowRight size={16} />
+            </Link>
+          )}
+        </section>
+      )}
+      <footer className="wf-page-foot">
+        <span>Running work continues when you close this page.</span>
+        <Link to="/agent-runs">
+          Run history
+          <ArrowRight size={14} />
+        </Link>
+      </footer>
     </main>
   )
 }

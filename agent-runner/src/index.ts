@@ -14,7 +14,14 @@ import {
   buildAnswerPrompt,
   buildPlanPrompt,
   buildPlanRevisionPrompt,
+  buildRevisionPrompt,
 } from './prompt.js'
+import {
+  loadReviewSnapshot,
+  prepareRevisionRepositories,
+  pushRevisionRepository,
+} from './review.js'
+import type { ReviewContext } from './review.js'
 import { createPlannerFetch } from './planner-client.js'
 import { publishProofToPullRequest } from './handoff.js'
 import { createResilientAppend } from './run-log.js'
@@ -41,7 +48,8 @@ interface AgentRun {
   taskId: string
   projectId: string
   status: string
-  kind: 'answer' | 'implement' | 'plan'
+  kind: 'answer' | 'implement' | 'plan' | 'revise'
+  sourceRunId?: string | null
   repoUrl: string | null
   branchName: string | null
   prUrl: string | null
@@ -56,9 +64,11 @@ interface TaskContext {
   title: string
   notes: string | null
   projectName: string
+  projectInstructions?: string | null
   repoUrl: string
   repoUrls?: string[]
   priority: string
+  review?: ReviewContext
   approvedPlanMd: string | null
   attachments: { id: string; name: string; mimeType: string; path: string }[]
   messages?: {
@@ -190,8 +200,7 @@ function makeAppend(run: AgentRun, logs: LogEntry[]): AppendFn {
   return createResilientAppend({
     runId: run.id,
     logs,
-    updateStatus: (entry) =>
-      updateRun(run.id, { status: 'running', appendLogs: [entry] }),
+    updateStatus: (entry) => updateRun(run.id, { appendLogs: [entry] }),
   })
 }
 
@@ -229,7 +238,15 @@ async function driveConversation(
       lastEventAt = Date.now()
       const text = eventMessage(event)
       if (text) {
-        if (event.kind === 'MessageEvent') onMessage?.(text)
+        if (
+          event.kind === 'MessageEvent' &&
+          event.llm_message?.role !== 'user' &&
+          event.source !== 'user'
+        ) {
+          onMessage?.(
+            event.message ?? extractText(event.llm_message?.content) ?? text,
+          )
+        }
         const key = `${event.kind}:${event.id}:${text.slice(0, 80)}`
         if (!seenEventKeys.has(key)) {
           seenEventKeys.add(key)
@@ -269,16 +286,19 @@ async function driveConversation(
     intervalMs: 3000,
   })
 
+  if (terminalStatus === null) {
+    await openhands.pauseConversation(conversationId)
+  }
   if (terminalStatus === 'error' || terminalStatus === 'stuck') {
-    await append(`Agent session ended with status: ${terminalStatus}`, 'warn')
+    throw new Error(`Agent session ended with status: ${terminalStatus}`)
   }
   return idleTimedOut
 }
 
-async function postTaskMessage(taskId: string, body: string, kind: string) {
+async function postTaskMessage(run: AgentRun, body: string, kind: string) {
   await plannerFetch('/api/runner/task-message', {
     method: 'POST',
-    body: JSON.stringify({ taskId, body, kind }),
+    body: JSON.stringify({ taskId: run.taskId, runId: run.id, body, kind }),
   })
 }
 
@@ -292,39 +312,53 @@ async function processAnswerRun(run: AgentRun, openhands: OpenHandsClient) {
   ]
   const append = makeAppend(run, logs)
   let answer = ''
+  const startedAt = Date.now()
+  let userStopped = false
+  const unwatchStop = watchForUserStop(run.id, () => {
+    userStopped = true
+  })
   try {
     await updateRun(run.id, { status: 'running', logs })
     const task = await fetchTaskContext(run)
+    const reviewSnapshot = task.review
+      ? await loadReviewSnapshot(task.review, GITHUB_TOKEN)
+      : undefined
     const workspace = await prepareWorkspace(run.id)
     const conversation = await openhands.startConversation(
-      buildAnswerPrompt(withAttachmentUrls(task)),
+      buildAnswerPrompt({ ...withAttachmentUrls(task), reviewSnapshot }),
       workspace,
+      { readOnly: true },
     )
     await openhands.runConversation(conversation.id)
     const idleTimedOut = await driveConversation(
       openhands,
       conversation.id,
       append,
-      Date.now(),
+      startedAt,
       () => false,
-      undefined,
+      () => userStopped,
       (text) => {
         answer = text
       },
     )
+    if (userStopped) return
     if (idleTimedOut) throw new Error('Agent produced no events for 5 minutes')
-    if (!answer) answer = 'The agent finished without an answer.'
-    await postTaskMessage(run.taskId, answer, 'answer')
+    if (Date.now() - startedAt >= MAX_RUNTIME_MS)
+      throw new Error('The answer reached the 15 minute time limit.')
+    if (!answer.trim()) throw new Error('The agent finished without an answer.')
+    await postTaskMessage(run, answer.slice(0, 30_000), 'answer')
     await updateRun(run.id, { status: 'success' })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await append(`Error: ${message}`, 'error')
     await updateRun(run.id, { status: 'error', errorMessage: message })
     await postTaskMessage(
-      run.taskId,
+      run,
       `The agent could not answer: ${message}`,
       'error',
     ).catch(() => undefined)
+  } finally {
+    unwatchStop()
   }
 }
 
@@ -339,7 +373,7 @@ async function prepareWorkspace(runId: string): Promise<string> {
 
 async function fetchTaskContext(run: AgentRun): Promise<TaskContext> {
   const task = await plannerFetch<TaskContext>(
-    `/api/runner/task-context/${run.taskId}`,
+    `/api/runner/task-context/${run.taskId}?runId=${encodeURIComponent(run.id)}`,
   )
   if (!task) throw new Error('Task context not found')
   const snapshotUrls =
@@ -486,9 +520,184 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
   }
 }
 
+async function processRevisionRun(run: AgentRun, openhands: OpenHandsClient) {
+  const logs: LogEntry[] = [
+    {
+      t: Date.now(),
+      level: 'info',
+      message:
+        'Applying the submitted review request to the existing pull requests.',
+    },
+  ]
+  const append = makeAppend(run, logs)
+  const startedAt = Date.now()
+  let userStopped = false
+  let report = ''
+  const unwatchStop = watchForUserStop(run.id, () => {
+    userStopped = true
+  })
+  try {
+    await updateRun(run.id, { status: 'running', logs })
+    const task = await fetchTaskContext(run)
+    if (
+      !task.review ||
+      !run.sourceRunId ||
+      task.review.sourceRunId !== run.sourceRunId
+    ) {
+      throw new Error('The change request has no matching source pull request.')
+    }
+    const workspace = await prepareWorkspace(run.id)
+    const prepared = await prepareRevisionRepositories(
+      task.review,
+      workspace,
+      GITHUB_TOKEN,
+    )
+    for (const repository of prepared) {
+      await append(
+        `${repository.writable ? 'Existing review branch' : 'Skipped'}: ${repository.repoUrl} (${repository.branchName ?? repository.status})`,
+      )
+    }
+    const conversation = await openhands.startConversation(
+      buildRevisionPrompt(withAttachmentUrls(task), prepared, {
+        runId: run.id,
+      }),
+      workspace,
+    )
+    await openhands.runConversation(conversation.id)
+    const idleTimedOut = await driveConversation(
+      openhands,
+      conversation.id,
+      append,
+      startedAt,
+      () => false,
+      () => userStopped,
+      (text) => {
+        report = text
+      },
+    )
+    if (userStopped) return
+    if (idleTimedOut)
+      throw new Error(
+        'No agent activity for 5 minutes. No revision was pushed.',
+      )
+    if (Date.now() - startedAt >= MAX_RUNTIME_MS)
+      throw new Error(
+        'The revision reached the 15 minute time limit. No revision was pushed.',
+      )
+
+    const results: RunRepositoryUpdate[] = []
+    const summaries: string[] = []
+    let changed = 0
+    let failed = false
+    for (const repository of prepared) {
+      const result: RunRepositoryUpdate = {
+        repoUrl: repository.repoUrl,
+        position: repository.position,
+        status: repository.status,
+        branchName: repository.branchName,
+        prUrl: repository.prUrl,
+        prNumber: repository.prNumber,
+      }
+      results.push(result)
+      if (!repository.writable) continue
+      // Check stop synchronously before each remote write; the five second watcher
+      // alone can miss a stop at the end of the agent session.
+      const latest = await plannerFetch<AgentRun>(`/api/runner/runs/${run.id}`)
+      if (latest.status === 'stopped') return
+      try {
+        const pushed = await pushRevisionRepository(repository, GITHUB_TOKEN)
+        if (!pushed.changed) {
+          summaries.push(`Unchanged: ${repository.prUrl}`)
+          continue
+        }
+        changed += 1
+        const handoff = await publishProofToPullRequest({
+          repoUrl: repository.repoUrl,
+          prUrl: repository.prUrl,
+          branchName: repository.branchName,
+          workspace,
+          repoDir: repository.repoDir,
+          runId: run.id,
+          taskTitle: task.title,
+          token: GITHUB_TOKEN,
+        })
+        const warning =
+          handoff.proof.state === 'pass'
+            ? null
+            : `Verification ${handoff.proof.state.toUpperCase()}. ${handoff.proof.errors.join(' ')}`
+        result.errorMessage = warning
+        summaries.push(
+          `Updated: ${repository.prUrl}. Verification: ${handoff.proof.state.toUpperCase()}.`,
+        )
+        await append(summaries[summaries.length - 1], warning ? 'warn' : 'info')
+      } catch (error) {
+        failed = true
+        result.status = 'error'
+        result.errorMessage =
+          error instanceof Error ? error.message : String(error)
+        summaries.push(
+          `Revision needs attention for ${repository.repoUrl}: ${result.errorMessage}`,
+        )
+        await append(summaries[summaries.length - 1], 'error')
+      }
+    }
+    const firstPr = results.find((repository) => repository.prUrl)
+    const warnings = results
+      .map((repository) => repository.errorMessage)
+      .filter(Boolean)
+      .join(' ')
+    const errorMessage =
+      warnings ||
+      (changed === 0
+        ? 'No revision was committed. Read the agent answer and clarify the request if needed.'
+        : undefined)
+    // Save the remote result before chat delivery. A message outage must not lose
+    // a successfully pushed revision or its per-repository error state.
+    await updateRun(run.id, {
+      status: failed || changed === 0 ? 'error' : 'success',
+      repositories: results,
+      prUrl: firstPr?.prUrl ?? undefined,
+      branchName: firstPr?.branchName,
+      prNumber: firstPr?.prNumber ?? undefined,
+      errorMessage,
+    })
+    await postTaskMessage(
+      run,
+      [
+        changed
+          ? `The agent updated ${changed} existing pull request${changed === 1 ? '' : 's'}.`
+          : 'The agent did not push a revision.',
+        ...summaries,
+        report.slice(0, 20_000),
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+        .slice(0, 30_000),
+      failed || changed === 0 ? 'error' : 'answer',
+    ).catch((error) => {
+      console.warn(
+        '[runner] Revision result was saved but chat delivery failed:',
+        error instanceof Error ? error.message : String(error),
+      )
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await append(`Revision stopped: ${message}`, 'error')
+    await updateRun(run.id, { status: 'error', errorMessage: message })
+    await postTaskMessage(
+      run,
+      `The agent could not complete this change request: ${message}`,
+      'error',
+    ).catch(() => undefined)
+  } finally {
+    unwatchStop()
+  }
+}
+
 async function processRun(run: AgentRun, openhands: OpenHandsClient) {
   if (run.kind === 'answer') return processAnswerRun(run, openhands)
   if (run.kind === 'plan') return processPlanRun(run, openhands)
+  if (run.kind === 'revise') return processRevisionRun(run, openhands)
 
   const logs: LogEntry[] = [
     { t: Date.now(), level: 'info', message: 'Agent runner picked up task.' },

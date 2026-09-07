@@ -169,7 +169,7 @@ export function useCreateTaskFromMessageMutation() {
   return useMutation({
     mutationFn: (input: Parameters<typeof createTaskFromMessage>[0]) => createTaskFromMessage(input),
     onSuccess: (result) => {
-      client.invalidateQueries({ queryKey: qk.projectSummary(result.taskId) })
+      client.invalidateQueries({ queryKey: qk.projectSummary(result.projectId) })
       client.invalidateQueries({ queryKey: qk.priority })
     },
   })

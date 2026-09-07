@@ -1,9 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull, ne } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import type { Attachment, Task } from '#/db/schema'
 import { requireUser } from './auth-middleware'
+import { requireProjectAccess, requireTaskAccess } from './access.server'
 
 const id = () => crypto.randomUUID()
 
@@ -12,18 +13,31 @@ const taskWithSubtasks = async (task: Task): Promise<TaskWithSubtasks> => {
     db
       .select()
       .from(schema.tasks)
-      .where(eq(schema.tasks.parentId, task.id))
+      .where(
+        and(
+          eq(schema.tasks.parentId, task.id),
+          eq(schema.tasks.projectId, task.projectId),
+        ),
+      )
       .orderBy(asc(schema.tasks.position)),
     db
       .select()
       .from(schema.attachments)
-      .where(eq(schema.attachments.taskId, task.id))
+      .where(
+        and(
+          eq(schema.attachments.taskId, task.id),
+          eq(schema.attachments.projectId, task.projectId),
+        ),
+      )
       .orderBy(asc(schema.attachments.createdAt)),
   ])
   return { ...task, subtasks, attachments }
 }
 
-export type TaskWithSubtasks = Task & { subtasks: Task[]; attachments: Attachment[] }
+export type TaskWithSubtasks = Task & {
+  subtasks: Task[]
+  attachments: Attachment[]
+}
 
 export const listTasksForProject = createServerFn({ method: 'GET' })
   .middleware([requireUser])
@@ -34,6 +48,7 @@ export const listTasksForProject = createServerFn({ method: 'GET' })
     }),
   )
   .handler(async ({ data }) => {
+    await requireProjectAccess(data.projectId)
     const rows = await db
       .select()
       .from(schema.tasks)
@@ -41,7 +56,7 @@ export const listTasksForProject = createServerFn({ method: 'GET' })
         and(
           eq(schema.tasks.projectId, data.projectId),
           isNull(schema.tasks.parentId),
-          data.includeDone ? undefined : eq(schema.tasks.status, 'todo'),
+          data.includeDone ? undefined : ne(schema.tasks.status, 'done'),
         ),
       )
       .orderBy(asc(schema.tasks.position))
@@ -56,6 +71,7 @@ export const listProjectSummary = createServerFn({ method: 'GET' })
     }),
   )
   .handler(async ({ data }) => {
+    await requireProjectAccess(data.projectId)
     // Active tasks only (no parent)
     const active = await Promise.all(
       (
@@ -66,7 +82,7 @@ export const listProjectSummary = createServerFn({ method: 'GET' })
             and(
               eq(schema.tasks.projectId, data.projectId),
               isNull(schema.tasks.parentId),
-              eq(schema.tasks.status, 'todo'),
+              ne(schema.tasks.status, 'done'),
             ),
           )
           .orderBy(asc(schema.tasks.position))
@@ -90,11 +106,7 @@ export const getTask = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [task] = await db
-      .select()
-      .from(schema.tasks)
-      .where(eq(schema.tasks.id, data.id))
-    if (!task) return undefined
+    const task = await requireTaskAccess(data.id)
     return taskWithSubtasks(task)
   })
 
@@ -111,6 +123,12 @@ export const createTask = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    await requireProjectAccess(data.projectId)
+    if (data.parentId) {
+      const parent = await requireTaskAccess(data.parentId)
+      if (parent.projectId !== data.projectId)
+        throw new Error('The parent task must belong to the same project.')
+    }
     const now = Date.now()
     const where = data.parentId
       ? and(
@@ -159,12 +177,16 @@ export const updateTask = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.id)
     const { id: tid, ...patch } = data
     const now = Date.now()
     const finalPatch: Partial<Task> = { ...patch, updatedAt: now }
     if (patch.status === 'done') finalPatch.completedAt = now
     if (patch.status && patch.status !== 'done') finalPatch.completedAt = null
-    await db.update(schema.tasks).set(finalPatch).where(eq(schema.tasks.id, tid))
+    await db
+      .update(schema.tasks)
+      .set(finalPatch)
+      .where(eq(schema.tasks.id, tid))
     const [task] = await db
       .select()
       .from(schema.tasks)
@@ -176,6 +198,7 @@ export const completeTask = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.id)
     const now = Date.now()
     await db
       .update(schema.tasks)
@@ -193,6 +216,7 @@ export const uncompleteTask = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.id)
     const now = Date.now()
     await db
       .update(schema.tasks)
@@ -209,13 +233,17 @@ export const deleteTask = createServerFn({ method: 'POST' })
   .middleware([requireUser])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [task] = await db
-      .select()
-      .from(schema.tasks)
-      .where(eq(schema.tasks.id, data.id))
-    if (task && !task.parentId) {
+    const task = await requireTaskAccess(data.id)
+    if (!task.parentId) {
       // First delete children
-      await db.delete(schema.tasks).where(eq(schema.tasks.parentId, data.id))
+      await db
+        .delete(schema.tasks)
+        .where(
+          and(
+            eq(schema.tasks.parentId, data.id),
+            eq(schema.tasks.projectId, task.projectId),
+          ),
+        )
     }
     await db.delete(schema.tasks).where(eq(schema.tasks.id, data.id))
     return { ok: true }

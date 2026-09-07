@@ -56,7 +56,11 @@ export class OpenHandsClient {
     }
   }
 
-  async startConversation(prompt: string, workspaceDir: string): Promise<ConversationInfo> {
+  async startConversation(
+    prompt: string,
+    workspaceDir: string,
+    options: { readOnly?: boolean } = {},
+  ): Promise<ConversationInfo> {
     const body = {
       agent: {
         kind: 'Agent',
@@ -68,12 +72,14 @@ export class OpenHandsClient {
           native_tool_calling: false,
           drop_params: true,
         },
-        tools: [
-          { name: 'terminal' },
-          { name: 'file_editor' },
-          { name: 'task_tracker' },
-          { name: 'browser_tool_set' },
-        ],
+        tools: options.readOnly
+          ? []
+          : [
+              { name: 'terminal' },
+              { name: 'file_editor' },
+              { name: 'task_tracker' },
+              { name: 'browser_tool_set' },
+            ],
       },
       workspace: {
         kind: 'LocalWorkspace',
@@ -92,10 +98,25 @@ export class OpenHandsClient {
 
     if (!res.ok) {
       const text = await res.text()
-      throw new Error(`OpenHands start conversation failed: ${res.status} ${text}`)
+      throw new Error(
+        `OpenHands start conversation failed: ${res.status} ${text}`,
+      )
     }
 
     return (await res.json()) as ConversationInfo
+  }
+
+  async pauseConversation(conversationId: string): Promise<void> {
+    const res = await fetch(
+      `${this.config.baseUrl}/api/conversations/${conversationId}/pause`,
+      {
+        method: 'POST',
+        signal: AbortSignal.timeout(15_000),
+      },
+    )
+    if (!res.ok && res.status !== 409) {
+      throw new Error(`Could not pause agent session: ${res.status}`)
+    }
   }
 
   async runConversation(conversationId: string): Promise<void> {
@@ -109,17 +130,23 @@ export class OpenHandsClient {
     }
     if (!res.ok) {
       const text = await res.text()
-      throw new Error(`OpenHands run conversation failed: ${res.status} ${text}`)
+      throw new Error(
+        `OpenHands run conversation failed: ${res.status} ${text}`,
+      )
     }
   }
 
-  async getConversation(conversationId: string): Promise<{ execution_status: string }> {
+  async getConversation(
+    conversationId: string,
+  ): Promise<{ execution_status: string }> {
     const res = await fetch(
       `${this.config.baseUrl}/api/conversations/${conversationId}`,
     )
     if (!res.ok) {
       const text = await res.text()
-      throw new Error(`OpenHands get conversation failed: ${res.status} ${text}`)
+      throw new Error(
+        `OpenHands get conversation failed: ${res.status} ${text}`,
+      )
     }
     return (await res.json()) as { execution_status: string }
   }
@@ -128,15 +155,15 @@ export class OpenHandsClient {
     conversationId: string,
     opts: {
       onEvent: (event: Event) => void
-    shouldStop: () => boolean | Promise<boolean>
-    onPoll?: (newEventCount: number) => void
-    intervalMs?: number
-  },
-): Promise<void> {
-  const { onEvent, shouldStop, onPoll, intervalMs = 2000 } = opts
-  const seenIds = new Set<string>()
+      shouldStop: () => boolean | Promise<boolean>
+      onPoll?: (newEventCount: number) => void | Promise<void>
+      intervalMs?: number
+    },
+  ): Promise<void> {
+    const { onEvent, shouldStop, onPoll, intervalMs = 2000 } = opts
+    const seenIds = new Set<string>()
 
-  while (!(await shouldStop())) {
+    while (!(await shouldStop())) {
       const res = await fetch(
         `${this.config.baseUrl}/api/conversations/${conversationId}/events/search?limit=100`,
       )
@@ -145,13 +172,18 @@ export class OpenHandsClient {
         continue
       }
 
-      const page = (await res.json()) as { items: Event[]; next_page_id?: string | null }
-      const newEvents = (page.items ?? []).filter((e) => !seenIds.has(e.id))
+      const page = (await res.json()) as {
+        items: Event[]
+        next_page_id?: string | null
+      }
+      const newEvents = (page.items ?? [])
+        .filter((e) => !seenIds.has(e.id))
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       for (const event of newEvents) {
         seenIds.add(event.id)
         onEvent(event)
       }
-      onPoll?.(newEvents.length)
+      await onPoll?.(newEvents.length)
 
       await sleep(intervalMs)
     }

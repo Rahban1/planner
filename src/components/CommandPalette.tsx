@@ -1,8 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Folder, Pause, Sun, Search, Bot } from 'lucide-react'
-import { usePriority, useProjects } from '#/lib/queries'
-import { formatDue } from '#/lib/format'
+import { useProjects } from '#/lib/queries'
+import { useWorkflowTasks } from '#/lib/workflow-queries'
 import { useUI } from '#/lib/ui-context'
 
 interface CommandPaletteProps {
@@ -19,8 +19,8 @@ type CmdItem = {
 }
 
 export function CommandPalette({ onToggleTheme }: CommandPaletteProps) {
-  const { cmdkOpen, closeCmdk, openTask, openNewTask } = useUI()
-  const priority = usePriority()
+  const { cmdkOpen, closeCmdk } = useUI()
+  const priority = useWorkflowTasks()
   const projects = useProjects()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -38,9 +38,9 @@ export function CommandPalette({ onToggleTheme }: CommandPaletteProps) {
           kind: 'task',
           icon: null,
           label: t.title,
-          sub: `${t.priority}${t.dueAt ? ' · ' + (formatDue(t.dueAt) ?? '') : ''}`,
+          sub: `${t.projectName} · ${t.nextAction}`,
           onSelect: () => {
-            openTask(t.id, t.project.name, t.project.repoUrl)
+            navigate({ to: '/projects/$id/tasks/$taskId', params: { id: t.projectId, taskId: t.id } })
             closeCmdk()
           },
         }),
@@ -68,9 +68,9 @@ export function CommandPalette({ onToggleTheme }: CommandPaletteProps) {
         kind: 'action',
         icon: <Pause size={14} />,
         label: `New task in ${p.name}`,
-        sub: 'Open modal',
+        sub: 'Describe the task',
         onSelect: () => {
-          openNewTask(p.id, p.name, p.repoUrl)
+          navigate({ to: '/new-task', search: { project: p.id } })
           closeCmdk()
         },
       }),

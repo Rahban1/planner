@@ -5,6 +5,7 @@ import { db, schema } from '#/db/index'
 import { env } from 'cloudflare:workers'
 import type { Attachment } from '#/db/schema'
 import { requireUser } from './auth-middleware'
+import { requireTaskAccess } from './access.server'
 
 const id = () => crypto.randomUUID()
 
@@ -18,6 +19,7 @@ export const listAttachmentsForTask = createServerFn({ method: 'GET' })
   .middleware([requireUser])
   .validator(z.object({ taskId: z.string() }))
   .handler(async ({ data }) => {
+    await requireTaskAccess(data.taskId)
     return db
       .select()
       .from(schema.attachments)
@@ -41,14 +43,12 @@ export const uploadAttachment = createServerFn({ method: 'POST' })
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error(`File is too large. Maximum is ${MAX_FILE_SIZE / 1024 / 1024}MB.`)
+      throw new Error(
+        `File is too large. Maximum is ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
+      )
     }
 
-    const [task] = await db
-      .select()
-      .from(schema.tasks)
-      .where(eq(schema.tasks.id, taskId))
-    if (!task) throw new Error('Task not found')
+    const task = await requireTaskAccess(taskId)
 
     const id_ = id()
     const key = r2KeyFor(id_)
@@ -87,8 +87,11 @@ export const deleteAttachment = createServerFn({ method: 'POST' })
       .from(schema.attachments)
       .where(eq(schema.attachments.id, data.id))
     if (!row) throw new Error('Attachment not found')
+    await requireTaskAccess(row.taskId)
 
     await env.ATTACHMENTS.delete(row.r2Key)
-    await db.delete(schema.attachments).where(eq(schema.attachments.id, data.id))
+    await db
+      .delete(schema.attachments)
+      .where(eq(schema.attachments.id, data.id))
     return row
   })
