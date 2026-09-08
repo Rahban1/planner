@@ -78,3 +78,5 @@ docs/                   Product, architecture, operations, and reference documen
 ```
 
 Read [Architecture](docs/ARCHITECTURE.md) before you change authentication, data flow, or agent-run state. Read [Operations](docs/OPERATIONS.md) before you change a deployment, a migration, or the Docker services.
+
+For a secure Linux runner with Bitbucket Data Center, use the [on-premises runner guide](agent-runner/onprem/README.md).

@@ -29,7 +29,7 @@ Cloudflare Worker: TanStack Start
 Node.js agent runner
   |-- queue poll
   |-- log and status updates
-  |-- GitHub pull request checks
+  |-- source-control review checks
   |
   v
 OpenHands Agent Server
@@ -38,7 +38,7 @@ OpenHands Agent Server
   |-- OpenCode Go model endpoint
   |
   v
-GitHub repositories and pull requests
+GitHub or Bitbucket Data Center repositories and pull requests
 ```
 
 ## Web application
@@ -145,12 +145,13 @@ User selects Give to Agent
   -> runner reads /api/runner/queue every 3 seconds
   -> runner changes status to running
   -> runner gets task context and attachment metadata
-  -> OpenHands clones each repository and changes files
-  -> agent pushes branch and writes handoff markers
+  -> trusted runner prepares cached repository workspaces
+  -> OpenHands changes files and writes branch handoff markers
+  -> trusted runner pushes each marked branch
   -> runner validates the proof package
   -> runner creates or updates pull requests
   -> run status becomes success
-  -> merge watcher checks GitHub every 15 seconds
+  -> merge watcher checks the configured source control every 15 seconds
   -> all required pull requests merge
   -> run status becomes merged
   -> Worker marks the task done
@@ -158,7 +159,7 @@ User selects Give to Agent
 
 The run stores a copy of the repository list at queue time. A later project edit does not change an active run.
 
-The runner processes one queued run at a time. It polls a user stop request every 5 seconds. The maximum run time is 15 minutes. At the limit, the runner still checks for a pushed branch or a pull request before it reports an error.
+The local Docker runner processes one queued run at a time. The on-premises supervisor starts a fixed number of isolated runner slots. It polls a user stop request every 5 seconds. The maximum run time is 15 minutes. At the limit, the runner still checks for a branch or a pull request before it reports an error.
 
 For a project with more than one repository, each repository has its own status, branch, and pull request. The task becomes done only after all non-skipped repository pull requests merge. One closed or failed required repository changes the aggregate run status to `closed`.
 
@@ -213,8 +214,8 @@ A run keeps the repository list that existed at queue time. This makes the run s
 
 - Project member roles are stored, but server functions do not use the roles for authorization. An authenticated user can call the current project and task server functions.
 - The direct attachment route requires a Planner session cookie. The runner receives attachment URLs, but the route does not accept the runner token.
-- The runner processes only one queued run at a time.
-- The runner supports GitHub repository URLs and GitHub pull requests.
+- The local Docker runner processes one queued run at a time. The on-premises supervisor provides bounded parallel work.
+- The source-control adapter supports GitHub and Bitbucket Data Center. Bitbucket Cloud is not yet supported.
 - Completing a parent task does not complete its subtasks.
 - Server functions validate data shape, but they do not enforce project ownership.
 
