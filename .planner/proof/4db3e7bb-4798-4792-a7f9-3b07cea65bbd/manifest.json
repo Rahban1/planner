@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "runId": "4db3e7bb-4798-4792-a7f9-3b07cea65bbd",
+  "testedCommitSha": "00a7f6902cc14361684f42c75db27bfdbf7ab6bc",
+  "generatedAt": "2025-09-11T04:15:00Z",
+  "environment": { "os": "linux", "runtime": "node" },
+  "changeType": "library",
+  "overall": "partial",
+  "checks": [
+    {
+      "id": "lint",
+      "title": "ESLint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationMs": 3000,
+      "outputPath": "logs/lint.log"
+    },
+    {
+      "id": "types",
+      "title": "TypeScript type check",
+      "layer": "types",
+      "status": "pass",
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "durationMs": 8000,
+      "outputPath": "logs/types.log"
+    },
+    {
+      "id": "vitest",
+      "title": "Vitest unit tests",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "npx vitest run --config vitest.config.ts",
+      "exitCode": 0,
+      "durationMs": 1500,
+      "outputPath": "logs/vitest.log"
+    },
+    {
+      "id": "agent-runner-build",
+      "title": "Agent-runner tests",
+      "layer": "full",
+      "status": "fail",
+      "command": "npm --prefix agent-runner test",
+      "exitCode": 2,
+      "durationMs": 10000,
+      "outputPath": "logs/agent-runner-test.log"
+    },
+    {
+      "id": "browser-capture",
+      "title": "Automated UI proof capture",
+      "layer": "browser",
+      "status": "not_run",
+      "outputPath": null
+    }
+  ],
+  "artifacts": [],
+  "limitations": ["agent-runner tests fail due to pre-existing missing @types/node dependency, unrelated to this change"],
+  "reproduce": ["pnpm lint", "npx tsc --noEmit", "npx vitest run --config vitest.config.ts", "npm --prefix agent-runner test"]
+}
