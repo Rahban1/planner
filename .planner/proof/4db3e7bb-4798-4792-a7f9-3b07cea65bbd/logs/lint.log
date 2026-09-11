@@ -1,1 +1,12 @@
-lint passed (pre-existing warnings in worker-configuration.d.ts)
+
+> planner@ lint /workspace/runs/4db3e7bb-4798-4792-a7f9-3b07cea65bbd/repo
+> eslint
+
+
+/workspace/runs/4db3e7bb-4798-4792-a7f9-3b07cea65bbd/repo/worker-configuration.d.ts
+  11350:41  warning  Unused eslint-disable directive (no problems were reported)
+  11368:67  warning  Unused eslint-disable directive (no problems were reported)
+
+✖ 2 problems (0 errors, 2 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

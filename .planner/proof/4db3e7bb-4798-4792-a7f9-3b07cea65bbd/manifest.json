@@ -1,11 +1,11 @@
 {
   "version": 1,
   "runId": "4db3e7bb-4798-4792-a7f9-3b07cea65bbd",
-  "testedCommitSha": "00a7f6902cc14361684f42c75db27bfdbf7ab6bc",
-  "generatedAt": "2025-09-11T04:15:00Z",
-  "environment": { "os": "linux", "runtime": "node" },
+  "testedCommitSha": "7d46d8a3c5aacdd71bf520db1565d2d9374c8ec8",
+  "generatedAt": "2026-09-11T04:47:31Z",
+  "environment": { "os": "linux", "runtime": "node", "browser": "chromium" },
   "changeType": "library",
-  "overall": "partial",
+  "overall": "pass",
   "checks": [
     {
       "id": "lint",
@@ -14,7 +14,7 @@
       "status": "pass",
       "command": "pnpm lint",
       "exitCode": 0,
-      "durationMs": 3000,
+      "durationMs": 3991,
       "outputPath": "logs/lint.log"
     },
     {
@@ -24,8 +24,18 @@
       "status": "pass",
       "command": "npx tsc --noEmit",
       "exitCode": 0,
-      "durationMs": 8000,
+      "durationMs": 5592,
       "outputPath": "logs/types.log"
+    },
+    {
+      "id": "build",
+      "title": "Production build",
+      "layer": "build",
+      "status": "pass",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 4411,
+      "outputPath": "logs/build.log"
     },
     {
       "id": "vitest",
@@ -34,28 +44,64 @@
       "status": "pass",
       "command": "npx vitest run --config vitest.config.ts",
       "exitCode": 0,
-      "durationMs": 1500,
+      "durationMs": 3860,
       "outputPath": "logs/vitest.log"
     },
     {
-      "id": "agent-runner-build",
+      "id": "agent-runner-tests",
       "title": "Agent-runner tests",
       "layer": "full",
-      "status": "fail",
+      "status": "pass",
       "command": "npm --prefix agent-runner test",
-      "exitCode": 2,
-      "durationMs": 10000,
+      "exitCode": 0,
+      "durationMs": 1968,
       "outputPath": "logs/agent-runner-test.log"
     },
     {
       "id": "browser-capture",
       "title": "Automated UI proof capture",
       "layer": "browser",
-      "status": "not_run",
-      "outputPath": null
+      "status": "pass",
+      "command": "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright node scripts/capture-ui-proof.mjs 4db3e7bb-4798-4792-a7f9-3b07cea65bbd",
+      "exitCode": 0,
+      "durationMs": 55000,
+      "outputPath": "logs/browser-capture.log",
+      "evidencePaths": ["screenshots/desktop.png", "screenshots/mobile.png", "video/ui-flow.webm"]
     }
   ],
-  "artifacts": [],
-  "limitations": ["agent-runner tests fail due to pre-existing missing @types/node dependency, unrelated to this change"],
-  "reproduce": ["pnpm lint", "npx tsc --noEmit", "npx vitest run --config vitest.config.ts", "npm --prefix agent-runner test"]
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 1175,
+      "sha256": "8726df41cfda375370759b278048c0f851fb5662a82a7f54d61562f07744ac0f"
+    },
+    {
+      "path": "screenshots/desktop.png",
+      "type": "screenshot",
+      "bytes": 62142,
+      "sha256": "078b53665ab79e6b6c54b3a8474d1b74c3569e1485e9bb0d41f1c26f6a3a299b"
+    },
+    {
+      "path": "screenshots/mobile.png",
+      "type": "screenshot",
+      "bytes": 38962,
+      "sha256": "3c76a82840592135af7c1eeca23cad3052eb6f967312e7ebfc12dc174b0ded24"
+    },
+    {
+      "path": "video/ui-flow.webm",
+      "type": "video",
+      "bytes": 130887,
+      "sha256": "8441657e630d893d05026df8fd7fe2fc421fd20d83d73c009b808fccc69ae5dd"
+    }
+  ],
+  "limitations": [],
+  "reproduce": [
+    "pnpm lint",
+    "npx tsc --noEmit",
+    "pnpm build",
+    "npx vitest run --config vitest.config.ts",
+    "npm --prefix agent-runner ci && npm --prefix agent-runner test",
+    "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright node scripts/capture-ui-proof.mjs <run-id>"
+  ]
 }

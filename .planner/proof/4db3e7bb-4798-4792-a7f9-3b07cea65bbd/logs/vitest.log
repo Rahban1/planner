@@ -1,1 +1,21 @@
-57 tests passed
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/workspace/runs/4db3e7bb-4798-4792-a7f9-3b07cea65bbd/repo[39m
+
+(node:47469) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ [32m✓[39m src/lib/workflow-queue.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+ [32m✓[39m src/server/access.server.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m src/lib/workflow-state.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/server/github-actions-client.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m src/server/local-proof.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/server/project-task-access.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m src/components/TaskModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 499[2mms[22m[39m
+     [33m[2m✓[22m[39m uses the structured task form for a new task [33m 449[2mms[22m[39m
+ [32m✓[39m src/components/workflow/TaskWorkspace.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 719[2mms[22m[39m
+     [33m[2m✓[22m[39m approves the exact displayed version and prevents approval while a request is pending [33m 408[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2m      Tests [22m [1m[32m57 passed[39m[22m[90m (57)[39m
+[2m   Start at [22m 04:45:23
+[2m   Duration [22m 3.35s[2m (transform 1.08s, setup 0ms, import 4.19s, tests 1.39s, environment 8.33s)[22m
+
