@@ -18,6 +18,16 @@ http://127.0.0.1:3000/api/auth/local-proof
 
 Select **Open proof dashboard**. Planner creates a local test session and opens the dashboard. This login path works only in a Vite development build on `localhost`, `127.0.0.1`, or `::1`. A production build returns `404`.
 
+## Automated capture
+
+If the repository has `pnpm proof:ui:capture`, run it with the run ID:
+
+```bash
+pnpm proof:ui:capture <run-id>
+```
+
+This creates the required screenshots and video under `.planner/proof/<run-id>/` automatically.
+
 ## Record the proof
 
 Test the changed flow on the current branch. Store the required files in the run proof directory:

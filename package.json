@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "proof:ui": "node scripts/start-ui-proof.mjs",
+    "proof:ui:capture": "node scripts/capture-ui-proof.mjs",
     "generate-routes": "tsr generate",
     "build": "vite build",
     "preview": "vite preview",
@@ -39,6 +40,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "1.50.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/eslint-config": "latest",
