@@ -110,6 +110,9 @@ async function main() {
   console.log('Server is ready.')
 
   console.log('Launching Playwright Chromium...')
+  for (const f of readdirSync(videoDir)) {
+    if (f.endsWith('.webm')) rmSync(join(videoDir, f), { force: true })
+  }
   const browser = await chromium.launch({ headless: true })
   const context = await browser.newContext({
     recordVideo: { dir: videoDir, size: { width: 1280, height: 720 } },
@@ -121,7 +124,8 @@ async function main() {
 
   console.log('Clicking Open proof dashboard...')
   await page.click('button[type="submit"]')
-  await page.waitForLoadState('networkidle')
+  await page.waitForURL(/\/dashboard/, { timeout: 30000 })
+  await page.waitForSelector('h1', { timeout: 30000 })
 
   console.log('Capturing desktop screenshot...')
   await page.setViewportSize({ width: 1280, height: 720 })
