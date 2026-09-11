@@ -1,0 +1,324 @@
+
+> planner-agent-runner@1.0.0 test
+> npm run build && node --test test/*.test.mjs
+
+
+> planner-agent-runner@1.0.0 build
+> tsc
+
+TAP version 13
+# Subtest: agent image supplies every browser recording asset omitted by OpenHands 1.32.0
+ok 1 - agent image supplies every browser recording asset omitted by OpenHands 1.32.0
+  ---
+  duration_ms: 7.089708
+  type: 'test'
+  ...
+# Subtest: hosted runner validates the browser recording assets before a task starts
+ok 2 - hosted runner validates the browser recording assets before a task starts
+  ---
+  duration_ms: 2.472083
+  type: 'test'
+  ...
+# Subtest: parses HTTPS and SSH GitHub repository URLs
+ok 3 - parses HTTPS and SSH GitHub repository URLs
+  ---
+  duration_ms: 6.654959
+  type: 'test'
+  ...
+# Subtest: reads pull request details and commit SHAs through GitHub public APIs
+ok 4 - reads pull request details and commit SHAs through GitHub public APIs
+  ---
+  duration_ms: 1.49425
+  type: 'test'
+  ...
+# Subtest: creates a ready pull request against the repository default branch
+ok 5 - creates a ready pull request against the repository default branch
+  ---
+  duration_ms: 2.817875
+  type: 'test'
+  ...
+# Subtest: updates only the pull request body
+ok 6 - updates only the pull request body
+  ---
+  duration_ms: 0.654
+  type: 'test'
+  ...
+# Subtest: publishes a validated PASS proof section to an existing pull request
+ok 7 - publishes a validated PASS proof section to an existing pull request
+  ---
+  duration_ms: 21.687875
+  type: 'test'
+  ...
+# Subtest: publishes INCOMPLETE when the agent did not write a manifest
+ok 8 - publishes INCOMPLETE when the agent did not write a manifest
+  ---
+  duration_ms: 2.403666
+  type: 'test'
+  ...
+# Subtest: creates a ready fallback PR when a branch exists but the agent did not create the PR
+ok 9 - creates a ready fallback PR when a branch exists but the agent did not create the PR
+  ---
+  duration_ms: 11.439875
+  type: 'test'
+  ...
+# Subtest: pushes a local branch before creating a fallback pull request
+ok 10 - pushes a local branch before creating a fallback pull request
+  ---
+  duration_ms: 23.320291
+  type: 'test'
+  ...
+# Subtest: surfaces GitHub proof update failures
+ok 11 - surfaces GitHub proof update failures
+  ---
+  duration_ms: 14.67
+  type: 'test'
+  ...
+# Subtest: retries transient network failures with exponential backoff
+ok 12 - retries transient network failures with exponential backoff
+  ---
+  duration_ms: 39.75475
+  type: 'test'
+  ...
+# Subtest: retries transient HTTP responses
+ok 13 - retries transient HTTP responses
+  ---
+  duration_ms: 0.559666
+  type: 'test'
+  ...
+# Subtest: retries request timeouts
+ok 14 - retries request timeouts
+  ---
+  duration_ms: 0.525792
+  type: 'test'
+  ...
+# Subtest: does not retry permanent HTTP failures
+ok 15 - does not retry permanent HTTP failures
+  ---
+  duration_ms: 0.778958
+  type: 'test'
+  ...
+# Subtest: reports the network cause after retries are exhausted
+ok 16 - reports the network cause after retries are exhausted
+  ---
+  duration_ms: 2.6525
+  type: 'test'
+  ...
+# Subtest: does not stop polling while conversation is still running
+ok 17 - does not stop polling while conversation is still running
+  ---
+  duration_ms: 2.147459
+  type: 'test'
+  ...
+# Subtest: stops polling once a terminal status is reached
+ok 18 - stops polling once a terminal status is reached
+  ---
+  duration_ms: 0.339625
+  type: 'test'
+  ...
+# Subtest: stops polling when the runtime limit is exceeded
+ok 19 - stops polling when the runtime limit is exceeded
+  ---
+  duration_ms: 0.139583
+  type: 'test'
+  ...
+# Subtest: detects a conversation that has produced no events for five minutes
+ok 20 - detects a conversation that has produced no events for five minutes
+  ---
+  duration_ms: 0.252916
+  type: 'test'
+  ...
+# Subtest: implementation prompt requires the proof contract and reserves verification time
+ok 21 - implementation prompt requires the proof contract and reserves verification time
+  ---
+  duration_ms: 5.659625
+  type: 'test'
+  ...
+# Subtest: loads a complete UI proof pack through the manifest contract
+ok 22 - loads a complete UI proof pack through the manifest contract
+  ---
+  duration_ms: 36.434
+  type: 'test'
+  ...
+# Subtest: reports FAIL, BLOCKED, and NOT RUN checks without rejecting honest proof
+ok 23 - reports FAIL, BLOCKED, and NOT RUN checks without rejecting honest proof
+  ---
+  duration_ms: 14.184625
+  type: 'test'
+  ...
+# Subtest: accepts partial UI proof when browser capture is blocked
+ok 24 - accepts partial UI proof when browser capture is blocked
+  ---
+  duration_ms: 9.773208
+  type: 'test'
+  ...
+# Subtest: rejects a tested commit that is not part of the pull request
+ok 25 - rejects a tested commit that is not part of the pull request
+  ---
+  duration_ms: 17.964416
+  type: 'test'
+  ...
+# Subtest: rejects proof files that are not committed in the pull request
+ok 26 - rejects proof files that are not committed in the pull request
+  ---
+  duration_ms: 13.084542
+  type: 'test'
+  ...
+# Subtest: rejects artifact path traversal
+ok 27 - rejects artifact path traversal
+  ---
+  duration_ms: 20.738959
+  type: 'test'
+  ...
+# Subtest: rejects symlink artifacts
+ok 28 - rejects symlink artifacts
+  ---
+  duration_ms: 14.670084
+  type: 'test'
+  ...
+# Subtest: rejects files above 10 MB from declared size before reading them
+ok 29 - rejects files above 10 MB from declared size before reading them
+  ---
+  duration_ms: 15.425708
+  type: 'test'
+  ...
+# Subtest: accepts a plain-text command exit-code artifact
+ok 30 - accepts a plain-text command exit-code artifact
+  ---
+  duration_ms: 18.619917
+  type: 'test'
+  ...
+# Subtest: normalizes a missing evidencePaths field to an empty array
+ok 31 - normalizes a missing evidencePaths field to an empty array
+  ---
+  duration_ms: 11.730042
+  type: 'test'
+  ...
+# Subtest: renders an honest proof section with permanent media links
+ok 32 - renders an honest proof section with permanent media links
+  ---
+  duration_ms: 12.197917
+  type: 'test'
+  ...
+# Subtest: replaces the managed proof section without changing the rest of the PR body
+ok 33 - replaces the managed proof section without changing the rest of the PR body
+  ---
+  duration_ms: 0.317625
+  type: 'test'
+  ...
+# Subtest: renders missing proof as INCOMPLETE instead of claiming success
+ok 34 - renders missing proof as INCOMPLETE instead of claiming success
+  ---
+  duration_ms: 0.100792
+  type: 'test'
+  ...
+# Subtest: waits until every changed repository PR is merged
+ok 35 - waits until every changed repository PR is merged
+  ---
+  duration_ms: 0.949042
+  type: 'test'
+  ...
+# Subtest: keeps the task incomplete when one repository PR closes
+ok 36 - keeps the task incomplete when one repository PR closes
+  ---
+  duration_ms: 0.177
+  type: 'test'
+  ...
+# Subtest: maps every repository to the runner clone layout
+ok 37 - maps every repository to the runner clone layout
+  ---
+  duration_ms: 1.643958
+  type: 'test'
+  ...
+# Subtest: deduplicates repository URLs while keeping the primary repository first
+ok 38 - deduplicates repository URLs while keeping the primary repository first
+  ---
+  duration_ms: 0.370042
+  type: 'test'
+  ...
+# Subtest: reads an independent branch and pull request marker for every repository
+ok 39 - reads an independent branch and pull request marker for every repository
+  ---
+  duration_ms: 14.865791
+  type: 'test'
+  ...
+# Subtest: revision rejects changed identity, forks, closed PRs, and stale heads
+ok 40 - revision rejects changed identity, forks, closed PRs, and stale heads
+  ---
+  duration_ms: 1.861584
+  type: 'test'
+  ...
+# Subtest: revision pushes a descendant to the saved branch with an exact head lease and preserves PR
+ok 41 - revision pushes a descendant to the saved branch with an exact head lease and preserves PR
+  ---
+  duration_ms: 2.673125
+  type: 'test'
+  ...
+# Subtest: concurrent PR changes, branch switches, dirty files, and rewritten history prevent a push
+ok 42 - concurrent PR changes, branch switches, dirty files, and rewritten history prevent a push
+  ---
+  duration_ms: 0.874208
+  type: 'test'
+  ...
+# Subtest: unchanged repository preserves the PR without pushing
+ok 43 - unchanged repository preserves the PR without pushing
+  ---
+  duration_ms: 0.387083
+  type: 'test'
+  ...
+# Subtest: real Git push preserves a concurrent remote commit even when it changes after the API check
+ok 44 - real Git push preserves a concurrent remote commit even when it changes after the API check
+  ---
+  duration_ms: 142.251
+  type: 'test'
+  ...
+# Subtest: preparation preserves repository positions, resumes one open branch, and skips merged and unchanged repositories
+ok 45 - preparation preserves repository positions, resumes one open branch, and skips merged and unchanged repositories
+  ---
+  duration_ms: 2.2975
+  type: 'test'
+  ...
+# Subtest: review answers use the actual PR diff and file contents at its immutable head
+ok 46 - review answers use the actual PR diff and file contents at its immutable head
+  ---
+  duration_ms: 23.816375
+  type: 'test'
+  ...
+# Subtest: revision prompt uses existing identities, local commits, and the full proof contract
+ok 47 - revision prompt uses existing identities, local commits, and the full proof contract
+  ---
+  duration_ms: 0.535917
+  type: 'test'
+  ...
+# Subtest: every run receives project working rules within its existing permissions
+ok 48 - every run receives project working rules within its existing permissions
+  ---
+  duration_ms: 1.180167
+  type: 'test'
+  ...
+# Subtest: read-only OpenHands sessions have no tools
+ok 49 - read-only OpenHands sessions have no tools
+  ---
+  duration_ms: 1.280625
+  type: 'test'
+  ...
+# Subtest: OpenHands emits messages in time order so the final answer is retained
+ok 50 - OpenHands emits messages in time order so the final answer is retained
+  ---
+  duration_ms: 13.565292
+  type: 'test'
+  ...
+# Subtest: keeps runner log delivery failures from terminating an active run
+ok 51 - keeps runner log delivery failures from terminating an active run
+  ---
+  duration_ms: 1.186
+  type: 'test'
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 51
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 359.353709

@@ -390,5 +390,7 @@ Set \`overall\` to \`fail\` if any check fails. Otherwise, set it to \`partial\`
 
 For a BLOCKED or NOT RUN check, omit \`command\`, \`exitCode\`, and \`durationMs\` when no command ran. Do not invent a zero duration or exit code. A completed PASS or FAIL check must include its real \`durationMs\`.
 
-For a UI change, start the current branch locally and test the primary flow in Chromium. Do not use a deployed production application as proof of an unmerged branch. If the repository provides a dedicated UI proof command such as \`pnpm proof:ui\`, use it and follow its local proof documentation. Capture the final desktop state, the final mobile state, browser console health, and a short WebM of the main flow. If browser startup, navigation, screenshots, or recording is blocked, record that browser check as BLOCKED, set the result to partial, and omit only the unavailable media. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.`
+For a UI change, run the repository's automated UI proof capture command:
+\`pnpm proof:ui:capture {runId}\`
+This starts the branch locally, creates a test session, and captures desktop screenshots, mobile screenshots, and a short WebM video automatically. If the command fails or the changed flow is not covered by the default capture, you may fall back to manual Chromium testing. If browser capture is blocked for any reason, record the browser check as BLOCKED, keep the proof result partial, and omit only the unavailable media. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.`
 }

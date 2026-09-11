@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "runId": "4db3e7bb-4798-4792-a7f9-3b07cea65bbd",
+  "testedCommitSha": "7d46d8a3c5aacdd71bf520db1565d2d9374c8ec8",
+  "generatedAt": "2026-09-11T04:47:31Z",
+  "environment": { "os": "linux", "runtime": "node", "browser": "chromium" },
+  "changeType": "library",
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "lint",
+      "title": "ESLint",
+      "layer": "lint",
+      "status": "pass",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationMs": 3991,
+      "outputPath": "logs/lint.log"
+    },
+    {
+      "id": "types",
+      "title": "TypeScript type check",
+      "layer": "types",
+      "status": "pass",
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "durationMs": 5592,
+      "outputPath": "logs/types.log"
+    },
+    {
+      "id": "build",
+      "title": "Production build",
+      "layer": "build",
+      "status": "pass",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 4411,
+      "outputPath": "logs/build.log"
+    },
+    {
+      "id": "vitest",
+      "title": "Vitest unit tests",
+      "layer": "targeted",
+      "status": "pass",
+      "command": "npx vitest run --config vitest.config.ts",
+      "exitCode": 0,
+      "durationMs": 3860,
+      "outputPath": "logs/vitest.log"
+    },
+    {
+      "id": "agent-runner-tests",
+      "title": "Agent-runner tests",
+      "layer": "full",
+      "status": "pass",
+      "command": "npm --prefix agent-runner test",
+      "exitCode": 0,
+      "durationMs": 1968,
+      "outputPath": "logs/agent-runner-test.log"
+    },
+    {
+      "id": "browser-capture",
+      "title": "Automated UI proof capture",
+      "layer": "browser",
+      "status": "pass",
+      "command": "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright node scripts/capture-ui-proof.mjs 4db3e7bb-4798-4792-a7f9-3b07cea65bbd",
+      "exitCode": 0,
+      "durationMs": 55000,
+      "outputPath": "logs/browser-capture.log",
+      "evidencePaths": ["screenshots/desktop.png", "screenshots/mobile.png", "video/ui-flow.webm"]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 1414,
+      "sha256": "652529dd8755060346dd3d7ea81bb8de075256070b71bc7feb4b2f5d38ec48f7"
+    },
+    {
+      "path": "logs/lint.log",
+      "type": "log",
+      "bytes": 443,
+      "sha256": "9da9e9dd56a35ee4abf8f75b1829e1ba43f27fbff8655317d5ccb97e39ee55fc"
+    },
+    {
+      "path": "logs/types.log",
+      "type": "log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/build.log",
+      "type": "log",
+      "bytes": 13242,
+      "sha256": "b286235c0d76aa5eee607e329b6ed6790105ef7120913005d374a07839c58704"
+    },
+    {
+      "path": "logs/vitest.log",
+      "type": "log",
+      "bytes": 1703,
+      "sha256": "7aa73fe40af9b0afe03df204745d9e73b36ea235829a499d2d0dcc13f96400ef"
+    },
+    {
+      "path": "logs/agent-runner-test.log",
+      "type": "log",
+      "bytes": 10142,
+      "sha256": "bedae0a44320480e72adecfe1f4d34e4a248529ff125fa315dc774cca2570113"
+    },
+    {
+      "path": "logs/browser-capture.log",
+      "type": "log",
+      "bytes": 43591,
+      "sha256": "6cd7473c756656a63f3edf5b2f857dd6fa1ae930aa8316d6137bb2cb32d2aff9"
+    },
+    {
+      "path": "screenshots/desktop.png",
+      "type": "screenshot",
+      "bytes": 62142,
+      "sha256": "078b53665ab79e6b6c54b3a8474d1b74c3569e1485e9bb0d41f1c26f6a3a299b"
+    },
+    {
+      "path": "screenshots/mobile.png",
+      "type": "screenshot",
+      "bytes": 38962,
+      "sha256": "3c76a82840592135af7c1eeca23cad3052eb6f967312e7ebfc12dc174b0ded24"
+    },
+    {
+      "path": "video/ui-flow.webm",
+      "type": "video",
+      "bytes": 130887,
+      "sha256": "8441657e630d893d05026df8fd7fe2fc421fd20d83d73c009b808fccc69ae5dd"
+    }
+  ],
+  "limitations": [],
+  "reproduce": [
+    "pnpm lint",
+    "npx tsc --noEmit",
+    "pnpm build",
+    "npx vitest run --config vitest.config.ts",
+    "npm --prefix agent-runner ci && npm --prefix agent-runner test",
+    "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright node scripts/capture-ui-proof.mjs <run-id>"
+  ]
+}
