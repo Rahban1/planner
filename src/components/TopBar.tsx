@@ -89,6 +89,7 @@ export function TopBar({
           {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
         </button>
         <button
+          type="button"
           className="topbar-icon-btn"
           onClick={onLogout}
           aria-label="Log out"
