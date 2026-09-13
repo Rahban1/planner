@@ -104,6 +104,16 @@ function Markdown({ children }: { children: string }) {
               {label}
             </a>
           ),
+          table: ({ children: tableChildren }) => (
+            <div
+              className="tw-table-scroll"
+              role="region"
+              aria-label="Scrollable plan table"
+              tabIndex={0}
+            >
+              <table>{tableChildren}</table>
+            </div>
+          ),
         }}
       >
         {children}

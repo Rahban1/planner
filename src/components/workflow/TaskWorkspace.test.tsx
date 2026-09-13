@@ -56,6 +56,25 @@ const planProps = {
 }
 
 describe('Task plan decision', () => {
+  it('contains wide plan tables in a keyboard-scrollable region', () => {
+    render(
+      <PlanPanel
+        {...planProps}
+        plan={{
+          ...plan,
+          planMd:
+            '| File | Responsibility |\n| --- | --- |\n| `src/routes/api/auth/callback-$provider.ts` | Complete the OAuth callback |',
+        }}
+      />,
+    )
+    const region = screen.getByRole('region', {
+      name: 'Scrollable plan table',
+    })
+    expect(region.tabIndex).toBe(0)
+    expect(region.querySelector('table')).not.toBeNull()
+    expect(region.textContent).toContain('callback-$provider.ts')
+  })
+
   it('approves the exact displayed version and prevents approval while a request is pending', () => {
     const onApprove = vi.fn()
     const { rerender } = render(

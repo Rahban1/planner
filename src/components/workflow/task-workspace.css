@@ -457,6 +457,8 @@
   box-shadow: 0 4px 18px #0000000c;
 }
 .tw-markdown {
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
 .tw-markdown > :first-child {
@@ -512,18 +514,35 @@
   padding: 0;
   border-radius: 0;
 }
-.tw-markdown table {
-  display: block;
-  overflow: auto;
+.tw-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 16px 0;
+  scrollbar-width: thin;
+  overscroll-behavior-inline: contain;
+}
+.tw-table-scroll table {
   border-collapse: collapse;
   width: 100%;
-  margin: 16px 0;
+  table-layout: fixed;
+  margin: 0;
 }
 .tw-markdown td,
 .tw-markdown th {
   padding: 8px;
   border: 1px solid var(--tw-line);
   text-align: left;
+}
+.tw-table-scroll th {
+  white-space: nowrap;
+}
+.tw-table-scroll th:first-child,
+.tw-table-scroll td:first-child {
+  width: 42%;
+}
+.tw-table-scroll code {
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 .tw-markdown blockquote {
   margin: 15px 0;
@@ -745,6 +764,28 @@
 }
 .tw-plan-heading .tw-eyebrow {
   margin: 0;
+}
+.tw-plan-document {
+  min-width: 0;
+  max-width: 100%;
+  max-height: max(340px, calc(100dvh - 470px));
+  overflow-y: auto;
+  padding-inline-end: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tw-muted) var(--tw-soft);
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.tw-plan-document::-webkit-scrollbar {
+  width: 8px;
+}
+.tw-plan-document::-webkit-scrollbar-track {
+  border-radius: 8px;
+  background: var(--tw-soft);
+}
+.tw-plan-document::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tw-accent) 45%, var(--tw-line));
 }
 .tw-version {
   padding: 3px 7px;
@@ -1257,6 +1298,18 @@
   }
   .tw-plan-empty {
     min-height: 350px;
+  }
+  .tw-plan-document {
+    max-height: none;
+    overflow-y: visible;
+    padding-inline-end: 0;
+    scrollbar-gutter: auto;
+  }
+  .tw-table-scroll table {
+    min-width: 540px;
+  }
+  .tw-table-scroll code {
+    white-space: nowrap;
   }
   .tw-message-modes button {
     flex: 1;

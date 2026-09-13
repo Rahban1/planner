@@ -63,7 +63,8 @@ function Dashboard() {
         </Link>
       </header>
       <div className="wf-list-toolbar">
-        <div className="wf-segments" aria-label="Task filter">
+        <div className="wf-segments" data-view={view} aria-label="Task filter">
+          <span className="wf-segment-indicator" aria-hidden="true" />
           <button
             aria-pressed={view === 'attention'}
             onClick={() => setView('attention')}
