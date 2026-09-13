@@ -125,7 +125,11 @@ function Dashboard() {
                     ? 'Approve a plan to start implementation.'
                     : 'Your next plan or code review will appear here.'}
           </p>
-          {!projects.length ? (
+          {search ? (
+            <button className="wf-button" onClick={() => setSearch('')}>
+              Clear search
+            </button>
+          ) : !projects.length ? (
             <button
               className="wf-button wf-primary"
               onClick={() => ui.openProjectModal()}

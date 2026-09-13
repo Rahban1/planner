@@ -38,7 +38,7 @@ export const Route = createRootRoute({
         name: 'description',
         content: 'Plan, track, and hand work to autonomous agents.',
       },
-      { name: 'theme-color', content: '#062318' },
+      { name: 'theme-color', content: '#171814' },
       { name: 'mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
       {
@@ -60,8 +60,6 @@ export const Route = createRootRoute({
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap',
       },
-      { rel: 'preload', as: 'image', href: '/bg.png' },
-      { rel: 'preload', as: 'image', href: '/bg-dark.png' },
       { rel: 'manifest', href: '/manifest.json' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
       { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
@@ -70,7 +68,7 @@ export const Route = createRootRoute({
     scripts: [
       {
         children:
-          "(function(){try{var s=localStorage.getItem('planner-theme');var t=s==='light'||s==='dark'?s:matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name=\"theme-color\"]').forEach(function(m){m.setAttribute('content',t==='light'?'#fdfaf4':'#062318')});}catch(e){}})();",
+          "(function(){try{var s=localStorage.getItem('planner-theme');var t=s==='light'||s==='dark'?s:matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name=\"theme-color\"]').forEach(function(m){m.setAttribute('content',t==='light'?'#f1eee5':'#171814')});}catch(e){}})();",
       },
       {
         children:
@@ -95,7 +93,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           </FocusProvider>
         </UIProvider>
         <TanStackDevtools
-          config={{ position: 'bottom-right' }}
+          config={{ position: 'bottom-right', triggerHidden: true }}
           plugins={[
             {
               name: 'Tanstack Router',

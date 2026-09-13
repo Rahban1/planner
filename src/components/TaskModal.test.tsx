@@ -41,7 +41,7 @@ describe('TaskModal', () => {
     fireEvent.change(screen.getByLabelText('Task priority'), {
       target: { value: 'high' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
     expect(createTask).toHaveBeenCalledWith(
       {

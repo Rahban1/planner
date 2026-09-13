@@ -319,11 +319,18 @@ export function TaskModal(props: TaskModalProps) {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="modal task-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal task-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={isNew ? 'Create task' : 'Edit task'}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
           <input
             ref={titleRef}
             className="title-input"
+            aria-label="Task title"
             placeholder="Task title…"
             value={draft.title}
             onChange={(e) => {
@@ -341,7 +348,7 @@ export function TaskModal(props: TaskModalProps) {
 
         <div className="modal-body">
           <div className="field-group">
-            <div className="field-label">Notes</div>
+            <label className="field-label" htmlFor="task-notes">Notes</label>
             <div
               className={`notes-drop-zone ${isDragging ? 'drag-over' : ''}`}
               onDragEnter={onDragEnter}
@@ -350,6 +357,7 @@ export function TaskModal(props: TaskModalProps) {
               onDrop={onDrop}
             >
               <textarea
+                id="task-notes"
                 className="notes-input"
                 placeholder="Context for you and the agent…\nPaste images directly here"
                 value={draft.notes}
@@ -455,7 +463,7 @@ export function TaskModal(props: TaskModalProps) {
               </>
             )}
             <button className="btn btn-primary" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
-              {createMut.isPending || updateMut.isPending ? 'Saving…' : isNew ? 'Create' : 'Save'}
+              {createMut.isPending || updateMut.isPending ? 'Saving…' : isNew ? 'Create task' : 'Save changes'}
             </button>
           </div>
         </div>
@@ -471,9 +479,9 @@ function NewSubtaskRow({ parentId, projectId }: { parentId: string; projectId: s
 
   if (!show) {
     return (
-      <span className="add-subtask" onClick={() => setShow(true)} role="button" tabIndex={0}>
-        + add subtask
-      </span>
+      <button className="add-subtask" onClick={() => setShow(true)}>
+        Add subtask
+      </button>
     )
   }
   return (

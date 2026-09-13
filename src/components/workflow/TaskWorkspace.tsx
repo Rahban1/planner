@@ -824,7 +824,9 @@ function Conversation({
       node.scrollTop =
         stored !== null && Number.isFinite(Number(stored))
           ? Number(stored)
-          : node.scrollHeight
+          : messages.length
+            ? node.scrollHeight
+            : 0
       nearBottom.current =
         node.scrollHeight - node.clientHeight - node.scrollTop < 80
       restored.current = true

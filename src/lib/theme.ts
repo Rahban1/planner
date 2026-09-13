@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const STORAGE_KEY = 'planner-theme'
-const THEME_COLORS = { dark: '#062318', light: '#fdfaf4' }
+const THEME_COLORS = { dark: '#171814', light: '#f1eee5' }
 type Theme = 'dark' | 'light'
 
 function readInitial(): Theme {
@@ -35,6 +35,13 @@ export function useTheme() {
     }
 
     const apply = (next: Theme) => {
+      const changing = document.documentElement.dataset.theme !== next
+      const transitionGuard = changing ? document.createElement('style') : null
+      if (transitionGuard) {
+        transitionGuard.textContent =
+          '*,*::before,*::after{transition:none!important}'
+        document.head.appendChild(transitionGuard)
+      }
       document.documentElement.dataset.theme = next
       document
         .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
@@ -43,6 +50,10 @@ export function useTheme() {
         window.localStorage.setItem(STORAGE_KEY, next)
       } catch {
         // ignore quota / privacy-mode errors
+      }
+      if (transitionGuard) {
+        void document.documentElement.offsetWidth
+        requestAnimationFrame(() => transitionGuard.remove())
       }
     }
     apply(theme)

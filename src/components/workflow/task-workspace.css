@@ -141,7 +141,7 @@
   gap: 7px;
   min-height: 40px;
   border: 1px solid var(--tw-line);
-  border-radius: 7px;
+  border-radius: 9px;
   padding: 9px 12px;
   background: var(--tw-paper);
   text-decoration: none;
@@ -300,8 +300,9 @@
 .tw-paper {
   border: 1px solid var(--tw-line);
   background: var(--tw-paper);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: clamp(20px, 2.2vw, 32px);
+  box-shadow: var(--wf-shadow, 0 16px 40px -32px rgba(43, 42, 37, 0.58));
 }
 .tw-paper > h2,
 .tw-review-heading h2 {
@@ -815,11 +816,12 @@
 }
 .tw-repo-review {
   border: 1px solid var(--tw-line);
-  border-radius: 9px;
+  border-radius: 12px;
   background: var(--tw-paper);
   padding: 22px;
   margin-bottom: 18px;
   min-width: 0;
+  box-shadow: var(--wf-shadow, 0 16px 40px -32px rgba(43, 42, 37, 0.58));
 }
 .tw-repo-review header {
   display: flex;
