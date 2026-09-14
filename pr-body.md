@@ -1,46 +1,34 @@
 ### Problem
 
-Planner currently supports single-user workflows: one person creates tasks, plans them via the agent, and approves or requests changes. Teams need a way to collaborate within a specific project without seeing other projects, and plans need an approval workflow where a creator can request sign-off from a manager before the agent implements.
+Planner’s authenticated application shell needs a clear, accessible way for a signed-in user to end their session. Logout must invalidate Planner’s existing server session rather than only navigating away or inventing a client-side identity state.
 
 ### Approach
 
-This PR introduces a lightweight collaboration layer scoped to individual projects:
-
-1. **Project members** — a `project_members` table with email, name, and role (`owner`/`manager`/`member`). A new **MembersModal** lets owners add/remove collaborators and assign roles directly from the project page.
-2. **Plan suggestions** — a `plan_suggestions` table tied to `agent_runs`. Team members can leave text suggestions on any plan. These appear in a new **Suggestions** tab inside `PlanModal`.
-3. **Plan approvals** — a `plan_approvals` table tracking `pending`/`approved`/`rejected` requests. The creator of a plan can request approval from another member by email. The approver is notified via the UI (polling) and can accept, reject, or suggest further changes. A new **Approvals** tab in `PlanModal` shows the full history.
-4. **UI integration** — the project detail page gets a members icon that opens `MembersModal`. `PlanModal` gains three tabs (Review / Suggestions / Approvals) so collaboration happens in context.
-
-All new tables cascade-delete with their parent project or agent run, keeping cleanup automatic.
+The shared `TopBar` already exposes the logout control and the root shell already posts to `POST /api/auth/logout`, which expires the `planner_session` HttpOnly cookie before navigating to `/landing`. This change hardens that existing control with explicit `type="button"` semantics and adds a focused regression test covering its accessible name, title, click callback, and non-submit behavior. The Google/GitHub OAuth and D1 session architecture remains unchanged.
 
 ### Is this the best way?
 
-This is a pragmatic first step. It adds collaboration without requiring a full authentication system (emails are used as identifiers, with a clear path to integrate OAuth or passwordless auth later). The approval flow is simple but covers the core need: explicit sign-off before implementation.
-
-Trade-offs:
-- No real-time push (websockets/Server-Sent Events). Polling at 10s keeps it simple and works behind Cloudflare Workers without extra infrastructure.
-- No email notifications yet — approvals are visible only when the approver opens the plan or checks their pending list. This could be extended with a notification bell or email integration.
-- Permissions are coarse-grained at the project level. Finer task-level permissions could be added later.
+Yes for this scoped UI task. Reusing the existing root-shell handler and provider-independent logout endpoint keeps the browser session, server authorization, and redirect behavior aligned. The trade-off is that this PR does not revoke provider grants or delete historical D1 session rows; Planner does not use provider tokens as its application session, and cookie expiration is the existing logout contract.
 
 ### Alternatives considered
 
-1. **Full OAuth/SSO with RBAC** — Rejected because it would balloon scope dramatically (identity providers, sessions, tokens). The email-based approach lets us ship collaboration now and bolt on auth later.
-2. **Inline comments on specific plan sections** — Rejected in favor of a simple suggestion list. Section-level commenting would require anchoring comments to markdown offsets, which is fragile and over-engineered for a first release.
-3. **GitHub-style PR reviews for plans** — Rejected because it would require forking the plan into separate revisions with diff views. The existing `planVersion` + feedback loop already handles revisions; approvals layer on top cleanly.
+- **Navigate directly to `/landing`:** rejected because the valid `planner_session` cookie would remain usable.
+- **Clear a localStorage identity or add a login modal:** rejected because authenticated identity comes from verified Google/GitHub OAuth and server-side D1 sessions; a second client identity source would be insecure and inconsistent.
+- **Delete every D1 session row or revoke provider tokens:** not selected for this UI task because it would change multi-device/provider session semantics beyond the current contract.
 
 ### Best tool for the job
 
-- **Drizzle ORM + SQLite (D1)** for schema and queries — already the project's database stack, so no new dependencies.
-- **TanStack Query** for server-state — used consistently across the app; new hooks (`useProjectMembers`, `usePlanApprovals`, etc.) follow the existing mutation invalidation patterns.
-- **React state + inline styles** for the tabbed UI in `PlanModal` — no new component library needed; keeps the bundle size minimal and matches the existing design system.
+The existing React `TopBar` component, `lucide-react` `LogOut` icon, and same-origin `fetch` handler are the appropriate tools. They match the current design system, preserve keyboard/screen-reader access through the button’s accessible label, and avoid adding dependencies or a second authentication layer.
 
 ### Testing
 
-- Migration file `0004_collaboration_feature.sql` created and registered in the Drizzle journal.
-- The build completes successfully.
-- Manual verification path (to be done in the dev server):
-  1. Open a project page → click the members icon → add a collaborator by email.
-  2. Create a plan run for a task → open PlanModal.
-  3. Switch to **Suggestions** tab → add a suggestion.
-  4. Switch to **Approvals** tab → request approval from the collaborator's email.
-  5. Refresh / open the plan as the approver → see pending approval and approve/reject.
+Proof bundle: [`.planner/proof/311f0c32-5618-49e0-b976-e20feda123e4/report.md`](.planner/proof/311f0c32-5618-49e0-b976-e20feda123e4/report.md)
+
+- **PASS:** `git diff --check`.
+- **BLOCKED:** focused `TopBar` Vitest regression test; project dependencies were absent and the locked install stalled.
+- **BLOCKED:** `pnpm proof:ui`; the dedicated local proof command could not launch Wrangler because dependencies were unavailable, so no Chromium screenshots or video were created.
+- **NOT RUN:** lint, TypeScript, full tests, and build because dependency setup was blocked.
+
+The PR is ready for human review, but the proof pack is intentionally partial and does not claim complete verification.
+
+This pull request was created by an AI agent (OpenHands) on behalf of the user.

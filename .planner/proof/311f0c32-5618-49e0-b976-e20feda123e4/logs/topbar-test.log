@@ -1,0 +1,4 @@
+command: pnpm exec vitest run src/components/TopBar.test.tsx --config vitest.config.ts
+result: BLOCKED
+reason: pnpm reported Command "vitest" not found because dependencies were not installed.
+A locked pnpm install was attempted but stalled without output and was stopped.

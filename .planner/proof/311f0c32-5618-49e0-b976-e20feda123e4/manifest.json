@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "runId": "311f0c32-5618-49e0-b976-e20feda123e4",
+  "testedCommitSha": "407c825165fff154960fc523bbe7f773cc8bd185",
+  "generatedAt": "2026-09-06T15:19:13Z",
+  "environment": {
+    "os": "Linux",
+    "runtime": "Node.js with pnpm available; project dependencies unavailable"
+  },
+  "changeType": "ui",
+  "overall": "partial",
+  "checks": [
+    {
+      "id": "logout-button-test",
+      "title": "Accessible logout button regression test",
+      "layer": "targeted",
+      "status": "blocked",
+      "command": "pnpm exec vitest run src/components/TopBar.test.tsx --config vitest.config.ts",
+      "exitCode": 254,
+      "durationMs": 260,
+      "outputPath": "logs/topbar-test.log"
+    },
+    {
+      "id": "diff-check",
+      "title": "Patch whitespace validation",
+      "layer": "lint",
+      "status": "pass",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "durationMs": 2,
+      "outputPath": "logs/diff-check.log"
+    },
+    {
+      "id": "browser-ui",
+      "title": "Logout button local Chromium flow",
+      "layer": "browser",
+      "status": "blocked",
+      "command": "pnpm proof:ui",
+      "exitCode": 254,
+      "durationMs": 574,
+      "outputPath": "logs/browser-proof.log"
+    },
+    {
+      "id": "repository-gates",
+      "title": "Lint, types, full tests, and build",
+      "layer": "full",
+      "status": "not_run"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "report.md",
+      "type": "report",
+      "bytes": 1204,
+      "sha256": "fd07d26ebcd73f5976f7c7734edce1131780a2ea6792dc9d12b622a689df02a0"
+    },
+    {
+      "path": "logs/diff-check.log",
+      "type": "log",
+      "bytes": 50,
+      "sha256": "0d9677d1f88457baa32e68a1e70e15d67f18635ca2b84902f6b196abd67fa107"
+    },
+    {
+      "path": "logs/topbar-test.log",
+      "type": "log",
+      "bytes": 273,
+      "sha256": "24e3324954d939d9396d0d4f16d766f2a56b0868764146e5d0daf6d4b65809a7"
+    },
+    {
+      "path": "logs/browser-proof.log",
+      "type": "log",
+      "bytes": 363,
+      "sha256": "367c14ebfdbb79870d3d573c47623673794b760868e90f7ce2cfcbd4cc0e849a"
+    }
+  ],
+  "limitations": [
+    "Dependencies could not be installed within the verification window, so automated and browser checks remain incomplete.",
+    "Browser proof was attempted but could not launch Wrangler; no screenshots or video were available."
+  ],
+  "reproduce": [
+    "pnpm install --frozen-lockfile",
+    "pnpm exec vitest run src/components/TopBar.test.tsx --config vitest.config.ts",
+    "pnpm proof:ui"
+  ]
+}
