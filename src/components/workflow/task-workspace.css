@@ -252,7 +252,10 @@
 .tw-discussion {
   display: flex;
   flex-direction: column;
-  min-height: max(280px, calc(100dvh - 320px));
+  min-width: 0;
+  min-height: 0;
+  max-height: calc(100dvh - 13rem);
+  overflow: hidden;
   border-right: 1px solid var(--tw-line);
   padding-right: clamp(20px, 3vw, 40px);
 }
@@ -352,14 +355,18 @@
 }
 .tw-conversation-wrap {
   position: relative;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .tw-conversation {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 8px 5px 12px 0;
   display: flex;
@@ -393,8 +400,29 @@
 }
 .tw-message {
   padding: 0;
+  min-width: 0;
+  max-width: min(640px, 100%);
+  overflow-x: hidden;
   overflow-wrap: anywhere;
-  max-width: 640px;
+}
+.tw-dump {
+  color: var(--tw-muted);
+  font-size: 12px;
+}
+.tw-dump summary {
+  color: var(--tw-muted);
+  font-size: 12px;
+}
+.tw-dump pre {
+  margin: 8px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--tw-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
 }
 .tw-message-user {
   align-self: flex-end;
@@ -539,6 +567,8 @@
   background: var(--tw-soft);
   border-radius: 3px;
   font-size: 0.9em;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
 }
 .tw-markdown pre {
   overflow: auto;
@@ -598,6 +628,7 @@
   border-top: 1px solid var(--tw-line);
 }
 .tw-composer {
+  flex-shrink: 0;
   margin-top: 8px;
   border: 1px solid var(--tw-line);
   border-radius: 16px;
@@ -1316,7 +1347,8 @@
     min-width: 44px;
   }
   .tw-discussion {
-    min-height: min(62dvh, 640px);
+    min-height: 0;
+    max-height: min(70dvh, 640px);
   }
   .tw-conversation {
     padding-right: 0;

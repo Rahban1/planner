@@ -793,6 +793,36 @@ function chipLabel(body: string) {
   return line.length > 56 ? `${line.slice(0, 53)}…` : line
 }
 
+function isTechnicalDump(body: string) {
+  const escaped = body.match(/\\n/g)?.length ?? 0
+  return (
+    body.length > 700 ||
+    escaped > 6 ||
+    /"file_text"\s*:/.test(body) ||
+    /"file_path"\s*:/.test(body)
+  )
+}
+
+function dumpText(body: string) {
+  const escaped = body.match(/\\n/g)?.length ?? 0
+  const real = body.match(/\n/g)?.length ?? 0
+  return escaped > 6 && real < 3
+    ? body.replaceAll('\\n', '\n').replaceAll('\\t', '\t')
+    : body
+}
+
+function MessageBody({ body }: { body: string }) {
+  if (!isTechnicalDump(body)) return <Markdown>{body}</Markdown>
+  const text = dumpText(body)
+  const lines = text.split('\n').length
+  return (
+    <details className="tw-dump">
+      <summary>Show technical details ({lines} lines)</summary>
+      <pre>{text}</pre>
+    </details>
+  )
+}
+
 function Conversation({
   taskId,
   userId,
@@ -947,7 +977,7 @@ function Conversation({
                   {metadata.context.line ? `:${metadata.context.line}` : ''}
                 </div>
               )}
-              <Markdown>{message.body}</Markdown>
+              <MessageBody body={message.body} />
             </article>
           )
         })}
