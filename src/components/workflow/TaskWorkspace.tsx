@@ -608,13 +608,6 @@ export function TaskWorkspace({ initialTask }: { initialTask: TaskWorkflow }) {
           data-mobile-hidden={pane !== 'discussion'}
           aria-label="Task discussion"
         >
-          <div className="tw-panel-heading">
-            <h2>
-              <MessageSquare size={16} />
-              Discussion
-            </h2>
-            <span>Plan it together.</span>
-          </div>
           <Conversation
             taskId={task.id}
             userId={task.currentUserId}
@@ -623,6 +616,19 @@ export function TaskWorkspace({ initialTask }: { initialTask: TaskWorkflow }) {
             loading={chatQuery.isPending}
             error={chatQuery.error}
             onRetry={() => void chatQuery.refetch()}
+            working={
+              sendMutation.isPending
+                ? 'Sending…'
+                : active
+                  ? activeRun.status === 'queued'
+                    ? 'Waiting in queue…'
+                    : activeRun.kind === 'answer'
+                      ? 'Reading…'
+                      : activeRun.kind === 'plan'
+                        ? 'Writing the plan…'
+                        : 'Working…'
+                  : null
+            }
           />
           <ReviewComposer
             inputRef={inputRef}
@@ -640,23 +646,15 @@ export function TaskWorkspace({ initialTask }: { initialTask: TaskWorkflow }) {
             disabled={!online || active || actionMutation.isPending}
             changeDisabled={!reviewOpen}
             onSend={send}
-          />
-          <div className="tw-attachment-tools">
-            <button
-              type="button"
-              className="tw-text-button"
-              disabled={uploadMutation.isPending || !online || active}
-              onClick={() => fileRef.current?.click()}
-            >
-              <Paperclip size={14} />
-              {uploadMutation.isPending ? 'Attaching files…' : 'Attach files'}
-            </button>
-            <span>
-              {draft.storageAvailable
+            onAttach={() => fileRef.current?.click()}
+            attaching={uploadMutation.isPending}
+            attachDisabled={!online || active}
+            draftHint={
+              draft.storageAvailable
                 ? 'Draft saved on this device'
-                : 'Draft cannot be saved on this device'}
-            </span>
-          </div>
+                : 'Draft cannot be saved on this device'
+            }
+          />
           <input
             ref={fileRef}
             type="file"
@@ -790,6 +788,11 @@ function ErrorNotice({
   )
 }
 
+function chipLabel(body: string) {
+  const line = body.trim().split('\n')[0] ?? ''
+  return line.length > 56 ? `${line.slice(0, 53)}…` : line
+}
+
 function Conversation({
   taskId,
   userId,
@@ -798,6 +801,7 @@ function Conversation({
   loading,
   error,
   onRetry,
+  working,
 }: {
   taskId: string
   userId: string
@@ -814,6 +818,7 @@ function Conversation({
   loading: boolean
   error: unknown
   onRetry: () => void
+  working?: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
@@ -869,10 +874,7 @@ function Conversation({
       >
         {notes && (
           <article className="tw-message tw-message-notes">
-            <div className="tw-message-meta">
-              <FileText size={12} />
-              <strong>Task notes</strong>
-            </div>
+            <span className="tw-sr-only">Task notes</span>
             <Markdown>{notes}</Markdown>
           </article>
         )}
@@ -890,41 +892,54 @@ function Conversation({
         ) : null}
         {!loading && !error && !messages.length && (
           <div className="tw-conversation-empty">
-            <span className="tw-empty-icon">
-              <MessageSquare size={21} />
-            </span>
-            <h3>Start with the outcome.</h3>
-            <p>
-              Describe what should change. Ask questions and set the scope
-              before you approve a build.
-            </p>
+            <p>Describe the outcome. Ask before you approve a build.</p>
           </div>
         )}
-        {messages.map((message) => {
+        {messages.map((message, index) => {
+          if (message.kind === 'progress') {
+            if (messages[index - 1]?.kind === 'progress') return null
+            const chips = []
+            for (let i = index; i < messages.length; i++) {
+              const chip = messages[i]
+              if (chip?.kind !== 'progress') break
+              chips.push(chip)
+            }
+            return (
+              <div className="tw-chips" key={message.id}>
+                {chips.map((chip) => (
+                  <span className="tw-chip" key={chip.id} title={chip.body}>
+                    {chipLabel(chip.body)}
+                  </span>
+                ))}
+              </div>
+            )
+          }
           const metadata = readMessageMetadata(message.metadata)
           const isUser = message.authorType === 'user'
+          const who = isUser
+            ? message.authorUserId === userId
+              ? 'You'
+              : 'Project member'
+            : message.authorType === 'system'
+              ? 'Task update'
+              : 'Planner'
           return (
             <article
               key={message.id}
-              className={`tw-message ${isUser ? 'tw-message-user' : message.authorType === 'system' ? 'tw-message-system' : ''}`}
+              className={`tw-message ${isUser ? 'tw-message-user' : message.authorType === 'system' || message.kind === 'error' ? 'tw-message-system' : 'tw-message-agent'}`}
             >
-              <div className="tw-message-meta">
-                <span className={`tw-avatar ${isUser ? 'tw-avatar-user' : ''}`}>
-                  {isUser ? (message.authorUserId === userId ? 'Y' : 'M') : 'P'}
-                </span>
-                <strong>
-                  {isUser
-                    ? message.authorUserId === userId
-                      ? 'You'
-                      : 'Project member'
-                    : message.authorType === 'system'
-                      ? 'Task update'
-                      : 'Planner'}
-                </strong>
-                {metadata.mode === 'question' && <span>Question</span>}
-                {metadata.mode === 'change' && <span>Change request</span>}
-                <Time value={message.createdAt} />
-              </div>
+              <span className="tw-sr-only">
+                {who}
+                {metadata.mode === 'question' ? ', question' : ''}
+                {metadata.mode === 'change' ? ', change request' : ''}
+                , <Time value={message.createdAt} />
+              </span>
+              {isUser && metadata.mode === 'question' && (
+                <span className="tw-message-tag">Question</span>
+              )}
+              {isUser && metadata.mode === 'change' && (
+                <span className="tw-message-tag">Change request</span>
+              )}
               {metadata.context?.repoUrl && (
                 <div className="tw-message-context">
                   {repositoryName(metadata.context.repoUrl)}
@@ -936,6 +951,12 @@ function Conversation({
             </article>
           )
         })}
+        {working && (
+          <p className="tw-live" role="status">
+            {working}
+            <span className="tw-caret" />
+          </p>
+        )}
       </div>
       {newMessages && (
         <button
@@ -970,6 +991,10 @@ export function ReviewComposer({
   disabled,
   changeDisabled,
   onSend,
+  onAttach,
+  attaching,
+  attachDisabled,
+  draftHint,
 }: {
   inputRef?: React.RefObject<HTMLTextAreaElement | null>
   value: string
@@ -984,35 +1009,31 @@ export function ReviewComposer({
   disabled: boolean
   changeDisabled: boolean
   onSend: () => void
+  onAttach?: () => void
+  attaching?: boolean
+  attachDisabled?: boolean
+  draftHint?: string
 }) {
+  const sendLabel = pending
+    ? 'Sending…'
+    : hasReview
+      ? mode === 'change'
+        ? 'Send change'
+        : 'Ask'
+      : 'Send'
+  function sendIfReady() {
+    if (!pending && !disabled && !(mode === 'change' && changeDisabled))
+      onSend()
+  }
   return (
     <form
       className="tw-composer"
+      title={draftHint}
       onSubmit={(event) => {
         event.preventDefault()
-        if (!pending && !disabled && !(mode === 'change' && changeDisabled))
-          onSend()
+        sendIfReady()
       }}
     >
-      {hasReview && (
-        <div className="tw-message-modes" aria-label="Review action">
-          <button
-            type="button"
-            aria-pressed={mode === 'question'}
-            onClick={() => onModeChange('question')}
-          >
-            Ask question
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === 'change'}
-            disabled={changeDisabled}
-            onClick={() => onModeChange('change')}
-          >
-            Request change
-          </button>
-        </div>
-      )}
       {hasReview && (
         <div className="tw-context-tools">
           <label htmlFor="tw-review-repo">Review context</label>
@@ -1051,6 +1072,27 @@ export function ReviewComposer({
           )}
         </div>
       )}
+      {hasReview && (
+        <div className="tw-message-modes" aria-label="Review action">
+          <button
+            type="button"
+            aria-label="Ask question"
+            aria-pressed={mode === 'question'}
+            onClick={() => onModeChange('question')}
+          >
+            Ask
+          </button>
+          <button
+            type="button"
+            aria-label="Request change"
+            aria-pressed={mode === 'change'}
+            disabled={changeDisabled}
+            onClick={() => onModeChange('change')}
+          >
+            Change
+          </button>
+        </div>
+      )}
       <label className="tw-sr-only" htmlFor="tw-message-input">
         {hasReview
           ? mode === 'change'
@@ -1063,34 +1105,46 @@ export function ReviewComposer({
         id="tw-message-input"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={4}
+        rows={2}
         maxLength={20_000}
         placeholder={
           hasReview
             ? mode === 'change'
               ? 'Describe what should change in this pull request…'
               : 'Ask about the approach or a code change…'
-            : 'Describe the outcome, ask a question, or add a detail…'
+            : 'Ask a question or request a change…'
         }
         onKeyDown={(event) => {
-          if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-            event.preventDefault()
-            if (!pending && !disabled && !(mode === 'change' && changeDisabled))
-              onSend()
-          }
+          if (event.key !== 'Enter') return
+          if (event.shiftKey) return
+          event.preventDefault()
+          sendIfReady()
         }}
       />
       <div className="tw-composer-footer">
-        <span>
-          {hasReview
-            ? mode === 'change'
-              ? 'Sending starts a revision of the existing PR.'
-              : 'Questions get an explanation.'
-            : 'Discuss first. You approve the build.'}
-        </span>
+        {onAttach ? (
+          <button
+            type="button"
+            className="tw-icon-button"
+            aria-label={attaching ? 'Attaching files' : 'Attach files'}
+            disabled={attachDisabled || attaching || disabled}
+            onClick={onAttach}
+          >
+            <Paperclip size={15} />
+          </button>
+        ) : (
+          <span>
+            {hasReview
+              ? mode === 'change'
+                ? 'Sending starts a revision of the existing PR.'
+                : 'Questions get an explanation.'
+              : 'Discuss first. You approve the build.'}
+          </span>
+        )}
         <button
           type="submit"
-          className="tw-button tw-primary"
+          className="tw-button tw-primary tw-send"
+          aria-label={sendLabel}
           disabled={
             !value.trim() ||
             pending ||
@@ -1103,13 +1157,7 @@ export function ReviewComposer({
           ) : (
             <ArrowUp size={15} />
           )}
-          {pending
-            ? 'Sending…'
-            : hasReview
-              ? mode === 'change'
-                ? 'Send change'
-                : 'Ask'
-              : 'Send'}
+          <span className="tw-sr-only">{sendLabel}</span>
         </button>
       </div>
     </form>

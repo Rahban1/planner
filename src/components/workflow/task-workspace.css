@@ -250,6 +250,9 @@
   min-width: 0;
 }
 .tw-discussion {
+  display: flex;
+  flex-direction: column;
+  min-height: max(280px, calc(100dvh - 320px));
   border-right: 1px solid var(--tw-line);
   padding-right: clamp(20px, 3vw, 40px);
 }
@@ -349,29 +352,31 @@
 }
 .tw-conversation-wrap {
   position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .tw-conversation {
-  min-height: 230px;
-  max-height: max(260px, calc(100dvh - 550px));
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding-right: 5px;
+  padding: 8px 5px 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   scrollbar-width: thin;
   scrollbar-color: var(--tw-line) transparent;
   overscroll-behavior: contain;
 }
 .tw-conversation-empty {
-  padding: 25px 10px 38px 0;
-  max-width: 335px;
-}
-.tw-conversation-empty h3 {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 27px;
-  font-weight: 400;
-  margin-top: 13px;
+  padding: 28px 8px 12px 0;
+  max-width: 380px;
 }
 .tw-conversation-empty p {
   color: var(--tw-muted);
-  margin-top: 9px;
+  margin: 0;
+  font-size: 14px;
 }
 .tw-empty-icon {
   display: inline-flex;
@@ -387,14 +392,27 @@
   margin: 26px 0 6px;
 }
 .tw-message {
-  margin-bottom: 23px;
-  padding: 0 3px;
+  padding: 0;
   overflow-wrap: anywhere;
+  max-width: 640px;
 }
 .tw-message-user {
+  align-self: flex-end;
+  max-width: 78%;
   background: var(--tw-soft);
-  border-radius: 8px;
-  padding: 14px;
+  border: 1px solid var(--tw-line);
+  border-radius: 16px 16px 4px 16px;
+  padding: 10px 14px;
+}
+.tw-message-agent {
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tw-message-tag {
+  display: block;
+  font-size: 10px;
+  color: var(--tw-muted);
+  margin-bottom: 6px;
 }
 .tw-message-meta {
   display: flex;
@@ -414,28 +432,12 @@
   margin-left: auto;
   font-size: 9px;
 }
-.tw-avatar {
-  display: inline-flex;
-  width: 20px;
-  height: 20px;
-  background: var(--tw-accent);
-  color: var(--tw-on-accent);
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 16px;
-}
-.tw-avatar-user {
-  font-family: inherit;
-  font-size: 9px;
-  border-radius: 50%;
-  background: var(--tw-paper);
-  color: var(--tw-muted);
-}
 .tw-message-notes {
   border-bottom: 1px solid var(--tw-line);
-  padding-bottom: 16px;
+  padding-bottom: 14px;
+  color: var(--tw-muted);
+  font-size: 13px;
+  max-width: none;
 }
 .tw-message-system {
   border-left: 2px solid var(--tw-line);
@@ -444,10 +446,46 @@
   font-size: 12px;
 }
 .tw-message-context {
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   color: var(--tw-muted);
   font-size: 10px;
   font-family: ui-monospace, monospace;
+}
+.tw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tw-chip {
+  font-size: 11px;
+  color: var(--tw-muted);
+  border: 1px solid var(--tw-line);
+  border-radius: 999px;
+  padding: 4px 9px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tw-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--tw-accent);
+}
+.tw-caret {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  background: var(--tw-accent);
+  animation: tw-blink 1s step-end infinite;
+}
+@keyframes tw-blink {
+  50% {
+    opacity: 0;
+  }
 }
 .tw-new-messages {
   position: absolute;
@@ -560,55 +598,63 @@
   border-top: 1px solid var(--tw-line);
 }
 .tw-composer {
-  margin-top: 12px;
-}
-.tw-composer textarea {
-  display: block;
+  margin-top: 8px;
+  border: 1px solid var(--tw-line);
+  border-radius: 16px;
   background: var(--tw-paper);
-  border-radius: 8px 8px 0 0;
-  border-bottom: 0;
-  padding: 13px;
-  min-height: 118px;
+  padding: 8px 8px 8px 12px;
+}
+.tw-page .tw-composer textarea {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 4px 8px;
+  min-height: 44px;
+  max-height: 160px;
+  resize: none;
 }
 .tw-composer-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 13px;
-  border: 1px solid var(--tw-line);
-  border-top: 0;
-  border-radius: 0 0 8px 8px;
-  background: var(--tw-paper);
-  padding: 0 10px 10px 13px;
+  gap: 10px;
+  padding: 0 2px 2px;
 }
 .tw-composer-footer > span {
   font-size: 10px;
   max-width: 190px;
   color: var(--tw-muted);
 }
-.tw-composer-footer .tw-button {
-  min-width: 78px;
+.tw-send {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 50%;
 }
 .tw-message-modes {
   display: flex;
   gap: 6px;
-  margin: 0 0 10px;
+  margin: 2px 0 6px;
 }
 .tw-message-modes button {
-  min-height: 37px;
-  border: 1px solid var(--tw-line);
+  min-height: 28px;
+  border: 0;
   background: transparent;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 11px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--tw-muted);
 }
 .tw-message-modes button[aria-pressed='true'] {
   color: var(--tw-accent);
   background: var(--tw-soft);
-  border-color: var(--tw-accent);
 }
 .tw-context-tools {
-  margin: 12px 0;
+  margin: 0 0 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1269,19 +1315,17 @@
   .tw-page .tw-icon-button {
     min-width: 44px;
   }
+  .tw-discussion {
+    min-height: min(62dvh, 640px);
+  }
   .tw-conversation {
-    max-height: min(55dvh, 550px);
-    min-height: 200px;
     padding-right: 0;
   }
   .tw-conversation-empty {
     padding: 14px 0 24px;
   }
-  .tw-conversation-empty h3 {
-    font-size: 29px;
-  }
-  .tw-message {
-    margin-bottom: 21px;
+  .tw-message-user {
+    max-width: 88%;
   }
   .tw-panel-heading {
     min-height: 30px;
