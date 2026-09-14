@@ -1,0 +1,299 @@
+/* Apple HIG: clear content, restrained materials, and accessible controls.
+   https://developer.apple.com/design/human-interface-guidelines/materials */
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --control-radius: 12px;
+}
+body {
+  position: relative;
+  background-color: var(--app-chrome);
+  font-family: var(--font-ui);
+}
+body .wf-app {
+  position: relative;
+  font-family: var(--font-ui);
+  --wf-shadow: 0 2px 8px -4px rgb(0 0 0 / 12%);
+}
+.wf-app .wf-sidebar {
+  background: color-mix(in srgb, var(--wf-sidebar) 92%, transparent);
+  backdrop-filter: blur(24px) saturate(1.15);
+  -webkit-backdrop-filter: blur(24px) saturate(1.15);
+  border-right: 1px solid var(--line);
+  padding-left: calc(18px + var(--sal));
+}
+.wf-app .wf-nav a,
+.wf-app .wf-search-trigger,
+.wf-app .wf-button,
+.wf-app .wf-icon-button,
+.tw-page .tw-button {
+  border-radius: var(--control-radius);
+}
+.wf-app .wf-page h1 {
+  font-family: var(--font-ui);
+  font-size: clamp(32px, 3.5vw, 44px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+.wf-app .wf-empty h2 {
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.wf-app .wf-eyebrow {
+  letter-spacing: 0.09em;
+}
+.wf-app .wf-task-row,
+.wf-app .wf-project-row,
+.wf-app .wf-composer-card,
+.wf-app .wf-empty {
+  border-radius: 18px;
+}
+.wf-app .wf-task-copy strong {
+  font-weight: 600;
+  font-size: 16px;
+}
+.wf-app .wf-task-meta,
+.wf-app .wf-task-detail {
+  font-size: 13px;
+}
+.wf-app .wf-task-row {
+  padding-block: 18px;
+}
+.wf-app .wf-segments {
+  border: 0;
+  background: var(--wf-soft);
+  border-radius: 14px;
+}
+.wf-app .wf-segment-indicator {
+  background: var(--wf-surface);
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+}
+.wf-app .wf-segments button[aria-pressed='true'] {
+  color: var(--wf-text);
+}
+.wf-app .wf-page {
+  padding-top: calc(40px + var(--sat));
+  padding-right: max(28px, var(--sar));
+}
+.wf-content > .tw-page {
+  padding-top: calc(14px + var(--sat));
+  padding-right: max(16px, var(--sar));
+  padding-bottom: calc(12px + var(--sab));
+}
+.topbar :is(button, a),
+.modal-close {
+  min-width: 44px;
+  min-height: 44px;
+}
+:is(.modal, .cmdk, .confirm-dialog, .shortcuts-panel) {
+  border-radius: 22px;
+  font-family: var(--font-ui);
+}
+.landing-page .landing-console,
+.landing-page .landing-panel {
+  border-radius: 20px;
+}
+.landing-page .landing-primary {
+  border-radius: 100px;
+  min-height: 48px;
+}
+:is(.modal-body, .cmdk-list, .shortcuts-grid) {
+  overscroll-behavior: contain;
+}
+.modal-backdrop:not(.open),
+.cmdk-backdrop:not(.open) {
+  display: none;
+}
+:is(.modal-backdrop, .cmdk-backdrop, .shortcuts-overlay) {
+  position: absolute;
+  inset: 0;
+  min-height: 100%;
+  height: var(--page-height, 100%);
+  width: 100%;
+  display: block;
+  padding: 0 max(16px, var(--sar)) 0 max(16px, var(--sal));
+  isolation: isolate;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+:is(.modal-backdrop, .cmdk-backdrop, .shortcuts-overlay)
+  > :is(.modal, .cmdk, .confirm-dialog, .shortcuts-panel) {
+  position: sticky;
+  top: calc(var(--visual-viewport-top, 0px) + var(--sat) + 16px);
+  margin: 16px auto;
+  max-height: calc(
+    var(--visual-viewport-height, 100dvh) - var(--sat) - var(--sab) - 32px
+  );
+  overflow-y: auto;
+}
+@media (display-mode: standalone) {
+  html,
+  body {
+    height: 100vh;
+  }
+}
+/* Leave room for window controls in an installed iPad app. */
+@media (display-mode: standalone) and (min-width: 761px) and (pointer: coarse) {
+  .wf-app .wf-sidebar {
+    padding-top: calc(64px + var(--sat));
+  }
+  .wf-app .wf-show-sidebar {
+    padding-top: calc(64px + var(--sat));
+  }
+}
+@media (min-width: 761px) {
+  :is(.modal-backdrop, .shortcuts-overlay)
+    > :is(.modal, .confirm-dialog, .shortcuts-panel) {
+    top: calc(var(--visual-viewport-top, 0px) + var(--sat) + 10vh);
+    margin-top: 10vh;
+    max-height: calc(
+      var(--visual-viewport-height, 100dvh) - var(--sat) - var(--sab) - 20vh
+    );
+  }
+}
+@media (max-width: 760px) {
+  .wf-app {
+    --mobile-nav-height: calc(76px + var(--sab));
+    padding-bottom: var(--mobile-nav-height);
+  }
+  .wf-app .wf-sidebar,
+  .wf-app.is-sidebar-hidden .wf-sidebar {
+    display: grid;
+    padding: calc(8px + var(--sat)) calc(12px + var(--sar)) 8px
+      calc(12px + var(--sal));
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    /* Keep the bottom navigation relative to the app, outside the blur layer. */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--wf-sidebar);
+  }
+  .wf-app .wf-nav {
+    position: absolute;
+    z-index: 20;
+    inset: auto 0 0;
+    height: var(--mobile-nav-height);
+    margin: 0;
+    padding: 8px max(12px, var(--sar)) calc(8px + var(--sab))
+      max(12px, var(--sal));
+    border-top: 1px solid var(--wf-line);
+    background: color-mix(in srgb, var(--wf-surface) 94%, transparent);
+    backdrop-filter: blur(24px) saturate(1.15);
+    -webkit-backdrop-filter: blur(24px) saturate(1.15);
+    gap: 8px;
+  }
+  .wf-app .wf-nav a {
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px;
+    min-height: 56px;
+    color: var(--wf-muted);
+    font-size: 11px;
+    border-radius: 16px;
+  }
+  .wf-app .wf-nav .is-active {
+    background: var(--wf-soft);
+    color: var(--wf-accent);
+  }
+  .wf-app .wf-nav .is-active::before {
+    display: none;
+  }
+  .wf-app .wf-search-trigger,
+  .wf-app .wf-tools > * {
+    width: 44px;
+    min-height: 44px;
+  }
+  .wf-app .wf-show-sidebar,
+  .wf-app .wf-tools > button[aria-label='Hide sidebar'] {
+    display: none;
+  }
+  .wf-app .wf-page {
+    padding: 28px calc(16px + var(--sar)) 24px calc(16px + var(--sal));
+  }
+  .wf-content > .tw-page {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-left: calc(12px + var(--sal));
+  }
+  .tw-page .tw-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .tw-page .tw-title-row > div {
+    width: 100%;
+    min-width: 0;
+  }
+  .tw-page .tw-header-side {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .wf-app .tw-page h1 {
+    font-family: var(--font-ui);
+    font-size: 26px;
+    font-weight: 650;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+  .wf-app .wf-page h1 {
+    font-size: 32px;
+  }
+  .wf-app .wf-page-head p:not(.wf-eyebrow) {
+    font-size: 14px;
+  }
+  .wf-app .wf-segments button,
+  .tw-page :is(button, summary, .tw-back) {
+    min-height: 44px;
+  }
+  body :is(input:not([type='checkbox']):not([type='radio']), textarea, select) {
+    font-size: 16px;
+  }
+  .wf-app .wf-task-row {
+    padding: 16px;
+  }
+  html[data-keyboard-open] .wf-app {
+    padding-bottom: 0;
+  }
+  html[data-keyboard-open] .wf-nav {
+    display: none;
+  }
+}
+@media (hover: none) {
+  .wf-app .wf-task-row:hover {
+    transform: none;
+    background: var(--wf-surface);
+    border-color: var(--wf-line);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .wf-app .wf-nav,
+  .wf-app .wf-sidebar,
+  .topbar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--app-chrome);
+  }
+  .wf-app .wf-sidebar {
+    background: var(--wf-sidebar);
+  }
+  .wf-app .wf-nav {
+    background: var(--wf-sidebar);
+  }
+  .wf-app .wf-nav a {
+    color: var(--wf-sidebar-text);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

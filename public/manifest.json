@@ -33,7 +33,7 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
-  "theme_color": "#062318",
-  "background_color": "#06110f",
+  "theme_color": "#171814",
+  "background_color": "#171814",
   "categories": ["productivity", "developer tools"]
 }

@@ -10,6 +10,9 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../styles.css?url'
 import workflowCss from '../workflow.css?url'
+import appleDesignCss from '../apple-design.css?url'
+import { AppleWebAppRuntime } from '../components/AppleWebAppRuntime'
+import { appleStartupLinks } from '../lib/apple-startup'
 import { WorkflowShell } from '../components/workflow/WorkflowShell'
 import { useTheme } from '../lib/theme'
 import { TopBar } from '../components/TopBar'
@@ -50,6 +53,7 @@ export const Route = createRootRoute({
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'stylesheet', href: workflowCss },
+      { rel: 'stylesheet', href: appleDesignCss },
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
         rel: 'preconnect',
@@ -62,6 +66,7 @@ export const Route = createRootRoute({
       },
       { rel: 'manifest', href: '/manifest.json' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ...appleStartupLinks,
       { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
       { rel: 'icon', href: '/favicon.ico' },
     ],
@@ -86,6 +91,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <AppleWebAppRuntime />
         <div className="app-bg" />
         <UIProvider>
           <FocusProvider>
