@@ -9,7 +9,8 @@ export const MAX_PROOF_BUNDLE_BYTES = 20 * 1024 * 1024
 
 export type ProofStatus = 'pass' | 'fail' | 'blocked' | 'not_run'
 export type ProofState = 'pass' | 'fail' | 'partial' | 'incomplete'
-export type ChangeType = 'ui' | 'api' | 'cli' | 'library' | 'data' | 'docs' | 'mixed'
+export type ChangeType =
+  'ui' | 'api' | 'cli' | 'library' | 'data' | 'docs' | 'mixed'
 export type ArtifactType = 'report' | 'log' | 'screenshot' | 'video'
 
 export interface ProofEnvironment {
@@ -67,7 +68,12 @@ interface LoadProofPackOptions {
   artifactCommitSha?: string
 }
 
-const PROOF_STATUSES = new Set<ProofStatus>(['pass', 'fail', 'blocked', 'not_run'])
+const PROOF_STATUSES = new Set<ProofStatus>([
+  'pass',
+  'fail',
+  'blocked',
+  'not_run',
+])
 const CHANGE_TYPES = new Set<ChangeType>([
   'ui',
   'api',
@@ -77,7 +83,12 @@ const CHANGE_TYPES = new Set<ChangeType>([
   'docs',
   'mixed',
 ])
-const ARTIFACT_TYPES = new Set<ArtifactType>(['report', 'log', 'screenshot', 'video'])
+const ARTIFACT_TYPES = new Set<ArtifactType>([
+  'report',
+  'log',
+  'screenshot',
+  'video',
+])
 const ALLOWED_EXTENSIONS: Record<ArtifactType, Set<string>> = {
   report: new Set(['.md']),
   log: new Set(['.txt', '.log', '.exit']),
@@ -99,14 +110,29 @@ export async function loadProofPack({
   try {
     raw = JSON.parse(await readFile(manifestPath, 'utf8'))
   } catch (error) {
-    const reason = error instanceof SyntaxError ? 'manifest.json is not valid JSON' : 'manifest.json was not found'
-    return { state: 'incomplete', manifest: null, proofDir: null, artifactCommitSha, errors: [reason] }
+    const reason =
+      error instanceof SyntaxError
+        ? 'manifest.json is not valid JSON'
+        : 'manifest.json was not found'
+    return {
+      state: 'incomplete',
+      manifest: null,
+      proofDir: null,
+      artifactCommitSha,
+      errors: [reason],
+    }
   }
 
   const errors: string[] = []
   const manifest = parseManifest(raw, errors)
   if (!manifest) {
-    return { state: 'incomplete', manifest: null, proofDir, artifactCommitSha, errors }
+    return {
+      state: 'incomplete',
+      manifest: null,
+      proofDir,
+      artifactCommitSha,
+      errors,
+    }
   }
 
   if (manifest.runId !== runId) {
@@ -133,7 +159,9 @@ export async function loadProofPack({
 
   const expectedOverall = overallFromChecks(manifest.checks)
   if (manifest.overall !== expectedOverall) {
-    errors.push(`Manifest overall must be ${expectedOverall} for the recorded check results.`)
+    errors.push(
+      `Manifest overall must be ${expectedOverall} for the recorded check results.`,
+    )
   }
 
   return {
@@ -153,31 +181,48 @@ function parseManifest(raw: unknown, errors: string[]): ProofManifestV1 | null {
 
   if (raw.version !== 1) errors.push('Manifest version must be 1.')
   if (!isNonEmptyString(raw.runId)) errors.push('Manifest runId is required.')
-  if (!isSha(raw.testedCommitSha)) errors.push('Manifest testedCommitSha must be a 40-character Git SHA.')
-  if (!isDateString(raw.generatedAt)) errors.push('Manifest generatedAt must be an ISO date.')
-  if (!CHANGE_TYPES.has(raw.changeType as ChangeType)) errors.push('Manifest changeType is invalid.')
-  if (!['pass', 'fail', 'partial'].includes(String(raw.overall))) errors.push('Manifest overall is invalid.')
+  if (!isSha(raw.testedCommitSha))
+    errors.push('Manifest testedCommitSha must be a 40-character Git SHA.')
+  if (!isDateString(raw.generatedAt))
+    errors.push('Manifest generatedAt must be an ISO date.')
+  if (!CHANGE_TYPES.has(raw.changeType as ChangeType))
+    errors.push('Manifest changeType is invalid.')
+  if (!['pass', 'fail', 'partial'].includes(String(raw.overall)))
+    errors.push('Manifest overall is invalid.')
 
   if (!isRecord(raw.environment)) {
     errors.push('Manifest environment is required.')
   } else {
-    if (!isNonEmptyString(raw.environment.os)) errors.push('Environment os is required.')
-    if (!isNonEmptyString(raw.environment.runtime)) errors.push('Environment runtime is required.')
-    if (raw.environment.browser !== undefined && !isNonEmptyString(raw.environment.browser)) {
-      errors.push('Environment browser must be a non-empty string when present.')
+    if (!isNonEmptyString(raw.environment.os))
+      errors.push('Environment os is required.')
+    if (!isNonEmptyString(raw.environment.runtime))
+      errors.push('Environment runtime is required.')
+    if (
+      raw.environment.browser !== undefined &&
+      !isNonEmptyString(raw.environment.browser)
+    ) {
+      errors.push(
+        'Environment browser must be a non-empty string when present.',
+      )
     }
   }
 
   const checks = Array.isArray(raw.checks) ? raw.checks : []
-  if (checks.length === 0) errors.push('Manifest must contain at least one check.')
+  if (checks.length === 0)
+    errors.push('Manifest must contain at least one check.')
   checks.forEach((check, index) => validateCheck(check, index, errors))
 
   const artifacts = Array.isArray(raw.artifacts) ? raw.artifacts : []
-  if (artifacts.length === 0) errors.push('Manifest must contain at least one artifact.')
-  artifacts.forEach((artifact, index) => validateArtifactShape(artifact, index, errors))
+  if (artifacts.length === 0)
+    errors.push('Manifest must contain at least one artifact.')
+  artifacts.forEach((artifact, index) =>
+    validateArtifactShape(artifact, index, errors),
+  )
 
-  if (!isStringArray(raw.limitations)) errors.push('Manifest limitations must be a string array.')
-  if (!isStringArray(raw.reproduce)) errors.push('Manifest reproduce must be a string array.')
+  if (!isStringArray(raw.limitations))
+    errors.push('Manifest limitations must be a string array.')
+  if (!isStringArray(raw.reproduce))
+    errors.push('Manifest reproduce must be a string array.')
 
   if (errors.length > 0) return null
   return {
@@ -194,16 +239,24 @@ function validateCheck(raw: unknown, index: number, errors: string[]) {
     errors.push(`Check ${index + 1} must be an object.`)
     return
   }
-  if (!isNonEmptyString(raw.id)) errors.push(`Check ${index + 1} id is required.`)
-  if (!isNonEmptyString(raw.title)) errors.push(`Check ${index + 1} title is required.`)
-  if (!isNonEmptyString(raw.layer)) errors.push(`Check ${index + 1} layer is required.`)
-  if (!PROOF_STATUSES.has(raw.status as ProofStatus)) errors.push(`Check ${index + 1} status is invalid.`)
+  if (!isNonEmptyString(raw.id))
+    errors.push(`Check ${index + 1} id is required.`)
+  if (!isNonEmptyString(raw.title))
+    errors.push(`Check ${index + 1} title is required.`)
+  if (!isNonEmptyString(raw.layer))
+    errors.push(`Check ${index + 1} layer is required.`)
+  if (!PROOF_STATUSES.has(raw.status as ProofStatus))
+    errors.push(`Check ${index + 1} status is invalid.`)
   if (raw.durationMs === undefined) {
     if (raw.status === 'pass' || raw.status === 'fail') {
-      errors.push(`Check ${index + 1} durationMs is required for a completed check.`)
+      errors.push(
+        `Check ${index + 1} durationMs is required for a completed check.`,
+      )
     }
   } else if (!Number.isFinite(raw.durationMs) || Number(raw.durationMs) < 0) {
-    errors.push(`Check ${index + 1} durationMs must be zero or greater when present.`)
+    errors.push(
+      `Check ${index + 1} durationMs must be zero or greater when present.`,
+    )
   }
   if (raw.command !== undefined && !isNonEmptyString(raw.command)) {
     errors.push(`Check ${index + 1} command must be a non-empty string.`)
@@ -224,12 +277,15 @@ function validateArtifactShape(raw: unknown, index: number, errors: string[]) {
     errors.push(`Artifact ${index + 1} must be an object.`)
     return
   }
-  if (!isNonEmptyString(raw.path)) errors.push(`Artifact ${index + 1} path is required.`)
-  if (!ARTIFACT_TYPES.has(raw.type as ArtifactType)) errors.push(`Artifact ${index + 1} type is invalid.`)
+  if (!isNonEmptyString(raw.path))
+    errors.push(`Artifact ${index + 1} path is required.`)
+  if (!ARTIFACT_TYPES.has(raw.type as ArtifactType))
+    errors.push(`Artifact ${index + 1} type is invalid.`)
   if (!Number.isInteger(raw.bytes) || Number(raw.bytes) < 0) {
     errors.push(`Artifact ${index + 1} bytes must be a non-negative integer.`)
   }
-  if (!isSha256(raw.sha256)) errors.push(`Artifact ${index + 1} sha256 is invalid.`)
+  if (!isSha256(raw.sha256))
+    errors.push(`Artifact ${index + 1} sha256 is invalid.`)
 }
 
 async function validateArtifacts(
@@ -242,7 +298,9 @@ async function validateArtifacts(
 
   for (const artifact of manifest.artifacts) {
     if (!isSafeRelativePath(artifact.path)) {
-      errors.push(`Artifact path must be a safe relative path: ${artifact.path}`)
+      errors.push(
+        `Artifact path must be a safe relative path: ${artifact.path}`,
+      )
       continue
     }
     if (seen.has(artifact.path)) {
@@ -259,7 +317,9 @@ async function validateArtifacts(
 
     const extension = extname(artifact.path).toLowerCase()
     if (!ALLOWED_EXTENSIONS[artifact.type].has(extension)) {
-      errors.push(`Artifact extension does not match type ${artifact.type}: ${artifact.path}`)
+      errors.push(
+        `Artifact extension does not match type ${artifact.type}: ${artifact.path}`,
+      )
     }
 
     const absolutePath = join(proofRoot, ...artifact.path.split('/'))
@@ -275,18 +335,28 @@ async function validateArtifacts(
       }
       const resolved = await realpath(absolutePath)
       const pathFromRoot = relative(proofRoot, resolved)
-      if (pathFromRoot.startsWith(`..${sep}`) || pathFromRoot === '..' || isAbsolute(pathFromRoot)) {
-        errors.push(`Artifact resolves outside the proof directory: ${artifact.path}`)
+      if (
+        pathFromRoot.startsWith(`..${sep}`) ||
+        pathFromRoot === '..' ||
+        isAbsolute(pathFromRoot)
+      ) {
+        errors.push(
+          `Artifact resolves outside the proof directory: ${artifact.path}`,
+        )
         continue
       }
       if (stat.size !== artifact.bytes) {
-        errors.push(`Artifact byte count does not match the file: ${artifact.path}`)
+        errors.push(
+          `Artifact byte count does not match the file: ${artifact.path}`,
+        )
       }
       if (stat.size > MAX_PROOF_FILE_BYTES) {
         errors.push(`Artifact exceeds the 10 MB limit: ${artifact.path}`)
         continue
       }
-      const digest = createHash('sha256').update(await readFile(absolutePath)).digest('hex')
+      const digest = createHash('sha256')
+        .update(await readFile(absolutePath))
+        .digest('hex')
       if (digest !== artifact.sha256) {
         errors.push(`Artifact sha256 does not match the file: ${artifact.path}`)
       }
@@ -304,17 +374,24 @@ function validateReferences(manifest: ProofManifestV1, errors: string[]) {
   const paths = new Set(manifest.artifacts.map((artifact) => artifact.path))
   for (const check of manifest.checks) {
     if (check.outputPath && !paths.has(check.outputPath)) {
-      errors.push(`Check ${check.id} refers to an undeclared output artifact: ${check.outputPath}`)
+      errors.push(
+        `Check ${check.id} refers to an undeclared output artifact: ${check.outputPath}`,
+      )
     }
     for (const evidencePath of check.evidencePaths) {
       if (!paths.has(evidencePath)) {
-        errors.push(`Check ${check.id} refers to an undeclared evidence artifact: ${evidencePath}`)
+        errors.push(
+          `Check ${check.id} refers to an undeclared evidence artifact: ${evidencePath}`,
+        )
       }
     }
   }
 }
 
-function validateRequiredArtifacts(manifest: ProofManifestV1, errors: string[]) {
+function validateRequiredArtifacts(
+  manifest: ProofManifestV1,
+  errors: string[],
+) {
   const paths = new Set(manifest.artifacts.map((artifact) => artifact.path))
   if (!paths.has('report.md')) errors.push('Proof pack must include report.md.')
   const browserCaptureUnavailable = manifest.checks.some(
@@ -331,7 +408,8 @@ function validateRequiredArtifacts(manifest: ProofManifestV1, errors: string[]) 
       'screenshots/mobile.png',
       'video/ui-flow.webm',
     ]) {
-      if (!paths.has(required)) errors.push(`UI proof pack must include ${required}.`)
+      if (!paths.has(required))
+        errors.push(`UI proof pack must include ${required}.`)
     }
   }
 }
@@ -345,27 +423,45 @@ function validateCommittedPaths(
   if (!committedPaths) return
   const committed = new Set(committedPaths)
   const root = `.planner/proof/${runId}`
-  for (const path of ['manifest.json', ...manifest.artifacts.map((artifact) => artifact.path)]) {
+  for (const path of [
+    'manifest.json',
+    ...manifest.artifacts.map((artifact) => artifact.path),
+  ]) {
     const repositoryPath = `${root}/${path}`
     if (!committed.has(repositoryPath)) {
-      errors.push(`Proof file is not committed in the pull request: ${repositoryPath}`)
+      errors.push(
+        `Proof file is not committed in the pull request: ${repositoryPath}`,
+      )
     }
   }
 }
 
 function overallFromChecks(checks: ProofCheck[]): 'pass' | 'fail' | 'partial' {
   if (checks.some((check) => check.status === 'fail')) return 'fail'
-  if (checks.some((check) => check.status === 'blocked' || check.status === 'not_run')) {
+  if (
+    checks.some(
+      (check) => check.status === 'blocked' || check.status === 'not_run',
+    )
+  ) {
     return 'partial'
   }
   return 'pass'
 }
 
-export function renderProofSection(proof: ProofPack): string {
+export function renderProofSection(
+  proof: ProofPack,
+  linkForPath: (
+    commitSha: string,
+    path: string,
+    raw?: boolean,
+  ) => string = proofLink,
+): string {
   const lines = [PROOF_START, '## Verification proof', '']
   lines.push(`**Verification result: ${proof.state.toUpperCase()}**`)
   lines.push('')
-  lines.push('This report proves only the checks shown below. It does not prove that the change has no defects.')
+  lines.push(
+    'This report proves only the checks shown below. It does not prove that the change has no defects.',
+  )
 
   if (!proof.manifest) {
     lines.push('', '### Proof problems', '')
@@ -380,7 +476,9 @@ export function renderProofSection(proof: ProofPack): string {
   lines.push('')
   lines.push(`- Tested commit: \`${manifest.testedCommitSha}\``)
   lines.push(`- Change type: ${escapeMarkdown(manifest.changeType)}`)
-  lines.push(`- Environment: ${escapeMarkdown(environmentLabel(manifest.environment))}`)
+  lines.push(
+    `- Environment: ${escapeMarkdown(environmentLabel(manifest.environment))}`,
+  )
   lines.push(`- Generated: ${escapeMarkdown(manifest.generatedAt)}`)
 
   lines.push('', '### Test matrix', '')
@@ -399,7 +497,7 @@ export function renderProofSection(proof: ProofPack): string {
     lines.push('|---|---:|---|')
     for (const check of commandChecks) {
       const output = check.outputPath
-        ? `[log](${proofLink(artifactCommitSha, `${root}/${check.outputPath}`)})`
+        ? `[log](${linkForPath(artifactCommitSha, `${root}/${check.outputPath}`)})`
         : 'Not recorded'
       lines.push(
         `| \`${escapeCode(check.command ?? '')}\` | ${check.exitCode ?? 'N/A'} | ${output} |`,
@@ -407,17 +505,28 @@ export function renderProofSection(proof: ProofPack): string {
     }
   }
 
-  const screenshots = manifest.artifacts.filter((artifact) => artifact.type === 'screenshot')
-  const videos = manifest.artifacts.filter((artifact) => artifact.type === 'video')
+  const screenshots = manifest.artifacts.filter(
+    (artifact) => artifact.type === 'screenshot',
+  )
+  const videos = manifest.artifacts.filter(
+    (artifact) => artifact.type === 'video',
+  )
   if (screenshots.length > 0 || videos.length > 0) {
     lines.push('', '### Visual evidence', '')
     for (const screenshot of screenshots) {
-      const label = screenshot.path.includes('mobile') ? 'Mobile result' : 'Desktop result'
+      const label = screenshot.path.includes('mobile')
+        ? 'Mobile result'
+        : 'Desktop result'
       lines.push(`**${label}**`, '')
-      lines.push(`![${label}](${proofLink(artifactCommitSha, `${root}/${screenshot.path}`, true)})`, '')
+      lines.push(
+        `![${label}](${linkForPath(artifactCommitSha, `${root}/${screenshot.path}`, true)})`,
+        '',
+      )
     }
     for (const video of videos) {
-      lines.push(`- [Watch the recorded user flow](${proofLink(artifactCommitSha, `${root}/${video.path}`)})`)
+      lines.push(
+        `- [Watch the recorded user flow](${linkForPath(artifactCommitSha, `${root}/${video.path}`)})`,
+      )
     }
   }
 
@@ -425,14 +534,20 @@ export function renderProofSection(proof: ProofPack): string {
   if (manifest.reproduce.length === 0) {
     lines.push('- No reproduction command was recorded.')
   } else {
-    lines.push(...manifest.reproduce.map((command) => `- \`${escapeCode(command)}\``))
+    lines.push(
+      ...manifest.reproduce.map((command) => `- \`${escapeCode(command)}\``),
+    )
   }
 
   lines.push('', '### Limitations', '')
   if (manifest.limitations.length === 0) {
     lines.push('- None recorded.')
   } else {
-    lines.push(...manifest.limitations.map((limitation) => `- ${escapeMarkdown(limitation)}`))
+    lines.push(
+      ...manifest.limitations.map(
+        (limitation) => `- ${escapeMarkdown(limitation)}`,
+      ),
+    )
   }
 
   if (proof.errors.length > 0) {
@@ -440,14 +555,22 @@ export function renderProofSection(proof: ProofPack): string {
     lines.push(...proof.errors.map((error) => `- ${escapeMarkdown(error)}`))
   }
 
-  lines.push('', `[Open the full proof report](${proofLink(artifactCommitSha, `${root}/report.md`)})`)
+  lines.push(
+    '',
+    `[Open the full proof report](${linkForPath(artifactCommitSha, `${root}/report.md`)})`,
+  )
   lines.push('', PROOF_END)
   return lines.join('\n')
 }
 
-export function upsertProofSection(body: string | null | undefined, section: string): string {
+export function upsertProofSection(
+  body: string | null | undefined,
+  section: string,
+): string {
   const current = body?.trim() ?? ''
-  const managed = new RegExp(`${escapeRegExp(PROOF_START)}[\\s\\S]*?${escapeRegExp(PROOF_END)}`)
+  const managed = new RegExp(
+    `${escapeRegExp(PROOF_START)}[\\s\\S]*?${escapeRegExp(PROOF_END)}`,
+  )
   if (managed.test(current)) return current.replace(managed, section).trim()
   return current ? `${current}\n\n${section}` : section
 }
@@ -458,7 +581,9 @@ function proofLink(commitSha: string, path: string, raw = false): string {
 }
 
 function environmentLabel(environment: ProofEnvironment) {
-  return [environment.os, environment.runtime, environment.browser].filter(Boolean).join(', ')
+  return [environment.os, environment.runtime, environment.browser]
+    .filter(Boolean)
+    .join(', ')
 }
 
 function statusLabel(status: ProofStatus) {
@@ -475,7 +600,9 @@ function formatDuration(durationMs?: number) {
 function isSafeRelativePath(path: string) {
   if (!path || isAbsolute(path) || path.includes('\\')) return false
   const normalized = posix.normalize(path)
-  return normalized === path && !normalized.startsWith('../') && normalized !== '..'
+  return (
+    normalized === path && !normalized.startsWith('../') && normalized !== '..'
+  )
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -503,7 +630,11 @@ function isDateString(value: unknown): value is string {
 }
 
 function escapeMarkdown(value: string) {
-  return value.replace(/[<>&]/g, (character) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[character] ?? character)
+  return value.replace(
+    /[<>&]/g,
+    (character) =>
+      ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[character] ?? character,
+  )
 }
 
 function escapeTable(value: string) {

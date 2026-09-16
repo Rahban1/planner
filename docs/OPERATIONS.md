@@ -93,6 +93,8 @@ Each configured provider must have `"configured": true`. Complete the provider c
 - Set `LLM_API_KEY` and `GITHUB_TOKEN`.
 - Give the GitHub token permission to clone, push, read pull requests, and create pull requests in the target repositories.
 
+For an enterprise Bitbucket Data Center host, use the dedicated [on-premises runner guide](../agent-runner/onprem/README.md). It provides bounded parallel jobs, cached repositories, and a credential boundary between the runner and OpenHands.
+
 ### Steps
 
 1. Set the Planner URL in `.env`:

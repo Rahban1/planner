@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package.json tsconfig.json ./
-RUN npm install
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci --no-audit --no-fund
 
 COPY src ./src
 RUN npm run build
