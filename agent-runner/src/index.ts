@@ -2,7 +2,7 @@ import { mkdir, rm, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
-import { getPullRequestState } from './github.js'
+import { getPullRequestState, parseRepoUrl } from './github.js'
 import type { TerminalExecutionStatus } from './polling.js'
 import {
   getTerminalExecutionStatus,
@@ -88,7 +88,7 @@ const OPENHANDS_BASE_URL =
 const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
 const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
 const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? ''
+const GITHUB_TOKEN = process.env.SCM_TOKEN ?? process.env.GITHUB_TOKEN ?? ''
 const RUNNER_API_TOKEN = process.env.RUNNER_API_TOKEN ?? ''
 const RUNNER_RUN_ID = process.env.RUNNER_RUN_ID?.trim() ?? ''
 const RUNNER_JOB_ID = process.env.RUNNER_JOB_ID?.trim() ?? ''
@@ -378,8 +378,13 @@ async function fetchTaskContext(run: AgentRun): Promise<TaskContext> {
   if (!task) throw new Error('Task context not found')
   const snapshotUrls =
     run.repositories?.map((repository) => repository.repoUrl) ?? []
-  if (snapshotUrls.length === 0) return task
-  return { ...task, repoUrl: snapshotUrls[0], repoUrls: snapshotUrls }
+  const result = snapshotUrls.length === 0 ? task : { ...task, repoUrl: snapshotUrls[0], repoUrls: snapshotUrls }
+  if (process.env.SCM_PROVIDER === 'bitbucket_data_center') {
+    for (const url of uniqueRepoUrls(result.repoUrl, result.repoUrls)) {
+      if (!parseRepoUrl(url)) throw new Error('Use an HTTPS clone URL from the configured Bitbucket server')
+    }
+  }
+  return result
 }
 
 async function appendRepositoryContext(task: TaskContext, append: AppendFn) {

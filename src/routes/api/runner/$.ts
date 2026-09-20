@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { env } from 'cloudflare:workers'
+import { env } from '#/server/runtime'
 import { and, asc, eq } from 'drizzle-orm'
 import { db, schema } from '#/db/index'
 import {
@@ -63,6 +63,24 @@ export const Route = createFileRoute('/api/runner/$')({
         if (denied) return denied
 
         const rest = params._splat ?? ''
+
+        if (rest.startsWith('attachments/')) {
+          const id = rest.slice('attachments/'.length)
+          const [row] = await db
+            .select()
+            .from(schema.attachments)
+            .where(eq(schema.attachments.id, id))
+          if (!row) return new Response('File not found', { status: 404 })
+          const object = await env.ATTACHMENTS.get(row.r2Key)
+          if (!object) return new Response('File not found', { status: 404 })
+          return new Response(object.body, {
+            headers: {
+              'Content-Type': row.mimeType || 'application/octet-stream',
+              'Cache-Control': 'private, no-store',
+              'X-Content-Type-Options': 'nosniff',
+            },
+          })
+        }
 
         if (rest === 'queue') {
           const result = await listQueuedAgentRuns()
@@ -196,7 +214,7 @@ export const Route = createFileRoute('/api/runner/$')({
               id: a.id,
               name: a.name,
               mimeType: a.mimeType,
-              path: `/api/attachments/${a.id}`,
+              path: `/api/runner/attachments/${a.id}`,
             })),
           })
         }

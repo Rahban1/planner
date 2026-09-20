@@ -1,3 +1,8 @@
+# Internal company deployment
+
+For the Kubernetes version, start with [the installation guide](deploy/INTERNAL_KUBERNETES.md).
+It includes OAuth2 Proxy, persistent storage, and the Bitbucket Data Center runner.
+
 # Planner
 
 Planner is a full-stack task manager for people and software agents. You can manage projects and tasks, ask an agent for a plan, approve the plan, and send the implementation to GitHub pull requests.

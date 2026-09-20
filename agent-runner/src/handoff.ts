@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import {
+  bitbucketAdapter,
   createPullRequestForBranch,
   getPullRequestDetails,
   listPullRequestCommitShas,
@@ -139,7 +140,14 @@ export async function publishProofToPullRequest({
     committedPaths,
     artifactCommitSha: details.headSha,
   })
-  const section = renderProofSection(proof)
+  const adapter = bitbucketAdapter(token)
+  const section = renderProofSection(
+    proof,
+    adapter
+      ? (sha, path, raw) =>
+          adapter.reviewFileUrl(resolvedPrUrl!, sha, path, raw)
+      : undefined,
+  )
   const nextBody = upsertProofSection(details.body, section)
   if (nextBody !== details.body.trim()) {
     await github.updatePullRequestBody(resolvedPrUrl, token, nextBody)

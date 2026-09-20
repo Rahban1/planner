@@ -348,7 +348,7 @@ export const users = sqliteTable(
     name: text('name'),
     avatarUrl: text('avatar_url'),
     provider: text('provider', {
-      enum: ['google', 'github', 'cloudflare'],
+      enum: ['google', 'github', 'cloudflare', 'oauth2_proxy'],
     }).notNull(),
     providerAccountId: text('provider_account_id').notNull(),
     createdAt: integer('created_at').notNull(),

@@ -1,0 +1,20 @@
+FROM node:24.21.0-bookworm-slim AS build
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm build:internal && pnpm prune --prod
+
+FROM node:24.21.0-bookworm-slim AS runtime
+ENV NODE_ENV=production PORT=3000 PLANNER_DATA_DIR=/data AUTH_MODE=oauth2_proxy
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/deploy/node ./deploy/node
+COPY --from=build /app/drizzle/migrations ./drizzle/migrations
+RUN mkdir /data && chown node:node /data
+USER 1000:1000
+EXPOSE 3000
+CMD ["node", "deploy/node/server.mjs"]

@@ -1,0 +1,52 @@
+# Optional strategic merge patch. Add this file under patches in kustomization.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planner
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          env:
+            - {
+                name: NODE_EXTRA_CA_CERTS,
+                value: /etc/planner-ca/ca-bundle.crt,
+              }
+          volumeMounts:
+            - { name: company-ca, mountPath: /etc/planner-ca, readOnly: true }
+      volumes:
+        - name: company-ca
+          configMap: { name: planner-company-ca }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planner-runner
+spec:
+  template:
+    spec:
+      containers:
+        - name: runner
+          env:
+            - {
+                name: NODE_EXTRA_CA_CERTS,
+                value: /etc/planner-ca/ca-bundle.crt,
+              }
+            - { name: GIT_SSL_CAINFO, value: /etc/planner-ca/ca-bundle.crt }
+          volumeMounts:
+            - { name: company-ca, mountPath: /etc/planner-ca, readOnly: true }
+        - name: agent-server
+          env:
+            - {
+                name: NODE_EXTRA_CA_CERTS,
+                value: /etc/planner-ca/ca-bundle.crt,
+              }
+            - { name: GIT_SSL_CAINFO, value: /etc/planner-ca/ca-bundle.crt }
+            - { name: SSL_CERT_FILE, value: /etc/planner-ca/ca-bundle.crt }
+            - { name: REQUESTS_CA_BUNDLE, value: /etc/planner-ca/ca-bundle.crt }
+          volumeMounts:
+            - { name: company-ca, mountPath: /etc/planner-ca, readOnly: true }
+      volumes:
+        - name: company-ca
+          configMap: { name: planner-company-ca }

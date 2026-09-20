@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: planner
+resources:
+  - namespace.yaml
+  - app.yaml
+  - runner.yaml
+  - network-policy.yaml
+configMapGenerator:
+  - name: planner-config
+    envs: [settings.env]
+secretGenerator:
+  - name: planner-secrets
+    envs: [secrets.env]
+images:
+  - name: planner-app
+    newName: registry.example.com/planner/app
+    newTag: internal-1
+  - name: planner-runner
+    newName: registry.example.com/planner/runner
+    newTag: internal-1
+  - name: planner-agent-server
+    newName: registry.example.com/planner/agent-server
+    newTag: internal-1

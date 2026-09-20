@@ -1,3 +1,7 @@
+import {
+  bitbucketReviewJson,
+  parseBitbucketIdentity,
+} from '../../agent-runner/src/bitbucket-review'
 import { and, desc, eq } from 'drizzle-orm'
 import { db, runtimeEnv, schema } from '#/db/index'
 import { parseGitHubPullRequest, patchContainsLine } from '#/lib/workflow-state'
@@ -73,7 +77,32 @@ type GitHubComment = {
   html_url: string
 }
 
+type InternalReviewEnv = Env & {
+  SCM_PROVIDER?: string
+  BITBUCKET_BASE_URL?: string
+  BITBUCKET_READ_TOKEN?: string
+}
+const internalEnv = runtimeEnv as InternalReviewEnv
+function parseReview(repo: string, pr: string, number?: number | null) {
+  return internalEnv.SCM_PROVIDER === 'bitbucket_data_center'
+    ? parseBitbucketIdentity(
+        repo,
+        pr,
+        internalEnv.BITBUCKET_BASE_URL ?? '',
+        number,
+      )
+    : parseGitHubPullRequest(repo, pr, number)
+}
 async function github<T>(path: string): Promise<T> {
+  if (internalEnv.SCM_PROVIDER === 'bitbucket_data_center') {
+    return bitbucketReviewJson<T>(
+      {
+        baseUrl: internalEnv.BITBUCKET_BASE_URL ?? '',
+        token: internalEnv.BITBUCKET_READ_TOKEN ?? '',
+      },
+      path,
+    )
+  }
   const token = runtimeEnv.GITHUB_ACTIONS_DISPATCH_TOKEN
   if (!token)
     throw new Error(
@@ -137,7 +166,7 @@ export async function reviewSource(taskId: string, requestedRunId?: string) {
       status: source.status === 'merged' ? 'merged' : 'success',
     })
   for (const repo of repositories)
-    parseGitHubPullRequest(repo.repoUrl, repo.prUrl, repo.prNumber)
+    parseReview(repo.repoUrl, repo.prUrl, repo.prNumber)
   return { source, repositories }
 }
 
@@ -147,11 +176,7 @@ export async function readTaskReview(taskId: string) {
     return { sourceRunId: null, repositories: [] as TaskReviewRepository[] }
   const repositories = await Promise.all(
     source.repositories.map(async (repo): Promise<TaskReviewRepository> => {
-      const parsed = parseGitHubPullRequest(
-        repo.repoUrl,
-        repo.prUrl,
-        repo.prNumber,
-      )
+      const parsed = parseReview(repo.repoUrl, repo.prUrl, repo.prNumber)
       const base = `/repos/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repository)}`
       const result: TaskReviewRepository = {
         ...repo,
@@ -285,7 +310,7 @@ export async function readTaskReview(taskId: string) {
           )
         )
           result.error =
-            'Some review data could not load. Open GitHub for the full review.'
+            'Some review data could not load. Open the pull request for the full review.'
       } catch (error) {
         result.error =
           error instanceof Error
@@ -320,11 +345,7 @@ export async function validateReviewAction(
     throw new Error('Select a file from this pull request')
   const repositories = await Promise.all(
     source.repositories.map(async (repo) => {
-      const parsed = parseGitHubPullRequest(
-        repo.repoUrl,
-        repo.prUrl,
-        repo.prNumber,
-      )
+      const parsed = parseReview(repo.repoUrl, repo.prUrl, repo.prNumber)
       const pr = await github<GitHubPr>(
         `/repos/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repository)}/pulls/${parsed.number}`,
       )

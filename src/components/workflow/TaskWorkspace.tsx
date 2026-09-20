@@ -1401,7 +1401,7 @@ function ReviewPanel({
           <GitPullRequest size={25} />
         </span>
         <p className="tw-small">
-          Review the code here. Use GitHub to approve and merge each pull
+          Review the code here. Use the repository service to approve and merge each pull
           request.
         </p>
       </div>
@@ -1430,7 +1430,7 @@ function ReviewPanel({
       {loading && (
         <div className="tw-paper" role="status">
           <LoaderCircle size={18} className="tw-spin" /> Loading pull requests
-          from GitHub…
+          from the repository service…
         </div>
       )}
       {error ? (
@@ -1533,7 +1533,7 @@ function RepositoryReview({
           rel="noopener noreferrer"
           className="tw-button tw-github-link"
         >
-          Open in GitHub{repo.prNumber ? ` #${repo.prNumber}` : ''}
+          Open pull request{repo.prNumber ? ` #${repo.prNumber}` : ''}
           <ExternalLink size={13} />
         </a>
       )}
@@ -1542,14 +1542,14 @@ function RepositoryReview({
           <p>
             {repo.error}{' '}
             {repo.prUrl
-              ? 'Open the pull request in GitHub to review it.'
+              ? 'Open the pull request to review it.'
               : 'Check repository access in project settings.'}
           </p>
         </div>
       )}
       {repo.truncated && (
         <p className="tw-review-limit">
-          This preview has a size limit. Open GitHub for all files, checks, and
+          This preview has a size limit. Open the pull request for all files, checks, and
           comments.
         </p>
       )}
@@ -1604,7 +1604,7 @@ function RepositoryReview({
             </ul>
             {!repo.checks.length && (
               <p className="tw-small">
-                GitHub did not report checks for this commit.
+                The repository service did not report checks for this commit.
               </p>
             )}
           </details>
@@ -1666,8 +1666,8 @@ function RepositoryReview({
                     </>
                   ) : (
                     <p className="tw-small">
-                      GitHub did not return a text diff for this file. Open the
-                      pull request in GitHub to view it.
+                      The repository service did not return a text diff for this file. Open the
+                      pull request to view it.
                     </p>
                   )}
                 </div>
@@ -1689,7 +1689,7 @@ function RepositoryReview({
       {!!repo.comments.length && (
         <details className="tw-pr-comments">
           <summary>
-            {repo.comments.length} GitHub{' '}
+            {repo.comments.length} pull request{' '}
             {repo.comments.length === 1 ? 'comment' : 'comments'}
           </summary>
           {repo.comments.map((comment) => (

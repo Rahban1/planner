@@ -1,0 +1,22 @@
+# Apply after your OAuth2 Proxy Service exists in the planner namespace.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: planner
+  namespace: planner
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [planner.example.internal]
+      secretName: planner-tls
+  rules:
+    - host: planner.example.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oauth2-proxy
+                port:
+                  number: 4180

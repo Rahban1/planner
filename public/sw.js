@@ -1,10 +1,9 @@
 /* Planner service worker */
-const CACHE_VERSION = 'planner-v1'
+const CACHE_VERSION = 'planner-v2'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 
 // App shell assets (hashed by Vite, safe to cache aggressively).
 const PRECACHE = [
-  '/',
   '/manifest.json',
   '/favicon.ico',
   '/logo.svg',
@@ -45,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
 
   // Never intercept the Access auth endpoints — they must hit the network.
-  if (url.pathname.startsWith('/cdn-cgi/')) return
+  if (url.pathname.startsWith('/cdn-cgi/') || url.pathname.startsWith('/oauth2/') || url.pathname.startsWith('/api/') || request.mode === 'navigate') return
 
   // Hashed build assets (JS/CSS/images/fonts) -> cache-first.
   if (/\/assets\//.test(url.pathname) || /\.(png|jpe?g|svg|ico|woff2?|css|js)$/.test(url.pathname)) {

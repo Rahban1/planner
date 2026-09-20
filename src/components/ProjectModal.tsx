@@ -155,7 +155,7 @@ export function ProjectModal() {
                       id={`repository-${index}`}
                       className="ctrl-input"
                       type="url"
-                      placeholder="https://github.com/org/repo"
+                      placeholder="https://bitbucket.company.internal/scm/TEAM/repo.git"
                       value={repoUrl}
                       onChange={(event) =>
                         setRepoUrls((current) =>

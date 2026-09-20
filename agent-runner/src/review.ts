@@ -1,3 +1,4 @@
+import { bitbucketRepositoryUrl } from './bitbucket-review.js'
 import { execFile } from 'node:child_process'
 import { mkdir, realpath } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -62,8 +63,12 @@ export const reviewGit: Git = async (repoDir, args, token = '') => {
           ...process.env,
           GIT_TERMINAL_PROMPT: '0',
           GIT_CONFIG_COUNT: '1',
-          GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
-          GIT_CONFIG_VALUE_0: token ? `AUTHORIZATION: basic ${auth}` : '',
+          GIT_CONFIG_KEY_0: `http.${process.env.SCM_PROVIDER === 'bitbucket_data_center' ? process.env.BITBUCKET_BASE_URL?.replace(/\/$/, '') : 'https://github.com'}/.extraheader`,
+          GIT_CONFIG_VALUE_0: token
+            ? process.env.SCM_PROVIDER === 'bitbucket_data_center'
+              ? `Authorization: Bearer ${token}`
+              : `AUTHORIZATION: basic ${auth}`
+            : '',
         },
       },
     )
@@ -175,7 +180,7 @@ export async function prepareRevisionRepositories(
         ? review.context.headSha
         : undefined)
     assertRevisionTarget(repository, details, expected)
-    const canonicalUrl = `https://github.com/${details.owner}/${details.repo}.git`
+    const canonicalUrl = canonicalRepositoryUrl(details)
     await mkdir(dirname(result.repoDir), { recursive: true })
     await git(
       workspace,
@@ -264,7 +269,7 @@ export async function pushRevisionRepository(
   const current = await readPr(repository.prUrl, token)
   assertRevisionTarget(repository, current, repository.expectedHeadSha)
   if (headSha === repository.expectedHeadSha) return { changed: false, headSha }
-  const url = `https://github.com/${current.owner}/${current.repo}.git`
+  const url = canonicalRepositoryUrl(current)
   await git(
     repository.repoDir,
     [
@@ -374,4 +379,14 @@ export async function loadReviewSnapshot(
       'No pull request is available to answer this review question.',
     )
   return snapshots.join('\n\n---\n\n')
+}
+
+function canonicalRepositoryUrl(details: PullRequestDetails) {
+  return process.env.SCM_PROVIDER === 'bitbucket_data_center'
+    ? bitbucketRepositoryUrl(
+        process.env.BITBUCKET_BASE_URL ?? '',
+        details.owner,
+        details.repo,
+      )
+    : `https://github.com/${details.owner}/${details.repo}.git`
 }

@@ -20,6 +20,7 @@
 
     /* Linting */
     "skipLibCheck": true,
+    "allowJs": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

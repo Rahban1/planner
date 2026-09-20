@@ -94,12 +94,14 @@ The task has the following files attached for context. You can download them usi
 
 ${attachmentLines}
 
+For attachment downloads, send the X-Runner-Token header from RUNNER_API_TOKEN. Do not print the token.
+
 ## Instructions
 
 1. Configure git for this session:
    - git config --global user.name "Planner Agent"
    - git config --global user.email "agent@planner.local"
-   - If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS pushes by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+   - ${gitAuthenticationInstructions()}
 ${buildCloneInstructions(task)}
 4. In every repository that needs changes, create a new branch named \`${branchName}\` from that repository's default branch. Immediately record it inside that repository by running \`echo "${branchName}" > .git/planner-agent-branch\`. Do not create a branch in a repository that needs no changes.
 5. Inspect the repository's test commands and define a minimum sufficient matrix before you change code. Prefer one focused regression command that covers the main behavior and an edge case, plus at most one cheap repository-native gate that gives different evidence. Use only relevant layers: lint, types, targeted tests, full tests, build, API, CLI, data, and browser.
@@ -107,13 +109,18 @@ ${buildCloneInstructions(task)}
 7. Use at most 8 minutes for inspection and implementation. Reserve the remaining time for testing, evidence, commit, push, and the ready pull request. Stop adding features when the verification window begins.
 8. Commit the code that you will test. Record its full Git SHA. Run the minimum sufficient matrix against that commit. Run one verification command at a time so one slow process cannot hide the result of another process. Use direct commands such as \`pnpm\`, \`npm\`, or \`npx\`; do not wrap them with \`corepack\`. Limit each verification command with \`timeout 120s\`. Do not use \`/usr/bin/time\`; use shell timestamps when you need a duration. Never run the shell built-in \`exit\`, because it closes the persistent agent terminal. Print the command status and let the terminal remain open. Do not repeat equivalent checks, and do not run a full suite after a focused suite unless the changed surface or repository guidance makes the full suite necessary. Skip unrelated lint, type, build, API, CLI, data, and browser checks. Record each skipped layer as NOT RUN with a short reason. Record every result honestly as PASS, FAIL, BLOCKED, or NOT RUN.
 9. In each changed repository, write a valid partial manifest, report, and available command logs before browser work. Record the browser check as NOT RUN while it is pending. Commit and push this proof checkpoint. Then run browser proof and update the proof pack. If browser capture is blocked, keep the browser check BLOCKED, keep the proof result partial, and do not invent missing media. Follow good commit guidelines and push each later proof update to the same branch.
-10. Create one ready Pull Request in each changed repository against that repository's default branch, even when a check fails or could not run. Do NOT create draft PRs. Do NOT merge them. Show failed and incomplete checks prominently.
+${
+  process.env.SCM_PROVIDER === 'bitbucket_data_center'
+    ? `10. Commit the code and proof files in each changed repository. Record the branch name in .git/planner-agent-branch.
+11. Do not create or merge pull requests. The runner will push the branch and create the Bitbucket pull request after this session. Do not use the GitHub CLI. Finish with a clear implementation and verification report.`
+    : `10. Create one ready Pull Request in each changed repository against that repository's default branch, even when a check fails or could not run. Do NOT create draft PRs. Do NOT merge them. Show failed and incomplete checks prominently.
    - Authenticate the GitHub CLI first if needed: \`echo "\${GITHUB_TOKEN}" | gh auth login --with-token\`
    - Create each PR from inside its repository directory, e.g. \`gh pr create --title "..." --body-file pr-body.md\`.
    - Immediately capture the PR URL by running: \`gh pr view --json url -q .url\` and save it to a shell variable or capture the printed URL.
 11. After each PR is created, capture its PR URL and branch name by running this exact command from inside that repository:
    \`gh pr view --json url -q .url > .git/planner-agent-pr-url && echo "${branchName}" > .git/planner-agent-branch\`
-   The runner reads these private Git marker files from every repository. Do not skip this step for any changed repository.
+   The runner reads these private Git marker files from every repository. Do not skip this step for any changed repository.`
+}
 
 ${buildProofInstructions(options.runId)}
 
@@ -278,7 +285,7 @@ ${buildPlanPreamble(task)}
 
 ## Instructions
 
-1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning by running: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+1. ${gitAuthenticationInstructions()}
 2. Clone the primary repository ${repoUrls[0]} into a subdirectory named \`repo\` (e.g. \`git clone ${repoUrls[0]} repo\`).
 ${contextCloneCommands || '   - There are no additional context repositories.'}
 3. Explore every cloned repository: structure, conventions, relevant modules, existing tests. Read any AGENTS.md or CONTRIBUTING.md files. Treat every repository as read-only in plan mode.
@@ -321,7 +328,7 @@ ${feedback}
 
 ## Instructions
 
-1. If the environment variable GITHUB_TOKEN is set, configure git to use it for HTTPS cloning: git config --global url."https://x-access-token:\${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+1. ${gitAuthenticationInstructions()}
 2. Clone the primary repository ${repoUrls[0]} into a subdirectory named \`repo\`, or reuse the existing clone.
 ${contextCloneCommands || '   - There are no additional context repositories.'}
 3. Re-examine all cloned repositories as needed to address the feedback. Treat every repository as read-only in plan mode.
@@ -393,4 +400,10 @@ For a BLOCKED or NOT RUN check, omit \`command\`, \`exitCode\`, and \`durationMs
 For a UI change, run the repository's automated UI proof capture command:
 \`pnpm proof:ui:capture {runId}\`
 This starts the branch locally, creates a test session, and captures desktop screenshots, mobile screenshots, and a short WebM video automatically. If the command fails or the changed flow is not covered by the default capture, you may fall back to manual Chromium testing. If browser capture is blocked for any reason, record the browser check as BLOCKED, keep the proof result partial, and omit only the unavailable media. For non-UI changes, do not create fake visual proof. Use command logs, request and response transcripts, or CLI output.`
+}
+
+function gitAuthenticationInstructions() {
+  return process.env.SCM_PROVIDER === 'bitbucket_data_center'
+    ? 'Git authentication is already configured through scoped environment variables. Use the supplied HTTPS clone URLs. Do not print credentials or put them in Git configuration files.'
+    : 'If GITHUB_TOKEN is set, authenticate GitHub Git with the token. Do not print credentials.'
 }

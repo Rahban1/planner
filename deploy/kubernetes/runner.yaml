@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: planner-workspaces
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planner-runner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: planner-runner
+  template:
+    metadata:
+      labels:
+        app: planner-runner
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: runner
+          image: planner-runner
+          envFrom:
+            - configMapRef: { name: planner-config }
+          env:
+            - name: RUNNER_API_TOKEN
+              valueFrom:
+                {
+                  secretKeyRef:
+                    { name: planner-secrets, key: RUNNER_API_TOKEN },
+                }
+            - name: SCM_TOKEN
+              valueFrom:
+                { secretKeyRef: { name: planner-secrets, key: SCM_TOKEN } }
+            - name: LLM_API_KEY
+              valueFrom:
+                { secretKeyRef: { name: planner-secrets, key: LLM_API_KEY } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: '1', memory: 512Mi }
+          volumeMounts:
+            - { name: workspaces, mountPath: /workspace/runs }
+        - name: agent-server
+          image: planner-agent-server
+          args:
+            [
+              python,
+              -m,
+              openhands.agent_server,
+              --host,
+              127.0.0.1,
+              --port,
+              '8000',
+            ]
+          envFrom:
+            - configMapRef: { name: planner-config }
+          env:
+            - name: SCM_TOKEN
+              valueFrom:
+                { secretKeyRef: { name: planner-secrets, key: SCM_TOKEN } }
+            - name: RUNNER_API_TOKEN
+              valueFrom:
+                {
+                  secretKeyRef:
+                    { name: planner-secrets, key: RUNNER_API_TOKEN },
+                }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          startupProbe:
+            exec:
+              command:
+                [
+                  python,
+                  -c,
+                  "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/alive', timeout=3)",
+                ]
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command:
+                [
+                  python,
+                  -c,
+                  "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/alive', timeout=3)",
+                ]
+            periodSeconds: 15
+          resources:
+            requests: { cpu: '1', memory: 2Gi }
+            limits: { cpu: '4', memory: 8Gi }
+          volumeMounts:
+            - { name: workspaces, mountPath: /workspace/runs }
+            - { name: shm, mountPath: /dev/shm }
+      volumes:
+        - name: workspaces
+          persistentVolumeClaim: { claimName: planner-workspaces }
+        - name: shm
+          emptyDir: { medium: Memory, sizeLimit: 1Gi }

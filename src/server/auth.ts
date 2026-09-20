@@ -1,12 +1,14 @@
+import { getRequest } from '@tanstack/react-start/server'
 import { and, eq, gt } from 'drizzle-orm'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { db, runtimeEnv as cloudflareEnv, schema } from '#/db/index'
 import type { User } from '#/db/schema'
 
 export type AuthProvider = 'google' | 'github'
-type UserProvider = AuthProvider | 'cloudflare'
+type UserProvider = AuthProvider | 'cloudflare' | 'oauth2_proxy'
 
 type AuthEnv = Env & {
+  AUTH_MODE?: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GITHUB_CLIENT_ID?: string
@@ -433,10 +435,16 @@ export async function createLocalProofSession(request: Request) {
   // The local proof route is available only on loopback in development.
   // Grant its fixed user access only to the three isolated seed projects.
   for (const projectId of ['p_app_a', 'p_app_b', 'p_app_c']) {
-    await db.insert(schema.projectMembers).values({
-      id: `proof-member-${projectId}`, projectId, email: 'proof@planner.local',
-      role: 'owner', createdAt: Date.now(),
-    }).onConflictDoNothing()
+    await db
+      .insert(schema.projectMembers)
+      .values({
+        id: `proof-member-${projectId}`,
+        projectId,
+        email: 'proof@planner.local',
+        role: 'owner',
+        createdAt: Date.now(),
+      })
+      .onConflictDoNothing()
   }
   return createSessionResponse(request, userId, '/dashboard')
 }
@@ -527,6 +535,38 @@ export async function completeCloudflareAccessLogin(
 export async function getUserFromCookie(
   cookieHeader: string | null,
 ): Promise<User | null> {
+  if (runtimeEnv().AUTH_MODE === 'oauth2_proxy') {
+    const email = getRequest()
+      .headers.get('x-forwarded-email')
+      ?.trim()
+      .toLowerCase()
+    if (!email || !/^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email)) return null
+    const [existing] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+    if (existing) return existing
+    const now = Date.now()
+    await db
+      .insert(schema.users)
+      .values({
+        id: crypto.randomUUID(),
+        email,
+        provider: 'oauth2_proxy',
+        providerAccountId: email,
+        name:
+          getRequest().headers.get('x-forwarded-preferred-username') ?? email,
+        avatarUrl: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoNothing()
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+    return user ?? null
+  }
   const sessionId = cookieValue(cookieHeader, SESSION_COOKIE)
   if (!sessionId) return null
 

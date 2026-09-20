@@ -1,6 +1,25 @@
-// Minimal GitHub REST client for checking pull request merge state.
-
 import { spawn } from 'node:child_process'
+import {
+  createBitbucketDataCenterAdapter,
+  parseBitbucketDataCenterRepoUrl,
+  parseBitbucketDataCenterPullRequestUrl,
+} from './bitbucket-data-center.js'
+import { bitbucketReviewJson } from './bitbucket-review.js'
+
+export function bitbucketAdapter(
+  token: string,
+  fetchImpl: typeof fetch = fetch,
+) {
+  return process.env.SCM_PROVIDER === 'bitbucket_data_center'
+    ? createBitbucketDataCenterAdapter({
+        baseUrl: process.env.BITBUCKET_BASE_URL ?? '',
+        token,
+        fetchImpl,
+      })
+    : null
+}
+
+// Minimal GitHub REST client for checking pull request merge state.
 
 export interface PullRequestState {
   state: string // 'open' | 'closed'
@@ -51,7 +70,9 @@ export async function pushBranchToRemote(
   branchName: string,
   token: string,
 ): Promise<void> {
-  if (!token) throw new Error('GITHUB_TOKEN is required to push the branch.')
+  const adapter = bitbucketAdapter(token)
+  if (adapter) return adapter.pushBranch(repoDir, branchName)
+  if (!token) throw new Error('SCM token is required to push the branch.')
 
   const basicAuth = Buffer.from(`x-access-token:${token}`).toString('base64')
   const authHeader = `AUTHORIZATION: basic ${basicAuth}`
@@ -109,6 +130,17 @@ export async function pushBranchToRemote(
 }
 
 export function parsePrUrl(prUrl: string): ParsedPrUrl | null {
+  if (process.env.SCM_PROVIDER === 'bitbucket_data_center') {
+    if (!isConfiguredBitbucketUrl(prUrl)) return null
+    const parsed = parseBitbucketDataCenterPullRequestUrl(prUrl)
+    return parsed
+      ? {
+          owner: parsed.projectKey,
+          repo: parsed.repositorySlug,
+          number: parsed.number,
+        }
+      : null
+  }
   const match = prUrl.match(
     /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/,
   )
@@ -117,6 +149,13 @@ export function parsePrUrl(prUrl: string): ParsedPrUrl | null {
 }
 
 export function parseRepoUrl(repoUrl: string): ParsedRepoUrl | null {
+  if (process.env.SCM_PROVIDER === 'bitbucket_data_center') {
+    if (!isConfiguredBitbucketUrl(repoUrl)) return null
+    const parsed = parseBitbucketDataCenterRepoUrl(repoUrl)
+    return parsed
+      ? { owner: parsed.projectKey, repo: parsed.repositorySlug }
+      : null
+  }
   const https = repoUrl.match(
     /^https?:\/\/github\.com\/([^/]+)\/([^/#]+?)(?:\.git)?\/?$/i,
   )
@@ -132,6 +171,8 @@ export async function getPullRequestState(
   token: string,
   fetchImpl: FetchImpl = fetch,
 ): Promise<PullRequestState | null> {
+  const adapter = bitbucketAdapter(token, fetchImpl)
+  if (adapter) return adapter.getReviewState(prUrl)
   const parsed = parsePrUrl(prUrl)
   if (!parsed) return null
 
@@ -215,6 +256,8 @@ export async function listPullRequestCommitShas(
   token: string,
   fetchImpl: FetchImpl = fetch,
 ): Promise<string[]> {
+  const adapter = bitbucketAdapter(token, fetchImpl)
+  if (adapter) return adapter.listReviewCommitShas(prUrl)
   const parsed = requirePrUrl(prUrl)
   const shas: string[] = []
   let page = 1
@@ -244,6 +287,8 @@ export async function listPullRequestFilePaths(
   token: string,
   fetchImpl: FetchImpl = fetch,
 ): Promise<string[]> {
+  const adapter = bitbucketAdapter(token, fetchImpl)
+  if (adapter) return adapter.listReviewFilePaths(prUrl)
   const parsed = requirePrUrl(prUrl)
   const paths: string[] = []
   let page = 1
@@ -274,6 +319,8 @@ export async function updatePullRequestBody(
   body: string,
   fetchImpl: FetchImpl = fetch,
 ): Promise<void> {
+  const adapter = bitbucketAdapter(token, fetchImpl)
+  if (adapter) return adapter.updateReviewBody(prUrl, body)
   const parsed = requirePrUrl(prUrl)
   await githubJson(
     `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/pulls/${parsed.number}`,
@@ -289,6 +336,8 @@ export async function createPullRequestForBranch(
   input: CreatePullRequestInput,
   fetchImpl: FetchImpl = fetch,
 ): Promise<CreatedPullRequest> {
+  const adapter = bitbucketAdapter(token, fetchImpl)
+  if (adapter) return adapter.createReviewForBranch(repoUrl, input)
   const repo = parseRepoUrl(repoUrl)
   if (!repo) throw new Error(`Unsupported GitHub repository URL: ${repoUrl}`)
 
@@ -339,6 +388,16 @@ export async function githubJson<T>(
   init: RequestInit | undefined,
   fetchImpl: FetchImpl,
 ): Promise<T> {
+  if (process.env.SCM_PROVIDER === 'bitbucket_data_center') {
+    if (init?.method && init.method !== 'GET')
+      throw new Error('Use the Bitbucket adapter for writes')
+    const parsed = new URL(url)
+    return bitbucketReviewJson<T>(
+      { baseUrl: process.env.BITBUCKET_BASE_URL ?? '', token },
+      parsed.pathname + parsed.search,
+      fetchImpl,
+    )
+  }
   const res = await fetchImpl(url, {
     ...init,
     signal: init?.signal ?? AbortSignal.timeout(15_000),
@@ -356,4 +415,20 @@ export async function githubJson<T>(
     throw new Error(`GitHub API ${res.status}: ${text.slice(0, 500)}`)
   }
   return (await res.json()) as T
+}
+
+function isConfiguredBitbucketUrl(value: string) {
+  try {
+    const url = new URL(value)
+    const base = new URL(process.env.BITBUCKET_BASE_URL ?? '')
+    return (
+      url.protocol === 'https:' &&
+      url.origin === base.origin &&
+      !url.username &&
+      !url.password &&
+      url.pathname.startsWith(`${base.pathname.replace(/\/$/, '')}/`)
+    )
+  } catch {
+    return false
+  }
 }

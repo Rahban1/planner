@@ -13,3 +13,7 @@ __unconfig*
 todos.json
 .gstack/
 .amp/portals/
+
+# Internal runtime data and cluster secrets
+data/
+deploy/kubernetes/secrets.env

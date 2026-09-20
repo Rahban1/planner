@@ -1,0 +1,76 @@
+FROM mcr.microsoft.com/playwright/python:v1.50.0-noble
+
+WORKDIR /workspace
+
+# This image already bundles Python 3.12, Chromium, and Playwright browser deps.
+# Install the command-line tools that agent verification can use.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ripgrep \
+    curl \
+    ffmpeg \
+    gnupg \
+    time \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Agent tasks must not spend their execution window downloading a JavaScript
+# toolchain. Copy the pinned Node runtime and install the repository's pnpm
+# version while the image is built.
+COPY --from=node:22.23.2-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22.23.2-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && ln -s ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack \
+    && npm install --global pnpm@10.32.1 \
+    && node --version \
+    && npm --version \
+    && corepack --version \
+    && pnpm --version
+
+# Install uv for faster, more reliable resolution
+COPY --from=ghcr.io/astral-sh/uv:0.11.27 /uv /uvx /bin/
+
+# Install OpenHands Agent Server and matching SDK dependencies
+RUN uv pip install --system --no-cache-dir \
+    openhands-sdk==1.32.0 \
+    openhands-tools==1.32.0 \
+    openhands-workspace==1.32.0 \
+    openhands-agent-server==1.32.0 \
+    'mcp<2' \
+    playwright==1.50.0
+
+# OpenHands 1.32.0 omits these browser recording assets from its wheel.
+# The files are vendored from the matching software-agent-sdk v1.32.0 tag.
+COPY openhands-browser-js/ /tmp/openhands-browser-js/
+RUN browser_use_dir="$(python -c 'import openhands.tools.browser_use as module; from pathlib import Path; print(Path(module.__file__).parent)')" \
+    && mkdir -p "$browser_use_dir/js" \
+    && cp /tmp/openhands-browser-js/*.js "$browser_use_dir/js/" \
+    && test -f "$browser_use_dir/js/wait-for-rrweb.js" \
+    && rm -rf /tmp/openhands-browser-js
+
+# browser-use 0.11.x calls this MCP 1.x API while it starts. Fail the image
+# build if dependency resolution selects the incompatible MCP 2.x API.
+RUN python -c "from mcp.server.lowlevel.server import Server; assert hasattr(Server, 'list_tools')"
+
+# OpenHands' browser_use tool looks for Playwright browsers under
+# ~/.cache/ms-playwright, but the Playwright image installs them at
+# /ms-playwright. Symlink so OpenHands can discover Chromium.
+RUN mkdir -p /root/.cache \
+    && ln -s /ms-playwright /root/.cache/ms-playwright
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# The workspace directory is where repositories will be cloned
+RUN mkdir -p /workspace/runs
+
+EXPOSE 8000
+
+CMD ["python", "-m", "openhands.agent_server", "--host", "0.0.0.0", "--port", "8000"]
+
+RUN mkdir -p /home/agent/.cache && ln -s /ms-playwright /home/agent/.cache/ms-playwright && chown -R 1000:1000 /home/agent /workspace
+COPY internal-entrypoint.sh /usr/local/bin/planner-agent-entrypoint
+RUN chmod 755 /usr/local/bin/planner-agent-entrypoint
+USER 1000:1000
+ENV HOME=/home/agent
+ENTRYPOINT ["/usr/local/bin/planner-agent-entrypoint"]

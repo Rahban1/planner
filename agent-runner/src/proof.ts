@@ -361,7 +361,7 @@ function overallFromChecks(checks: ProofCheck[]): 'pass' | 'fail' | 'partial' {
   return 'pass'
 }
 
-export function renderProofSection(proof: ProofPack): string {
+export function renderProofSection(proof: ProofPack, link = proofLink): string {
   const lines = [PROOF_START, '## Verification proof', '']
   lines.push(`**Verification result: ${proof.state.toUpperCase()}**`)
   lines.push('')
@@ -399,7 +399,7 @@ export function renderProofSection(proof: ProofPack): string {
     lines.push('|---|---:|---|')
     for (const check of commandChecks) {
       const output = check.outputPath
-        ? `[log](${proofLink(artifactCommitSha, `${root}/${check.outputPath}`)})`
+        ? `[log](${link(artifactCommitSha, `${root}/${check.outputPath}`)})`
         : 'Not recorded'
       lines.push(
         `| \`${escapeCode(check.command ?? '')}\` | ${check.exitCode ?? 'N/A'} | ${output} |`,
@@ -414,10 +414,10 @@ export function renderProofSection(proof: ProofPack): string {
     for (const screenshot of screenshots) {
       const label = screenshot.path.includes('mobile') ? 'Mobile result' : 'Desktop result'
       lines.push(`**${label}**`, '')
-      lines.push(`![${label}](${proofLink(artifactCommitSha, `${root}/${screenshot.path}`, true)})`, '')
+      lines.push(`![${label}](${link(artifactCommitSha, `${root}/${screenshot.path}`, true)})`, '')
     }
     for (const video of videos) {
-      lines.push(`- [Watch the recorded user flow](${proofLink(artifactCommitSha, `${root}/${video.path}`)})`)
+      lines.push(`- [Watch the recorded user flow](${link(artifactCommitSha, `${root}/${video.path}`)})`)
     }
   }
 
@@ -440,7 +440,7 @@ export function renderProofSection(proof: ProofPack): string {
     lines.push(...proof.errors.map((error) => `- ${escapeMarkdown(error)}`))
   }
 
-  lines.push('', `[Open the full proof report](${proofLink(artifactCommitSha, `${root}/report.md`)})`)
+  lines.push('', `[Open the full proof report](${link(artifactCommitSha, `${root}/report.md`)})`)
   lines.push('', PROOF_END)
   return lines.join('\n')
 }

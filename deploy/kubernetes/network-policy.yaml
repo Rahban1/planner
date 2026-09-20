@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planner-ingress
+spec:
+  podSelector:
+    matchLabels: { app: planner }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        # OAuth2 Proxy must use this label in the planner namespace.
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: oauth2-proxy }
+        - podSelector:
+            matchLabels: { app: planner-runner }
+      ports:
+        - { protocol: TCP, port: 3000 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planner-runner-ingress
+spec:
+  podSelector:
+    matchLabels: { app: planner-runner }
+  policyTypes: [Ingress]
+  ingress: []
