@@ -32,9 +32,10 @@ services:
     environment:
       - PLANNER_BASE_URL=${PLANNER_BASE_URL:-http://host.docker.internal:3000}
       - OPENHANDS_BASE_URL=http://openhands-agent-server:8000
-      - LLM_MODEL=${LLM_MODEL:-openai/kimi-k2.6}
-      - LLM_API_KEY=${LLM_API_KEY}
-      - LLM_API_BASE=${LLM_API_BASE:-https://opencode.ai/zen/go/v1}
+      - LLM_MODEL=${LLM_MODEL:-anthropic/claude-sonnet-5}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_BASE=${LLM_API_BASE:-https://api.anthropic.com}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - RUNNER_API_TOKEN=${RUNNER_API_TOKEN:-}
       - RUNNER_WORKSPACE=/workspace/runs

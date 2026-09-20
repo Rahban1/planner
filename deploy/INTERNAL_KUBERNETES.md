@@ -25,7 +25,7 @@ You must supply these values. The repository cannot determine them:
 - A storage class with a block volume and a local filesystem such as ext4 or XFS.
 - Your OAuth2 Proxy configuration and pod labels.
 - The Bitbucket Data Center base URL and two user access tokens.
-- An approved LLM endpoint, model identifier, and API key.
+- An Anthropic Console API key with access to the selected Claude model.
 - The company CA bundle, if internal services use a private CA.
 
 Use a Kubernetes CNI that enforces NetworkPolicy. This is required for proxy authentication.
@@ -96,12 +96,18 @@ Edit `deploy/kubernetes/settings.env`:
 
 - Set `APP_ORIGIN` to the public HTTPS origin, without a final slash.
 - Set `BITBUCKET_BASE_URL` to your Bitbucket URL. Include its context path, if applicable.
-- Set `LLM_MODEL` and `LLM_API_BASE` to the values from your approved model service.
+- Keep `LLM_MODEL=anthropic/claude-sonnet-5` and `LLM_API_BASE=https://api.anthropic.com` for the direct Claude API.
 - Keep `AUTH_MODE=oauth2_proxy` and `SCM_PROVIDER=bitbucket_data_center`.
 
-The model identifier is provider-specific. The example is not a required company model.
+The `anthropic/` prefix selects the Anthropic provider in OpenHands.
 
-No request goes to OpenCode Go when you supply the internal endpoint.
+To use another Claude model, change `LLM_MODEL` and keep that prefix.
+
+Allow outbound HTTPS from the runner pod to `api.anthropic.com` on port 443.
+
+No OpenCode account or key is required. The default configuration sends model requests directly to Anthropic.
+
+If your company requires a gateway, set `LLM_API_BASE` to its Anthropic-compatible base URL.
 
 
 Create the local secret file:
@@ -112,7 +118,17 @@ cp deploy/kubernetes/secrets.env.example deploy/kubernetes/secrets.env
 openssl rand -hex 32
 ```
 
-Put the generated token in `RUNNER_API_TOKEN`. Set the other three secrets.
+Put the generated token in `RUNNER_API_TOKEN`. Set the two Bitbucket tokens.
+
+Put your Anthropic Console API key in `ANTHROPIC_API_KEY`. A Claude chat subscription is not an API key.
+
+The runner receives this key from the Kubernetes Secret. It passes the key to OpenHands through loopback inside the runner pod.
+
+The browser and Planner app container do not receive this key.
+
+For an existing installation, replace the old `LLM_API_KEY` entry in `secrets.env` with `ANTHROPIC_API_KEY` before you apply this version.
+
+The runner still accepts `LLM_API_KEY` for older custom deployments. For an Anthropic model, `ANTHROPIC_API_KEY` takes priority.
 
 Use a Bitbucket user token for `SCM_TOKEN`, with clone, branch push, and pull-request permissions.
 
@@ -365,6 +381,8 @@ See `deploy/VALIDATION.md` for the checks from this branch.
 
 
 ## Reference
+
+- [Claude models](https://platform.claude.com/docs/en/models/overview)
 
 - [TanStack Start deployment](https://tanstack.com/start/latest/docs/framework/react/guide/hosting)
 - [OAuth2 Proxy options](https://oauth2-proxy.github.io/oauth2-proxy/7.8.x/configuration/overview/)

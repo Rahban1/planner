@@ -49,9 +49,9 @@ spec:
             - name: SCM_TOKEN
               valueFrom:
                 { secretKeyRef: { name: planner-secrets, key: SCM_TOKEN } }
-            - name: LLM_API_KEY
+            - name: ANTHROPIC_API_KEY
               valueFrom:
-                { secretKeyRef: { name: planner-secrets, key: LLM_API_KEY } }
+                { secretKeyRef: { name: planner-secrets, key: ANTHROPIC_API_KEY } }
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: { drop: [ALL] }

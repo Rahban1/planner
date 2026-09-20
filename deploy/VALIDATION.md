@@ -47,3 +47,19 @@ Proof images:
 - [Phone](proof/mobile.png)
 
 Complete the company acceptance procedure in [the installation guide](INTERNAL_KUBERNETES.md) before normal use.
+
+## Claude API update — 2026-09-20
+
+The backend now defaults to Claude Sonnet 5 through the direct Anthropic API.
+
+These checks were repeated for this update:
+
+- TypeScript and ESLint: PASS, with the same two generated-file warnings.
+- Cloudflare and internal Node.js builds: PASS.
+- App tests: PASS, 60 tests.
+- Runner tests: PASS, 64 tests. These include Claude key selection, endpoint selection, and the OpenHands request contract.
+- Internal runtime and storage tests on Node.js 24.21.0: PASS, 4 tests.
+- Kustomize render with test secrets: PASS. The runner references `ANTHROPIC_API_KEY` and the Anthropic endpoint.
+
+A live Claude request was not run because no Anthropic API key was supplied.
+The container images were not rebuilt for this update. Rebuild and publish them with a new tag before deployment.

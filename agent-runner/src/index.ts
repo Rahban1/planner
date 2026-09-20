@@ -2,6 +2,7 @@ import { mkdir, rm, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
+import { resolveLlmConfig } from './llm-config.js'
 import { getPullRequestState, parseRepoUrl } from './github.js'
 import type { TerminalExecutionStatus } from './polling.js'
 import {
@@ -85,9 +86,11 @@ const PLANNER_BASE_URL =
   process.env.PLANNER_BASE_URL ?? 'http://host.docker.internal:3000'
 const OPENHANDS_BASE_URL =
   process.env.OPENHANDS_BASE_URL ?? 'http://openhands-agent-server:8000'
-const LLM_MODEL = process.env.LLM_MODEL ?? 'openai/kimi-k2.6'
-const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
-const LLM_API_BASE = process.env.LLM_API_BASE ?? 'https://opencode.ai/zen/go/v1'
+const {
+  model: LLM_MODEL,
+  apiKey: LLM_API_KEY,
+  apiBase: LLM_API_BASE,
+} = resolveLlmConfig(process.env)
 const GITHUB_TOKEN = process.env.SCM_TOKEN ?? process.env.GITHUB_TOKEN ?? ''
 const RUNNER_API_TOKEN = process.env.RUNNER_API_TOKEN ?? ''
 const RUNNER_RUN_ID = process.env.RUNNER_RUN_ID?.trim() ?? ''
@@ -122,7 +125,7 @@ async function main() {
 
   if (!LLM_API_KEY) {
     console.warn(
-      '[runner] LLM_API_KEY is not set. OpenHands will fail to call the LLM.',
+      '[runner] ANTHROPIC_API_KEY (or LLM_API_KEY) is not set. OpenHands will fail to call the LLM.',
     )
   }
 
@@ -378,10 +381,16 @@ async function fetchTaskContext(run: AgentRun): Promise<TaskContext> {
   if (!task) throw new Error('Task context not found')
   const snapshotUrls =
     run.repositories?.map((repository) => repository.repoUrl) ?? []
-  const result = snapshotUrls.length === 0 ? task : { ...task, repoUrl: snapshotUrls[0], repoUrls: snapshotUrls }
+  const result =
+    snapshotUrls.length === 0
+      ? task
+      : { ...task, repoUrl: snapshotUrls[0], repoUrls: snapshotUrls }
   if (process.env.SCM_PROVIDER === 'bitbucket_data_center') {
     for (const url of uniqueRepoUrls(result.repoUrl, result.repoUrls)) {
-      if (!parseRepoUrl(url)) throw new Error('Use an HTTPS clone URL from the configured Bitbucket server')
+      if (!parseRepoUrl(url))
+        throw new Error(
+          'Use an HTTPS clone URL from the configured Bitbucket server',
+        )
     }
   }
   return result
@@ -1145,12 +1154,12 @@ const ERROR_PATTERNS = [
   {
     pattern: /LLMBadRequestError/i,
     message:
-      'LLM request failed. Check LLM_MODEL / LLM_API_BASE / LLM_API_KEY.',
+      'LLM request failed. Check LLM_MODEL / LLM_API_BASE / ANTHROPIC_API_KEY (or LLM_API_KEY).',
   },
   {
     pattern: /LLM.*Error/i,
     message:
-      'LLM request failed. Check LLM_MODEL / LLM_API_BASE / LLM_API_KEY.',
+      'LLM request failed. Check LLM_MODEL / LLM_API_BASE / ANTHROPIC_API_KEY (or LLM_API_KEY).',
   },
 ]
 
