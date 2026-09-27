@@ -91,7 +91,7 @@ const {
   apiKey: LLM_API_KEY,
   apiBase: LLM_API_BASE,
 } = resolveLlmConfig(process.env)
-const GITHUB_TOKEN = process.env.SCM_TOKEN ?? process.env.GITHUB_TOKEN ?? ''
+const GITHUB_TOKEN = process.env.SCM_TOKEN ?? ''
 const RUNNER_API_TOKEN = process.env.RUNNER_API_TOKEN ?? ''
 const RUNNER_RUN_ID = process.env.RUNNER_RUN_ID?.trim() ?? ''
 const RUNNER_JOB_ID = process.env.RUNNER_JOB_ID?.trim() ?? ''
@@ -1137,19 +1137,19 @@ const ERROR_PATTERNS = [
   },
   {
     pattern: /fatal:\s*Authentication failed/i,
-    message: 'Git authentication failed. Check GITHUB_TOKEN permissions.',
+    message: 'Git authentication failed. Check SCM_TOKEN permissions.',
   },
   {
     pattern: /HTTP 403/i,
-    message: 'Received HTTP 403 from GitHub. Check GITHUB_TOKEN permissions.',
+    message: 'Received HTTP 403 from the SCM server. Check SCM_TOKEN permissions.',
   },
   {
     pattern: /HTTP 404/i,
-    message: 'Received HTTP 404 from GitHub. Repository may not exist.',
+    message: 'Received HTTP 404 from the SCM server. Repository may not exist.',
   },
   {
     pattern: /gh:\s*Not logged into/i,
-    message: 'GitHub CLI (gh) is not authenticated. Check GITHUB_TOKEN.',
+    message: 'GitHub CLI (gh) is not authenticated. Check SCM_TOKEN.',
   },
   {
     pattern: /LLMBadRequestError/i,

@@ -24,14 +24,12 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as ApiRunnerSplatRouteImport } from './routes/api/runner/$'
 import { Route as ApiChatTaskIdRouteImport } from './routes/api/chat/$taskId'
-import { Route as ApiAuthStartRouteImport } from './routes/api/auth/start'
-import { Route as ApiAuthProvidersRouteImport } from './routes/api/auth/providers'
+import { Route as ApiAuthSsoRouteImport } from './routes/api/auth/sso'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiAuthLocalProofRouteImport } from './routes/api/auth/local-proof'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
 import { Route as ProjectsIdTasksTaskIdRouteImport } from './routes/projects.$id.tasks.$taskId'
 import { Route as ApiAuthCloudflareCallbackRouteImport } from './routes/api/auth/cloudflare/callback'
-import { Route as ApiAuthCallbackProviderRouteImport } from './routes/api/auth/callback.$provider'
 
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
@@ -108,14 +106,9 @@ const ApiChatTaskIdRoute = ApiChatTaskIdRouteImport.update({
   path: '/api/chat/$taskId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAuthStartRoute = ApiAuthStartRouteImport.update({
-  id: '/api/auth/start',
-  path: '/api/auth/start',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthProvidersRoute = ApiAuthProvidersRouteImport.update({
-  id: '/api/auth/providers',
-  path: '/api/auth/providers',
+const ApiAuthSsoRoute = ApiAuthSsoRouteImport.update({
+  id: '/api/auth/sso',
+  path: '/api/auth/sso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
@@ -144,11 +137,6 @@ const ApiAuthCloudflareCallbackRoute =
     path: '/api/auth/cloudflare/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiAuthCallbackProviderRoute = ApiAuthCallbackProviderRouteImport.update({
-  id: '/api/auth/callback/$provider',
-  path: '/api/auth/callback/$provider',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -167,11 +155,9 @@ export interface FileRoutesByFullPath {
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
-  '/api/auth/providers': typeof ApiAuthProvidersRoute
-  '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/auth/sso': typeof ApiAuthSsoRoute
   '/api/chat/$taskId': typeof ApiChatTaskIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
-  '/api/auth/callback/$provider': typeof ApiAuthCallbackProviderRoute
   '/api/auth/cloudflare/callback': typeof ApiAuthCloudflareCallbackRoute
   '/projects/$id/tasks/$taskId': typeof ProjectsIdTasksTaskIdRoute
 }
@@ -190,11 +176,9 @@ export interface FileRoutesByTo {
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
-  '/api/auth/providers': typeof ApiAuthProvidersRoute
-  '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/auth/sso': typeof ApiAuthSsoRoute
   '/api/chat/$taskId': typeof ApiChatTaskIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
-  '/api/auth/callback/$provider': typeof ApiAuthCallbackProviderRoute
   '/api/auth/cloudflare/callback': typeof ApiAuthCloudflareCallbackRoute
   '/projects/$id/tasks/$taskId': typeof ProjectsIdTasksTaskIdRoute
 }
@@ -216,11 +200,9 @@ export interface FileRoutesById {
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/local-proof': typeof ApiAuthLocalProofRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
-  '/api/auth/providers': typeof ApiAuthProvidersRoute
-  '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/auth/sso': typeof ApiAuthSsoRoute
   '/api/chat/$taskId': typeof ApiChatTaskIdRoute
   '/api/runner/$': typeof ApiRunnerSplatRoute
-  '/api/auth/callback/$provider': typeof ApiAuthCallbackProviderRoute
   '/api/auth/cloudflare/callback': typeof ApiAuthCloudflareCallbackRoute
   '/projects/$id/tasks/$taskId': typeof ProjectsIdTasksTaskIdRoute
 }
@@ -243,11 +225,9 @@ export interface FileRouteTypes {
     | '/api/attachments/$id'
     | '/api/auth/local-proof'
     | '/api/auth/logout'
-    | '/api/auth/providers'
-    | '/api/auth/start'
+    | '/api/auth/sso'
     | '/api/chat/$taskId'
     | '/api/runner/$'
-    | '/api/auth/callback/$provider'
     | '/api/auth/cloudflare/callback'
     | '/projects/$id/tasks/$taskId'
   fileRoutesByTo: FileRoutesByTo
@@ -266,11 +246,9 @@ export interface FileRouteTypes {
     | '/api/attachments/$id'
     | '/api/auth/local-proof'
     | '/api/auth/logout'
-    | '/api/auth/providers'
-    | '/api/auth/start'
+    | '/api/auth/sso'
     | '/api/chat/$taskId'
     | '/api/runner/$'
-    | '/api/auth/callback/$provider'
     | '/api/auth/cloudflare/callback'
     | '/projects/$id/tasks/$taskId'
   id:
@@ -291,11 +269,9 @@ export interface FileRouteTypes {
     | '/api/attachments/$id'
     | '/api/auth/local-proof'
     | '/api/auth/logout'
-    | '/api/auth/providers'
-    | '/api/auth/start'
+    | '/api/auth/sso'
     | '/api/chat/$taskId'
     | '/api/runner/$'
-    | '/api/auth/callback/$provider'
     | '/api/auth/cloudflare/callback'
     | '/projects/$id/tasks/$taskId'
   fileRoutesById: FileRoutesById
@@ -313,11 +289,9 @@ export interface RootRouteChildren {
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiAuthLocalProofRoute: typeof ApiAuthLocalProofRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
-  ApiAuthProvidersRoute: typeof ApiAuthProvidersRoute
-  ApiAuthStartRoute: typeof ApiAuthStartRoute
+  ApiAuthSsoRoute: typeof ApiAuthSsoRoute
   ApiChatTaskIdRoute: typeof ApiChatTaskIdRoute
   ApiRunnerSplatRoute: typeof ApiRunnerSplatRoute
-  ApiAuthCallbackProviderRoute: typeof ApiAuthCallbackProviderRoute
   ApiAuthCloudflareCallbackRoute: typeof ApiAuthCloudflareCallbackRoute
 }
 
@@ -428,18 +402,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatTaskIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/auth/start': {
-      id: '/api/auth/start'
-      path: '/api/auth/start'
-      fullPath: '/api/auth/start'
-      preLoaderRoute: typeof ApiAuthStartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/providers': {
-      id: '/api/auth/providers'
-      path: '/api/auth/providers'
-      fullPath: '/api/auth/providers'
-      preLoaderRoute: typeof ApiAuthProvidersRouteImport
+    '/api/auth/sso': {
+      id: '/api/auth/sso'
+      path: '/api/auth/sso'
+      fullPath: '/api/auth/sso'
+      preLoaderRoute: typeof ApiAuthSsoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/logout': {
@@ -475,13 +442,6 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/cloudflare/callback'
       fullPath: '/api/auth/cloudflare/callback'
       preLoaderRoute: typeof ApiAuthCloudflareCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/callback/$provider': {
-      id: '/api/auth/callback/$provider'
-      path: '/api/auth/callback/$provider'
-      fullPath: '/api/auth/callback/$provider'
-      preLoaderRoute: typeof ApiAuthCallbackProviderRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -538,11 +498,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiAuthLocalProofRoute: ApiAuthLocalProofRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
-  ApiAuthProvidersRoute: ApiAuthProvidersRoute,
-  ApiAuthStartRoute: ApiAuthStartRoute,
+  ApiAuthSsoRoute: ApiAuthSsoRoute,
   ApiChatTaskIdRoute: ApiChatTaskIdRoute,
   ApiRunnerSplatRoute: ApiRunnerSplatRoute,
-  ApiAuthCallbackProviderRoute: ApiAuthCallbackProviderRoute,
   ApiAuthCloudflareCallbackRoute: ApiAuthCloudflareCallbackRoute,
 }
 export const routeTree = rootRouteImport

@@ -13,5 +13,4 @@ export const env = {
   DB: database,
   ATTACHMENTS: fileBucket(resolve(directory, 'files')),
   TASK_CHAT_ROOMS: undefined,
-  GITHUB_ACTIONS_DISPATCH_TOKEN: undefined,
 } as unknown as Env

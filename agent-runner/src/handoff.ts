@@ -119,7 +119,7 @@ export async function publishProofToPullRequest({
   }
 
   if (!token) {
-    throw new Error('GITHUB_TOKEN is required to publish the proof section.')
+    throw new Error('SCM_TOKEN is required to publish the proof section.')
   }
 
   const details = await github.getPullRequestDetails(resolvedPrUrl, token)

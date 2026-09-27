@@ -4,7 +4,7 @@ services:
   openhands-agent-server:
     build:
       context: ./agent-runner
-      dockerfile: Dockerfile.agent-server
+      dockerfile: Dockerfile.agent-server.internal
     container_name: planner-openhands-agent-server
     ports:
       - "8000:8000"
@@ -12,7 +12,8 @@ services:
       - agent-workspace:/workspace/runs
     environment:
       - PYTHONUNBUFFERED=1
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - BITBUCKET_BASE_URL=${BITBUCKET_BASE_URL}
+      - SCM_TOKEN=${SCM_TOKEN}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/alive"]
       interval: 5s
@@ -22,7 +23,7 @@ services:
   agent-runner:
     build:
       context: ./agent-runner
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.internal
     container_name: planner-agent-runner
     depends_on:
       openhands-agent-server:
@@ -36,7 +37,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_API_BASE=${LLM_API_BASE:-https://api.anthropic.com}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - BITBUCKET_BASE_URL=${BITBUCKET_BASE_URL}
+      - SCM_TOKEN=${SCM_TOKEN}
       - RUNNER_API_TOKEN=${RUNNER_API_TOKEN:-}
       - RUNNER_WORKSPACE=/workspace/runs
     restart: unless-stopped

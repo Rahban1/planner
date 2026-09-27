@@ -144,7 +144,7 @@ export async function prepareRevisionRepositories(
   deps: { readPr?: ReadPr; git?: Git } = {},
 ): Promise<PreparedReviewRepository[]> {
   if (!token)
-    throw new Error('GITHUB_TOKEN is required to revise pull requests.')
+    throw new Error('SCM_TOKEN is required to revise pull requests.')
   if (!review.instruction.trim())
     throw new Error('A change request is required.')
   const readPr = deps.readPr ?? getPullRequestDetails
@@ -291,7 +291,7 @@ export async function loadReviewSnapshot(
   fetchImpl: typeof fetch = fetch,
 ): Promise<string> {
   if (!token)
-    throw new Error('GITHUB_TOKEN is required to read pull request changes.')
+    throw new Error('SCM_TOKEN is required to read pull request changes.')
   const snapshots: string[] = []
   let remaining = 100_000
   for (const repository of review.repositories) {
