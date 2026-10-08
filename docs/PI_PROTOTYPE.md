@@ -24,7 +24,7 @@ On startup, the Pi runner finds its saved runs and checks their Planner status. 
 
 Pi provides `read`, `bash`, `edit`, and `write` tools. Questions use Pi read-only tools. Plan and implementation runs retain the current runner prompts and output files. Plan restrictions still depend on those prompts. The prototype needs stronger plan controls before production use.
 
-The backend supports the runner interfaces for answers, plans, implementation, and PR revisions. The current proof checks and PR code still handle results. A native browser tool is not part of this prototype. Live repository tasks, browser proof, and GitHub publication remain unverified.
+The backend supports the runner interfaces for answers, plans, implementation, and PR revisions. The current proof checks and PR code still handle results. A native browser tool is not part of this prototype. A live repository plan passed. Live implementation, PR revisions, browser proof, and GitHub publication remain unverified.
 
 Pi Durable is experimental. Its API can change. The prototype pins the Pi packages to version 1.0.0. Node.js 22.19.0 or later is required. One Pi runner owns each state directory. A storage lock permits only one process to open that directory.
 
@@ -94,5 +94,11 @@ pnpm run deploy
 The Pi runner runs in Docker Desktop on this Mac. The Planner app runs on Cloudflare. Keep the Mac and Docker active while tasks run. Do not remove the state volume or auth directory.
 
 The previous Worker version is `3492e64d-93d7-41af-b4d3-2938c62bf9c0`. To restore its task route, stop the Pi runner and use `pnpm exec wrangler rollback 3492e64d-93d7-41af-b4d3-2938c62bf9c0`. The previous route uses GitHub Actions. The Pi change needs no database migration.
+
+Deployment completed on 8 October 2026. The live Worker version is `2a5d7381-68ea-49f6-9f16-6dd1b558b56f`. The source commit is `915fd40` on [ch/pi-durable-prototype](https://github.com/Rahban1/planner/tree/ch/pi-durable-prototype). The container `planner-pi-agent-runner` is healthy. The previous OpenHands containers are stopped.
+
+The private acceptance task reached `plan_ready` with a 3,453-character plan. Its run ID is `85c79be5-0ec4-4afb-ae48-2df168b52638`. Pi used `openai-codex/gpt-6.1-sol` through your ChatGPT login. The cloned repository had no file changes. No GitHub Actions job or PR was created. The test project is archived.
+
+D1 uses the existing `runner_backend=local` label for this bridge runner. The Pi startup log and saved run record confirm the Pi engine. The Worker setting `RUNNER_BACKEND=docker` controls task dispatch. Requests without the runner token receive HTTP 401.
 
 Sources: [Pi Durable documentation](https://github.com/earendil-works/pi/blob/main/packages/durable/README.md), [Pi provider documentation](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/providers.md), and [OpenAI ChatGPT plan access in other tools](https://help.openai.com/en/articles/20001542-using-your-chatgpt-plan-in-other-apps-and-sites).
