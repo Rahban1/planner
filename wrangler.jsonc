@@ -4,6 +4,7 @@
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "vars": {
+    "RUNNER_BACKEND": "docker",
     "CF_ACCESS_TEAM_DOMAIN": "https://lingering-morning-658a.cloudflareaccess.com",
     "CF_ACCESS_AUDIENCE": "ca0e50f2e3868fb061ee50e86db5a908e7fc22197b29fd836c4b6ef49c3e40d9",
     "GITHUB_ACTIONS_OWNER": "Rahban1",

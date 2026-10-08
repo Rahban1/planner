@@ -1,0 +1,38 @@
+# The production Pi runner uses a ChatGPT login and persistent task storage.
+name: planner-pi
+services:
+  agent-runner:
+    container_name: planner-pi-agent-runner
+    image: planner-pi-agent-runner:local
+    build:
+      context: ./agent-runner
+      dockerfile: Dockerfile.pi
+    environment:
+      AGENT_ENGINE: pi
+      PLANNER_BASE_URL: ${PLANNER_BASE_URL:?Set the production Planner URL}
+      RUNNER_API_TOKEN: ${RUNNER_API_TOKEN:?Set the runner bridge token}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:?Set the GitHub token}
+      RUNNER_WORKSPACE: /workspace/runs
+      PI_STATE_DIR: /workspace/pi-state
+      PI_AUTH_DIR: /pi-auth
+      PI_MODEL: ${PI_MODEL:-gpt-6.1-sol}
+    volumes:
+      - pi-workspace:/workspace
+      - ${PI_AUTH_DIR:-./.pi-prototype/auth}:/pi-auth
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - --input-type=module
+        - -e
+        - "import { piAuthStatus } from './dist/pi.js'; process.exit(piAuthStatus('/pi-auth').configured ? 0 : 1)"
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  pi-workspace:
+    name: planner-pi-workspace

@@ -1,0 +1,13 @@
+FROM node:22.19.0-bookworm-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git ripgrep python3 time \
+    && rm -rf /var/lib/apt/lists/*
+RUN corepack enable
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci
+COPY src ./src
+RUN npm run build
+ENV AGENT_ENGINE=pi
+ENV NODE_ENV=production
+CMD ["node", "dist/index.js"]

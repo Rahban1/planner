@@ -1,0 +1,24 @@
+# PROTOTYPE: Pi backend with ChatGPT subscription auth and persistent state.
+services:
+  pi-agent-runner:
+    build:
+      context: ./agent-runner
+      dockerfile: Dockerfile.pi-prototype
+    environment:
+      AGENT_ENGINE: pi
+      PLANNER_BASE_URL: ${PLANNER_BASE_URL:-http://host.docker.internal:3000}
+      RUNNER_API_TOKEN: ${RUNNER_API_TOKEN:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      RUNNER_WORKSPACE: /workspace/runs
+      PI_STATE_DIR: /workspace/pi-state
+      PI_AUTH_DIR: /pi-auth
+      PI_MODEL: ${PI_MODEL:-gpt-6.1-sol}
+    volumes:
+      - pi-prototype-workspace:/workspace
+      # The host and container use the same writable store for OAuth refresh.
+      - ${PI_AUTH_DIR:-./.pi-prototype/auth}:/pi-auth
+    restart: unless-stopped
+    init: true
+
+volumes:
+  pi-prototype-workspace:

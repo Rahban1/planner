@@ -8,13 +8,25 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
+    "pi:login": "npm run build && node dist/pi-login.js",
+    "pi:status": "npm run build && node dist/pi-login.js --status",
+    "pi:live": "npm run build && node dist/pi-live-demo.js",
+    "prototype:pi": "npm run build && node prototypes/pi-durable/demo.mjs",
     "test": "npm run build && node --test test/*.test.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.0.0",
+    "@earendil-works/pi-ai": "1.0.0",
+    "@earendil-works/pi-coding-agent": "1.0.0",
+    "@earendil-works/pi-durable": "1.0.0",
+    "proper-lockfile": "4.1.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/proper-lockfile": "4.1.4",
     "typescript": "^5.7.0"
   }
 }

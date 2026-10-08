@@ -34,6 +34,9 @@ export async function withRunRepositories<T extends { id: string }>(
 }
 
 export async function dispatchQueuedRun(runId: string) {
+  // The persistent Docker runner claims queued runs through the runner bridge.
+  // Do not also start a GitHub Actions job for the same run.
+  if (env.RUNNER_BACKEND === 'docker') return null
   if (!env.GITHUB_ACTIONS_DISPATCH_TOKEN) return null
   const [run] = await db
     .select()

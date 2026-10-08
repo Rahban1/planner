@@ -1,7 +1,9 @@
-import { mkdir, rm, readFile } from 'node:fs/promises'
+import { mkdir, rm, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { OpenHandsClient } from './openhands.js'
+import { PiClient, PI_DEFAULT_MODEL } from './pi.js'
+import type { AgentBackend } from './agent-backend.js'
 import { getPullRequestState } from './github.js'
 import type { TerminalExecutionStatus } from './polling.js'
 import {
@@ -80,7 +82,10 @@ interface TaskContext {
 }
 
 const POLL_INTERVAL_MS = 3000
+const AGENT_ENGINE = process.env.AGENT_ENGINE ?? 'openhands'
 const WORKSPACE_ROOT = process.env.RUNNER_WORKSPACE ?? '/tmp/agent-workspace'
+const PI_STATE_DIR =
+  process.env.PI_STATE_DIR ?? join(WORKSPACE_ROOT, '.pi-durable')
 const PLANNER_BASE_URL =
   process.env.PLANNER_BASE_URL ?? 'http://host.docker.internal:3000'
 const OPENHANDS_BASE_URL =
@@ -117,29 +122,55 @@ async function main() {
     return
   }
 
-  console.log('[runner] openhands:', OPENHANDS_BASE_URL)
-  console.log('[runner] model:', LLM_MODEL)
-
-  if (!LLM_API_KEY) {
+  if (AGENT_ENGINE !== 'pi' && AGENT_ENGINE !== 'openhands') {
+    throw new Error('AGENT_ENGINE must be pi or openhands.')
+  }
+  console.log('[runner] engine:', AGENT_ENGINE)
+  console.log(
+    '[runner] model:',
+    AGENT_ENGINE === 'pi'
+      ? (process.env.PI_MODEL ?? PI_DEFAULT_MODEL)
+      : LLM_MODEL,
+  )
+  if (AGENT_ENGINE === 'openhands' && !LLM_API_KEY) {
     console.warn(
       '[runner] LLM_API_KEY is not set. OpenHands will fail to call the LLM.',
     )
   }
+  const openhands: AgentBackend =
+    AGENT_ENGINE === 'pi'
+      ? await PiClient.create({
+          stateDir: PI_STATE_DIR,
+          authDir: process.env.PI_AUTH_DIR,
+          modelId: process.env.PI_MODEL,
+        })
+      : new OpenHandsClient({
+          baseUrl: OPENHANDS_BASE_URL,
+          llmModel: LLM_MODEL,
+          llmApiKey: LLM_API_KEY,
+          llmApiBase: LLM_API_BASE,
+          timeoutMs: MAX_RUNTIME_MS,
+        })
 
-  const openhands = new OpenHandsClient({
-    baseUrl: OPENHANDS_BASE_URL,
-    llmModel: LLM_MODEL,
-    llmApiKey: LLM_API_KEY,
-    llmApiBase: LLM_API_BASE,
-    timeoutMs: MAX_RUNTIME_MS,
-  })
-
-  // Wait for OpenHands Agent Server to be ready
+  // Wait for the selected backend to be ready.
   while (!(await openhands.checkAlive())) {
-    console.log('[runner] waiting for OpenHands Agent Server...')
+    console.log('[runner] waiting for agent backend...')
     await sleep(3000)
   }
-  console.log('[runner] OpenHands Agent Server is alive')
+  console.log('[runner] agent backend is ready')
+
+  // One persistent Pi runner owns this storage. Recover D1 runs that this
+  // runner already admitted, including a completed agent awaiting D1 updates.
+  if (openhands instanceof PiClient) {
+    for (const id of await openhands.listRunIds()) {
+      if (RUNNER_RUN_ID && id !== RUNNER_RUN_ID) continue
+      const run = await plannerFetch<AgentRun>(`/api/runner/runs/${id}`)
+      if (run?.status === 'running') {
+        console.log(`[runner] resume Pi run ${id}`)
+        await processRun(run, openhands)
+      }
+    }
+  }
 
   if (RUNNER_RUN_ID) {
     const run = await claimRun(RUNNER_RUN_ID)
@@ -147,10 +178,12 @@ async function main() {
       console.log(
         `[runner] run ${RUNNER_RUN_ID} was already claimed or is no longer queued`,
       )
+      if (openhands instanceof PiClient) await openhands.close()
       return
     }
     console.log(`[runner] claimed exact run ${run.id}`)
     await processRun(run, openhands)
+    if (openhands instanceof PiClient) await openhands.close()
     return
   }
 
@@ -220,7 +253,7 @@ function watchForUserStop(runId: string, onStop: () => void): () => void {
 }
 
 async function driveConversation(
-  openhands: OpenHandsClient,
+  openhands: AgentBackend,
   conversationId: string,
   append: AppendFn,
   startedAt: number,
@@ -302,7 +335,7 @@ async function postTaskMessage(run: AgentRun, body: string, kind: string) {
   })
 }
 
-async function processAnswerRun(run: AgentRun, openhands: OpenHandsClient) {
+async function processAnswerRun(run: AgentRun, openhands: AgentBackend) {
   const logs: LogEntry[] = [
     {
       t: Date.now(),
@@ -327,7 +360,7 @@ async function processAnswerRun(run: AgentRun, openhands: OpenHandsClient) {
     const conversation = await openhands.startConversation(
       buildAnswerPrompt({ ...withAttachmentUrls(task), reviewSnapshot }),
       workspace,
-      { readOnly: true },
+      { readOnly: true, runId: run.id },
     )
     await openhands.runConversation(conversation.id)
     const idleTimedOut = await driveConversation(
@@ -364,6 +397,17 @@ async function processAnswerRun(run: AgentRun, openhands: OpenHandsClient) {
 
 async function prepareWorkspace(runId: string): Promise<string> {
   const workspace = join(WORKSPACE_ROOT, runId)
+  if (
+    AGENT_ENGINE === 'pi' &&
+    existsSync(join(PI_STATE_DIR, runId, 'run.json'))
+  ) {
+    if (!existsSync(workspace)) {
+      throw new Error(
+        'The Pi workspace is missing. Restore its files before you resume this run.',
+      )
+    }
+    return workspace
+  }
   if (existsSync(workspace)) {
     await rm(workspace, { recursive: true, force: true })
   }
@@ -420,7 +464,7 @@ async function finishWithError(
   await updateRun(run.id, { status: 'error', errorMessage: fallback })
 }
 
-async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
+async function processPlanRun(run: AgentRun, openhands: AgentBackend) {
   const logs: LogEntry[] = [
     {
       t: Date.now(),
@@ -463,7 +507,10 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
         : 'Starting plan session (read-only)...',
     )
 
-    const conversation = await openhands.startConversation(prompt, workspace)
+    const conversation = await openhands.startConversation(prompt, workspace, {
+      runId: run.id,
+      requestId: `planner:${run.id}:plan:${run.planVersion}`,
+    })
     await append(`Conversation started: ${conversation.id}`)
 
     await openhands.runConversation(conversation.id)
@@ -520,7 +567,7 @@ async function processPlanRun(run: AgentRun, openhands: OpenHandsClient) {
   }
 }
 
-async function processRevisionRun(run: AgentRun, openhands: OpenHandsClient) {
+async function processRevisionRun(run: AgentRun, openhands: AgentBackend) {
   const logs: LogEntry[] = [
     {
       t: Date.now(),
@@ -547,11 +594,20 @@ async function processRevisionRun(run: AgentRun, openhands: OpenHandsClient) {
       throw new Error('The change request has no matching source pull request.')
     }
     const workspace = await prepareWorkspace(run.id)
-    const prepared = await prepareRevisionRepositories(
-      task.review,
-      workspace,
-      GITHUB_TOKEN,
-    )
+    const revisionSnapshot = join(workspace, '.pi-revision-context.json')
+    const prepared: Awaited<ReturnType<typeof prepareRevisionRepositories>> =
+      AGENT_ENGINE === 'pi' && existsSync(revisionSnapshot)
+        ? JSON.parse(await readFile(revisionSnapshot, 'utf8'))
+        : await prepareRevisionRepositories(
+            task.review,
+            workspace,
+            GITHUB_TOKEN,
+          )
+    if (AGENT_ENGINE === 'pi') {
+      await writeFile(revisionSnapshot, JSON.stringify(prepared), {
+        mode: 0o600,
+      })
+    }
     for (const repository of prepared) {
       await append(
         `${repository.writable ? 'Existing review branch' : 'Skipped'}: ${repository.repoUrl} (${repository.branchName ?? repository.status})`,
@@ -562,6 +618,7 @@ async function processRevisionRun(run: AgentRun, openhands: OpenHandsClient) {
         runId: run.id,
       }),
       workspace,
+      { runId: run.id },
     )
     await openhands.runConversation(conversation.id)
     const idleTimedOut = await driveConversation(
@@ -694,11 +751,21 @@ async function processRevisionRun(run: AgentRun, openhands: OpenHandsClient) {
   }
 }
 
-async function processRun(run: AgentRun, openhands: OpenHandsClient) {
-  if (run.kind === 'answer') return processAnswerRun(run, openhands)
-  if (run.kind === 'plan') return processPlanRun(run, openhands)
-  if (run.kind === 'revise') return processRevisionRun(run, openhands)
+async function processRun(run: AgentRun, openhands: AgentBackend) {
+  try {
+    if (run.kind === 'answer') return await processAnswerRun(run, openhands)
+    if (run.kind === 'plan') return await processPlanRun(run, openhands)
+    if (run.kind === 'revise') return await processRevisionRun(run, openhands)
+    return await processImplementationRun(run, openhands)
+  } finally {
+    if (openhands instanceof PiClient) await openhands.release(run.id)
+  }
+}
 
+async function processImplementationRun(
+  run: AgentRun,
+  openhands: AgentBackend,
+) {
   const logs: LogEntry[] = [
     { t: Date.now(), level: 'info', message: 'Agent runner picked up task.' },
   ]
@@ -723,9 +790,13 @@ async function processRun(run: AgentRun, openhands: OpenHandsClient) {
 
     const workspace = await prepareWorkspace(run.id)
     const prompt = buildPrompt(withAttachmentUrls(task), { runId: run.id })
-    await append('Starting OpenHands agent session...')
+    await append(
+      `Start ${AGENT_ENGINE === 'pi' ? 'Pi' : 'OpenHands'} agent session.`,
+    )
 
-    const conversation = await openhands.startConversation(prompt, workspace)
+    const conversation = await openhands.startConversation(prompt, workspace, {
+      runId: run.id,
+    })
     await append(`Conversation started: ${conversation.id}`)
 
     await openhands.runConversation(conversation.id)
